@@ -5,3 +5,4 @@ const config = {
 };
 
 export default config;
+// Created by Swapnil Bapat © 2026

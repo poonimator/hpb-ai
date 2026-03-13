@@ -16,3 +16,4 @@ const eslintConfig = defineConfig([
 ]);
 
 export default eslintConfig;
+// Created by Swapnil Bapat © 2026

@@ -1,0 +1,455 @@
+import "server-only";
+
+import { GoogleGenAI } from "@google/genai";
+import { createHash } from "crypto";
+import fs from "fs";
+import path from "path";
+
+// Load system guardrails
+const guardrailsPath = path.join(process.cwd(), "src/lib/ai/prompts/system_guardrails.md");
+let SYSTEM_GUARDRAILS = "";
+try {
+    SYSTEM_GUARDRAILS = fs.readFileSync(guardrailsPath, "utf-8");
+} catch {
+    console.warn("[Gemini] Could not load system_guardrails.md, using fallback");
+    SYSTEM_GUARDRAILS = `You are an AI for HPB Singapore's interview training tool. 
+All output is synthetic rehearsal. Never provide medical advice. Singapore context only.
+Outputs are training only and cannot inform synthesis.`;
+}
+
+// Constants
+export const DEFAULT_MODEL = "gemini-2.5-flash";
+export const DISCLAIMER = "Synthetic rehearsal output is training only and cannot inform synthesis.";
+
+/**
+ * Get the Gemini client (server-side only)
+ */
+export function getGeminiClient(): GoogleGenAI {
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+        throw new Error(
+            "[Gemini] GEMINI_API_KEY environment variable is not set. " +
+            "Please add it to your .env.local file."
+        );
+    }
+
+    return new GoogleGenAI({ apiKey });
+}
+
+/**
+ * Check if Gemini is configured
+ */
+export function isGeminiConfigured(): boolean {
+    return !!process.env.GEMINI_API_KEY;
+}
+
+/**
+ * Generate a hash for audit logging
+ */
+export function hashContent(content: string): string {
+    return createHash("sha256").update(content).digest("hex").slice(0, 16);
+}
+
+/**
+ * Generate persona response using Gemini
+ */
+export interface GeneratePersonaReplyParams {
+    prompt: string;
+    modelName?: string;
+}
+
+export interface GeneratePersonaReplyResult {
+    content: string;
+    disclaimer: string;
+    modelName: string;
+    latencyMs: number;
+    promptHash: string;
+    responseHash: string;
+    success: boolean;
+    error?: string;
+}
+
+export async function generatePersonaReply(
+    params: GeneratePersonaReplyParams
+): Promise<GeneratePersonaReplyResult> {
+    const { prompt, modelName = DEFAULT_MODEL } = params;
+    const startTime = Date.now();
+    const promptHash = hashContent(prompt);
+
+    try {
+        if (!isGeminiConfigured()) {
+            // Return mock response if not configured
+            return {
+                content: getMockPersonaResponse(),
+                disclaimer: DISCLAIMER,
+                modelName: "mock",
+                latencyMs: Date.now() - startTime,
+                promptHash,
+                responseHash: hashContent("mock"),
+                success: true,
+            };
+        }
+
+        const client = getGeminiClient();
+
+        // Combine system guardrails with the user prompt
+        const fullPrompt = `${SYSTEM_GUARDRAILS}\n\n---\n\n${prompt}`;
+
+        const response = await client.models.generateContent({
+            model: modelName,
+            contents: fullPrompt,
+        });
+
+        const content = response.text || "";
+        const latencyMs = Date.now() - startTime;
+
+        return {
+            content: content.trim(),
+            disclaimer: DISCLAIMER,
+            modelName,
+            latencyMs,
+            promptHash,
+            responseHash: hashContent(content),
+            success: true,
+        };
+    } catch (error) {
+        const latencyMs = Date.now() - startTime;
+        console.error("[Gemini] generatePersonaReply error:", error);
+
+        return {
+            content: getFallbackResponse(),
+            disclaimer: DISCLAIMER,
+            modelName,
+            latencyMs,
+            promptHash,
+            responseHash: hashContent("error"),
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}
+
+/**
+ * Generate coach review using Gemini
+ */
+export interface GenerateCoachReviewParams {
+    prompt: string;
+    modelName?: string;
+}
+
+export interface GenerateCoachReviewResult {
+    content: string;
+    disclaimer: string;
+    modelName: string;
+    latencyMs: number;
+    promptHash: string;
+    responseHash: string;
+    success: boolean;
+    error?: string;
+}
+
+export async function generateCoachReview(
+    params: GenerateCoachReviewParams
+): Promise<GenerateCoachReviewResult> {
+    const { prompt, modelName = DEFAULT_MODEL } = params;
+    const startTime = Date.now();
+    const promptHash = hashContent(prompt);
+
+    try {
+        if (!isGeminiConfigured()) {
+            // Return mock response if not configured
+            return {
+                content: getMockCoachReview(),
+                disclaimer: DISCLAIMER,
+                modelName: "mock",
+                latencyMs: Date.now() - startTime,
+                promptHash,
+                responseHash: hashContent("mock"),
+                success: true,
+            };
+        }
+
+        const client = getGeminiClient();
+
+        // Combine system guardrails with the coach review prompt
+        const fullPrompt = `${SYSTEM_GUARDRAILS}\n\n---\n\n${prompt}`;
+
+        const response = await client.models.generateContent({
+            model: modelName,
+            contents: fullPrompt,
+        });
+
+        const content = response.text || "";
+        const latencyMs = Date.now() - startTime;
+
+        return {
+            content: content.trim(),
+            disclaimer: DISCLAIMER,
+            modelName,
+            latencyMs,
+            promptHash,
+            responseHash: hashContent(content),
+            success: true,
+        };
+    } catch (error) {
+        const latencyMs = Date.now() - startTime;
+        console.error("[Gemini] generateCoachReview error:", error);
+
+        return {
+            content: getMockCoachReview(),
+            disclaimer: DISCLAIMER,
+            modelName,
+            latencyMs,
+            promptHash,
+            responseHash: hashContent("error"),
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}
+
+/**
+ * Fallback response for errors
+ */
+function getFallbackResponse(): string {
+    return "Hmm, I'm not quite sure how to answer that. Can you try rephrasing your question?";
+}
+
+/**
+ * Mock persona response (when API key not configured)
+ */
+function getMockPersonaResponse(): string {
+    const responses = [
+        "Hmm, that's an interesting question leh. Let me think about it...\n\nActually, I would say it depends on the situation lor. Like sometimes I feel one way, but other times different.",
+        "Wah, never really think about it before sia. But now that you ask... I guess for me it's like that because of how I was brought up?",
+        "Eh actually hor, I think many of my friends also feel the same way. It's quite common among people my age one.",
+        "To be honest ah, I'm not so sure about this topic. Can you explain more about what you mean?",
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+}
+
+/**
+ * Mock coach review (when API key not configured)
+ */
+function getMockCoachReview(): string {
+    return JSON.stringify({
+        overallScore: 7,
+        summary:
+            "Good interview technique overall with room for improvement in probing depth.",
+        highlights: [
+            {
+                turn: 1,
+                observation: "Good open-ended opening question that allowed participant to share freely",
+                quote: "Tell me about...",
+            },
+        ],
+        leadingMoments: [
+            {
+                turn: 3,
+                issue: "Question contained an assumption about the participant's feelings",
+                quote: "You must feel frustrated when...",
+                suggestion: "Try: 'How do you feel when...'",
+            },
+        ],
+        missedProbes: [
+            {
+                turn: 2,
+                opportunity: "Participant mentioned something interesting that wasn't followed up",
+                suggestion: "You could ask: 'You mentioned X earlier - can you tell me more about that?'",
+            },
+        ],
+        betterQuestions: [
+            {
+                original: "Don't you think that's a problem?",
+                improved: "How do you see this situation?",
+                rationale: "Removes the leading nature and judgment from the question",
+            },
+        ],
+    });
+}
+
+/**
+ * Generate a reproducibility seed
+ */
+export function generateSeed(): string {
+    return `seed_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Question Validation Types
+ */
+export interface QuestionValidationIssue {
+    type: string;
+    severity: "HIGH" | "MEDIUM" | "LOW";
+    explanation: string;
+    suggestedRewrite: string;
+}
+
+export interface QuestionValidationResult {
+    questionIndex: number;
+    questionLabel: string;
+    originalText: string;
+    issues: QuestionValidationIssue[];
+    overallQuality: "GOOD" | "NEEDS_IMPROVEMENT" | "PROBLEMATIC";
+}
+
+export interface ValidationSummary {
+    totalQuestions: number;
+    goodCount: number;
+    needsImprovementCount: number;
+    problematicCount: number;
+}
+
+export interface ValidateQuestionsResponse {
+    results: QuestionValidationResult[];
+    summary: ValidationSummary;
+}
+
+export interface GenerateQuestionValidationParams {
+    prompt: string;
+    modelName?: string;
+}
+
+export interface GenerateQuestionValidationResult {
+    data: ValidateQuestionsResponse;
+    modelName: string;
+    latencyMs: number;
+    promptHash: string;
+    responseHash: string;
+    success: boolean;
+    error?: string;
+}
+
+/**
+ * Generate question validation using Gemini
+ */
+export async function generateQuestionValidation(
+    params: GenerateQuestionValidationParams
+): Promise<GenerateQuestionValidationResult> {
+    const { prompt, modelName = DEFAULT_MODEL } = params;
+    const startTime = Date.now();
+    const promptHash = hashContent(prompt);
+
+    // Schema for structured output
+    const responseSchema = {
+        type: "OBJECT",
+        properties: {
+            results: {
+                type: "ARRAY",
+                items: {
+                    type: "OBJECT",
+                    properties: {
+                        questionIndex: {
+                            type: "INTEGER",
+                            description: "Index of the question in the input array"
+                        },
+                        questionLabel: {
+                            type: "STRING",
+                            description: "The label of the question (e.g., '1', '1A', '2')"
+                        },
+                        originalText: {
+                            type: "STRING",
+                            description: "The original question text"
+                        },
+                        issues: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    type: {
+                                        type: "STRING",
+                                        description: "Type of issue: LEADING, DOUBLE_BARRELLED, UNCLEAR, JUDGEMENTAL, CLOSED_ENDED, TOO_LONG"
+                                    },
+                                    severity: {
+                                        type: "STRING",
+                                        description: "Severity: HIGH, MEDIUM, LOW"
+                                    },
+                                    explanation: {
+                                        type: "STRING",
+                                        description: "Brief explanation of the issue"
+                                    },
+                                    suggestedRewrite: {
+                                        type: "STRING",
+                                        description: "Suggested improved version of the question"
+                                    }
+                                },
+                                required: ["type", "severity", "explanation", "suggestedRewrite"]
+                            }
+                        },
+                        overallQuality: {
+                            type: "STRING",
+                            description: "GOOD, NEEDS_IMPROVEMENT, or PROBLEMATIC"
+                        }
+                    },
+                    required: ["questionIndex", "questionLabel", "originalText", "issues", "overallQuality"]
+                }
+            },
+            summary: {
+                type: "OBJECT",
+                properties: {
+                    totalQuestions: { type: "INTEGER" },
+                    goodCount: { type: "INTEGER" },
+                    needsImprovementCount: { type: "INTEGER" },
+                    problematicCount: { type: "INTEGER" }
+                },
+                required: ["totalQuestions", "goodCount", "needsImprovementCount", "problematicCount"]
+            }
+        },
+        required: ["results", "summary"]
+    };
+
+    try {
+        if (!isGeminiConfigured()) {
+            throw new Error("Gemini API key not configured");
+        }
+
+        const client = getGeminiClient();
+
+        // Combine system guardrails (though less relevant for validation logic, good for consistency)
+        const fullPrompt = `${SYSTEM_GUARDRAILS}\n\n---\n\n${prompt}`;
+
+        const response = await client.models.generateContent({
+            model: modelName,
+            contents: fullPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+                temperature: 0.2,
+            },
+        });
+
+        const content = response.text || "";
+        const latencyMs = Date.now() - startTime;
+
+        let parsed: ValidateQuestionsResponse;
+        try {
+            parsed = JSON.parse(content);
+        } catch (e) {
+            console.error("Failed to parse validation JSON:", content);
+            throw new Error("Failed to parse AI response");
+        }
+
+        return {
+            data: parsed,
+            modelName,
+            latencyMs,
+            promptHash,
+            responseHash: hashContent(content),
+            success: true,
+        };
+    } catch (error) {
+        const latencyMs = Date.now() - startTime;
+        console.error("[Gemini] generateQuestionValidation error:", error);
+
+        return {
+            data: { results: [], summary: { totalQuestions: 0, goodCount: 0, needsImprovementCount: 0, problematicCount: 0 } },
+            modelName,
+            latencyMs,
+            promptHash,
+            responseHash: hashContent("error"),
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}

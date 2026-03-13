@@ -290,6 +290,13 @@ function SimulationPageContent({ params }: PageProps) {
         { bg: "bg-emerald-100", border: "border-emerald-200/50", text: "text-emerald-900", avatar: "bg-gradient-to-br from-emerald-500 to-teal-600", avatarText: "text-white" },
     ];
 
+    // Get a distinctive initial from archetype name (skip "The" prefix)
+    const getInitial = (name: string) => {
+        const words = name.trim().split(/\s+/);
+        const meaningful = words.length > 1 && words[0].toLowerCase() === "the" ? words[1] : words[0];
+        return meaningful.charAt(0).toUpperCase();
+    };
+
     const getArchetypeColor = (archetypeId: string) => {
         const allArchs = isFocusGroup ? focusGroupArchetypes : [];
         const idx = allArchs.findIndex(a => a.id === archetypeId);
@@ -1133,7 +1140,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                 return (
                                                     <div key={arch.id} className="flex items-center gap-2 bg-white border border-border/60 rounded-lg px-3 py-1.5">
                                                         <div className={`w-6 h-6 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-xs font-bold`}>
-                                                            {arch.name.charAt(0).toUpperCase()}
+                                                            {getInitial(arch.name)}
                                                         </div>
                                                         <span className="text-xs font-medium text-foreground">{arch.name}</span>
                                                     </div>
@@ -1236,7 +1243,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                     {/* Persona Avatar */}
                                                     {fgColor ? (
                                                         <div className={`w-8 h-8 rounded-full ${fgColor.avatar} flex items-center justify-center ${fgColor.avatarText} text-xs font-bold mt-1 shadow-sm shrink-0`}>
-                                                            {(msg.archetypeName || "P").charAt(0).toUpperCase()}
+                                                            {getInitial(msg.archetypeName || "P")}
                                                         </div>
                                                     ) : (
                                                         <div className="w-8 h-8 rounded-full bg-muted border border-input flex items-center justify-center text-primary text-xs font-bold mt-1 shadow-sm shrink-0">
@@ -1630,7 +1637,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                         const color = getArchetypeColor(arch.id);
                                                         return (
                                                             <div key={arch.id} className={`w-7 h-7 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-[10px] font-bold border-2 border-white`}>
-                                                                {arch.name.charAt(0)}
+                                                                {getInitial(arch.name)}
                                                             </div>
                                                         );
                                                     })}
@@ -1733,7 +1740,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-accent transition-colors text-left"
                                                         >
                                                             <div className={`w-6 h-6 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-xs font-bold`}>
-                                                                {arch.name.charAt(0).toUpperCase()}
+                                                                {getInitial(arch.name)}
                                                             </div>
                                                             <span className="text-sm font-medium text-foreground">{arch.name}</span>
                                                         </button>

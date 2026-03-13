@@ -42,6 +42,7 @@ interface Message {
     role: "user" | "persona";
     content: string;
     timestamp: string;
+    archetypeId?: string | null;
 }
 
 interface Highlight {
@@ -127,6 +128,12 @@ interface Simulation {
     } | null;
     coachFindings: CoachFindings | null;
     coachNudges: LiveCoachNudge[];
+    isFocusGroup: boolean;
+    simulationArchetypes: Array<{
+        archetype: { id: string; name: string; kicker?: string | null };
+        order: number;
+    }>;
+    archetype?: { id: string; name: string; kicker?: string | null } | null;
 }
 
 interface CoachChatMessage {
@@ -146,6 +153,20 @@ function parsePersonaName(personaDoc: { parsedMetaJson: string | null } | null, 
     } catch {
         return fallbackTitle || "Persona";
     }
+}
+
+const ARCHETYPE_COLORS = [
+    { bg: "bg-violet-100", border: "border-violet-200/50", text: "text-violet-900", avatar: "bg-gradient-to-br from-violet-500 to-purple-600", avatarText: "text-white" },
+    { bg: "bg-amber-100", border: "border-amber-200/50", text: "text-amber-900", avatar: "bg-gradient-to-br from-amber-500 to-orange-600", avatarText: "text-white" },
+    { bg: "bg-sky-100", border: "border-sky-200/50", text: "text-sky-900", avatar: "bg-gradient-to-br from-sky-500 to-blue-600", avatarText: "text-white" },
+    { bg: "bg-rose-100", border: "border-rose-200/50", text: "text-rose-900", avatar: "bg-gradient-to-br from-rose-500 to-pink-600", avatarText: "text-white" },
+    { bg: "bg-emerald-100", border: "border-emerald-200/50", text: "text-emerald-900", avatar: "bg-gradient-to-br from-emerald-500 to-teal-600", avatarText: "text-white" },
+];
+
+function getInitial(name: string): string {
+    const words = name.trim().split(/\s+/);
+    const meaningful = words.length > 1 && words[0].toLowerCase() === "the" ? words[1] : words[0];
+    return meaningful.charAt(0).toUpperCase();
 }
 
 export default function ViewSessionPage({ params }: PageProps) {
@@ -467,6 +488,15 @@ export default function ViewSessionPage({ params }: PageProps) {
     const personaName = parsePersonaName(personaDoc, personaDoc?.title);
     const isCompleted = !!simulation.endedAt;
     const hasReview = !!simulation.coachFindings;
+    const isFocusGroup = simulation.isFocusGroup && simulation.simulationArchetypes?.length > 0;
+    const focusGroupArchetypes = isFocusGroup
+        ? simulation.simulationArchetypes.map((sa) => sa.archetype)
+        : [];
+
+    const getArchetypeColor = (archetypeId: string) => {
+        const idx = focusGroupArchetypes.findIndex(a => a.id === archetypeId);
+        return ARCHETYPE_COLORS[idx >= 0 ? idx % ARCHETYPE_COLORS.length : 0];
+    };
     const overallScore = simulation.coachFindings?.overallScore;
     const summary = simulation.coachFindings?.summary;
 
@@ -515,7 +545,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                                 <div>
                                     <div className="flex items-center gap-3 mb-2">
                                         <h1 className="text-3xl font-bold text-foreground">
-                                            Session with {personaName}
+                                            {isFocusGroup ? "Focus Group" : `Session with ${personaName}`}
                                         </h1>
                                         <Badge
                                             variant="secondary"
@@ -525,9 +555,25 @@ export default function ViewSessionPage({ params }: PageProps) {
                                             {isCompleted ? 'Completed' : 'In Progress'}
                                         </Badge>
                                     </div>
-                                    <p className="text-muted-foreground text-sm">
-                                        {new Date(simulation.startedAt).toLocaleDateString()}
-                                    </p>
+                                    {isFocusGroup ? (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {focusGroupArchetypes.map((arch, idx) => {
+                                                const color = ARCHETYPE_COLORS[idx % ARCHETYPE_COLORS.length];
+                                                return (
+                                                    <div key={arch.id} className="flex items-center gap-2 bg-white border border-border/60 rounded-lg px-3 py-1.5">
+                                                        <div className={`w-5 h-5 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-[10px] font-bold`}>
+                                                            {getInitial(arch.name)}
+                                                        </div>
+                                                        <span className="text-xs font-medium text-foreground">{arch.name}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted-foreground text-sm">
+                                            {new Date(simulation.startedAt).toLocaleDateString()}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="flex flex-col items-end gap-2">
@@ -650,11 +696,19 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                 key={msg.id}
                                                 className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                                             >
-                                                {msg.role === "persona" && (
-                                                    <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-foreground text-xs font-bold mt-1">
-                                                        {personaName.charAt(0).toUpperCase()}
-                                                    </div>
-                                                )}
+                                                {msg.role === "persona" && (() => {
+                                                    const fgArch = isFocusGroup && msg.archetypeId ? focusGroupArchetypes.find(a => a.id === msg.archetypeId) : null;
+                                                    const fgColor = fgArch ? getArchetypeColor(fgArch.id) : null;
+                                                    return fgColor ? (
+                                                        <div className={`w-8 h-8 rounded-full ${fgColor.avatar} flex items-center justify-center ${fgColor.avatarText} text-xs font-bold mt-1 shrink-0`}>
+                                                            {getInitial(fgArch!.name)}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-foreground text-xs font-bold mt-1 shrink-0">
+                                                            {personaName.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    );
+                                                })()}
 
                                                 <div
                                                     className={`max-w-[75%] px-5 py-3 rounded-md text-sm leading-relaxed ${msg.role === "user"
@@ -662,6 +716,13 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                         : "bg-background border border-border text-foreground rounded-tl-none group/msg"
                                                         }`}
                                                 >
+                                                    {isFocusGroup && msg.role === "persona" && msg.archetypeId && (() => {
+                                                        const arch = focusGroupArchetypes.find(a => a.id === msg.archetypeId);
+                                                        const color = arch ? getArchetypeColor(arch.id) : null;
+                                                        return arch ? (
+                                                            <p className={`text-xs font-semibold mb-1 ${color?.text || "text-foreground"}`}>{arch.name}</p>
+                                                        ) : null;
+                                                    })()}
                                                     {quotes.length > 0
                                                         ? renderContentWithHighlights(msg.content, quotes, msg.role === "user")
                                                         : msg.content

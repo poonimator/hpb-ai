@@ -287,6 +287,7 @@ function SimulationPageContent({ params }: PageProps) {
         { bg: "bg-amber-100", border: "border-amber-200/50", text: "text-amber-900", avatar: "bg-gradient-to-br from-amber-500 to-orange-600", avatarText: "text-white" },
         { bg: "bg-sky-100", border: "border-sky-200/50", text: "text-sky-900", avatar: "bg-gradient-to-br from-sky-500 to-blue-600", avatarText: "text-white" },
         { bg: "bg-rose-100", border: "border-rose-200/50", text: "text-rose-900", avatar: "bg-gradient-to-br from-rose-500 to-pink-600", avatarText: "text-white" },
+        { bg: "bg-emerald-100", border: "border-emerald-200/50", text: "text-emerald-900", avatar: "bg-gradient-to-br from-emerald-500 to-teal-600", avatarText: "text-white" },
     ];
 
     const getArchetypeColor = (archetypeId: string) => {
@@ -552,8 +553,8 @@ function SimulationPageContent({ params }: PageProps) {
                 alert("Please select at least 2 archetypes for a focus group");
                 return;
             }
-            if (selectedArchetypeIds.length > 4) {
-                alert("Maximum 4 archetypes in a focus group");
+            if (selectedArchetypeIds.length > 5) {
+                alert("Maximum 5 archetypes in a focus group");
                 return;
             }
         } else if (!selectedPersonaId) {
@@ -1895,7 +1896,7 @@ function SimulationPageContent({ params }: PageProps) {
 
                                     {isFocusGroup ? (
                                         <div className="text-center py-4">
-                                            <p className="text-xs text-muted-foreground italic">In Focus Group mode, each archetype uses its own personality profile. No additional settings needed — select 2-4 archetypes below.</p>
+                                            <p className="text-xs text-muted-foreground italic">In Focus Group mode, each archetype uses its own personality profile. No additional settings needed — select 2-5 archetypes below.</p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2081,7 +2082,7 @@ function SimulationPageContent({ params }: PageProps) {
                             {/* Left Column: Persona + Archetype List (4 cols) */}
                             <div className="lg:col-span-4 space-y-2">
                                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 pl-1">
-                                    {isFocusGroup ? "Select Archetypes (2-4)" : "Select Persona"}
+                                    {isFocusGroup ? "Select Archetypes (2-5)" : "Select Persona"}
                                 </h3>
                                 <div className="space-y-1.5">
 
@@ -2139,7 +2140,7 @@ function SimulationPageContent({ params }: PageProps) {
                                             {!isFocusGroup && <p className="text-[10px] font-bold text-border uppercase tracking-widest px-1 pt-3">Profiles</p>}
                                             {isFocusGroup && (
                                                 <p className="text-[10px] font-medium text-muted-foreground px-1 pb-1">
-                                                    {selectedArchetypeIds.length}/4 selected {selectedArchetypeIds.length < 2 && "· minimum 2"}
+                                                    {selectedArchetypeIds.length}/5 selected {selectedArchetypeIds.length < 2 && "· minimum 2"}
                                                 </p>
                                             )}
                                             {archetypes.map((arch, idx) => {
@@ -2158,7 +2159,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                                     if (prev.includes(arch.id)) {
                                                                         return prev.filter(id => id !== arch.id);
                                                                     }
-                                                                    if (prev.length >= 4) return prev; // Cap at 4
+                                                                    if (prev.length >= 5) return prev; // Cap at 5
                                                                     return [...prev, arch.id];
                                                                 });
                                                             } else {

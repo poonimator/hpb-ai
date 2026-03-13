@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
             if (!archetypeIds || archetypeIds.length < 2) {
                 return errorResponse("Focus group requires at least 2 archetypes", 400);
             }
-            if (archetypeIds.length > 4) {
-                return errorResponse("Focus group supports a maximum of 4 archetypes", 400);
+            if (archetypeIds.length > 5) {
+                return errorResponse("Focus group supports a maximum of 5 archetypes", 400);
             }
             // Verify all archetypes exist
             const foundArchetypes = await prisma.archetype.findMany({

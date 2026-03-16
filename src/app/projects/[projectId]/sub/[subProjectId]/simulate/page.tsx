@@ -1128,24 +1128,22 @@ function SimulationPageContent({ params }: PageProps) {
                             {/* Persona Header - Compact inline version */}
                             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_minmax(0,280px)] gap-6">
                                 {isFocusGroup ? (
-                                    <div className="mb-4 pt-6">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <Users className="h-4 w-4 text-muted-foreground" />
-                                            <h2 className="text-base font-semibold text-foreground">Focus Group</h2>
-                                            <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{focusGroupArchetypes.length} participants</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
+                                    <div className="flex items-center gap-3 mb-4 pt-6">
+                                        <div className="flex items-center -space-x-1.5">
                                             {focusGroupArchetypes.map((arch) => {
                                                 const color = getArchetypeColor(arch.id);
                                                 return (
-                                                    <div key={arch.id} className="flex items-center gap-2 bg-white border border-border/60 rounded-lg px-3 py-1.5">
-                                                        <div className={`w-6 h-6 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-xs font-bold`}>
-                                                            {getInitial(arch.name)}
-                                                        </div>
-                                                        <span className="text-xs font-medium text-foreground">{arch.name}</span>
+                                                    <div key={arch.id} className={`w-10 h-10 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} font-bold text-sm ring-2 ring-white shadow-sm shrink-0`}>
+                                                        {getInitial(arch.name)}
                                                     </div>
                                                 );
                                             })}
+                                        </div>
+                                        <div>
+                                            <h2 className="text-base font-semibold text-foreground">Focus Group</h2>
+                                            <p className="text-xs text-muted-foreground">
+                                                {focusGroupArchetypes.map(a => a.name).join(" · ")}
+                                            </p>
                                         </div>
                                     </div>
                                 ) : (

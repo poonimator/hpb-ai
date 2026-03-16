@@ -555,25 +555,11 @@ export default function ViewSessionPage({ params }: PageProps) {
                                             {isCompleted ? 'Completed' : 'In Progress'}
                                         </Badge>
                                     </div>
-                                    {isFocusGroup ? (
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                            {focusGroupArchetypes.map((arch, idx) => {
-                                                const color = ARCHETYPE_COLORS[idx % ARCHETYPE_COLORS.length];
-                                                return (
-                                                    <div key={arch.id} className="flex items-center gap-2 bg-white border border-border/60 rounded-lg px-3 py-1.5">
-                                                        <div className={`w-5 h-5 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-[10px] font-bold`}>
-                                                            {getInitial(arch.name)}
-                                                        </div>
-                                                        <span className="text-xs font-medium text-foreground">{arch.name}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <p className="text-muted-foreground text-sm">
-                                            {new Date(simulation.startedAt).toLocaleDateString()}
-                                        </p>
-                                    )}
+                                    <p className="text-muted-foreground text-sm">
+                                        {isFocusGroup
+                                            ? focusGroupArchetypes.map(a => a.name).join(" · ")
+                                            : new Date(simulation.startedAt).toLocaleDateString()}
+                                    </p>
                                 </div>
 
                                 <div className="flex flex-col items-end gap-2">

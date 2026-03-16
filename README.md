@@ -1,4 +1,4 @@
-# HPB Dojo & Prism
+# HPB MHE AI Research Tool
 
 Internal HPB tools for interview rehearsal and question quality analysis.
 

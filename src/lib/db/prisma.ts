@@ -4,7 +4,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 
 // For hot reload in development, we store the client globally
 const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined;
+    prisma2: PrismaClient | undefined;
 };
 
 function createPrismaClient() {
@@ -29,10 +29,10 @@ function createPrismaClient() {
     return new PrismaClient({ adapter });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+export const prisma = globalForPrisma.prisma2 ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = prisma;
+    globalForPrisma.prisma2 = prisma;
 }
 
 export default prisma;

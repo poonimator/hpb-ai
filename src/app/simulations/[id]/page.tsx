@@ -16,6 +16,7 @@ import {
 import {
     Loader2,
     User,
+    Users,
     Bot,
     CheckCircle2,
     RefreshCw,
@@ -43,6 +44,7 @@ interface Message {
     content: string;
     timestamp: string;
     archetypeId?: string | null;
+    imageBase64?: string | null;
 }
 
 interface Highlight {
@@ -129,9 +131,11 @@ interface Simulation {
     coachFindings: CoachFindings | null;
     coachNudges: LiveCoachNudge[];
     isFocusGroup: boolean;
+    crossProfileSummary?: string | null;
     simulationArchetypes: Array<{
         archetype: { id: string; name: string; kicker?: string | null };
         order: number;
+        summary?: string | null;
     }>;
     archetype?: { id: string; name: string; kicker?: string | null } | null;
 }
@@ -156,11 +160,11 @@ function parsePersonaName(personaDoc: { parsedMetaJson: string | null } | null, 
 }
 
 const ARCHETYPE_COLORS = [
-    { bg: "bg-violet-100", border: "border-violet-200/50", text: "text-violet-900", avatar: "bg-gradient-to-br from-violet-500 to-purple-600", avatarText: "text-white" },
-    { bg: "bg-amber-100", border: "border-amber-200/50", text: "text-amber-900", avatar: "bg-gradient-to-br from-amber-500 to-orange-600", avatarText: "text-white" },
-    { bg: "bg-sky-100", border: "border-sky-200/50", text: "text-sky-900", avatar: "bg-gradient-to-br from-sky-500 to-blue-600", avatarText: "text-white" },
-    { bg: "bg-rose-100", border: "border-rose-200/50", text: "text-rose-900", avatar: "bg-gradient-to-br from-rose-500 to-pink-600", avatarText: "text-white" },
-    { bg: "bg-emerald-100", border: "border-emerald-200/50", text: "text-emerald-900", avatar: "bg-gradient-to-br from-emerald-500 to-teal-600", avatarText: "text-white" },
+    { bg: "bg-violet-50/50", border: "border-violet-100", text: "text-violet-800", avatar: "bg-violet-200/70", avatarText: "text-violet-900" },
+    { bg: "bg-amber-50/50", border: "border-amber-100", text: "text-amber-800", avatar: "bg-amber-200/70", avatarText: "text-amber-900" },
+    { bg: "bg-sky-50/50", border: "border-sky-100", text: "text-sky-800", avatar: "bg-sky-200/70", avatarText: "text-sky-900" },
+    { bg: "bg-rose-50/50", border: "border-rose-100", text: "text-rose-800", avatar: "bg-rose-200/70", avatarText: "text-rose-900" },
+    { bg: "bg-emerald-50/50", border: "border-emerald-100", text: "text-emerald-800", avatar: "bg-emerald-200/70", avatarText: "text-emerald-900" },
 ];
 
 function getInitial(name: string): string {
@@ -188,6 +192,7 @@ export default function ViewSessionPage({ params }: PageProps) {
     const [coachChatLoading, setCoachChatLoading] = useState(false);
     const coachChatEndRef = useRef<HTMLDivElement>(null);
     const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+    const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
     useEffect(() => {
         fetchSimulation();
     }, [id]);
@@ -198,10 +203,34 @@ export default function ViewSessionPage({ params }: PageProps) {
 
     const fetchSimulation = async () => {
         try {
-            const res = await fetch(`/api/simulations/${id}`);
+            const res = await fetch(`/api/simulations/${id}?t=${Date.now()}`, { cache: 'no-store' });
             const json = await res.json();
             if (json.success) {
-                setSimulation(json.data);
+                const simData = json.data;
+
+                // If focus group and ended, check if summaries are missing
+                if (simData.isFocusGroup && simData.endedAt && (simData.simulationArchetypes.some((sa: any) => !sa.summary) || !simData.crossProfileSummary)) {
+                    // Trigger summary generation gracefully in the background
+                    fetch(`/api/gemini/archetype-summary`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ simulationId: id })
+                    })
+                        .then(r => r.json())
+                        .then(summaryJson => {
+                            if (summaryJson.success) {
+                                // Re-fetch to get updated summaries
+                                fetch(`/api/simulations/${id}?t=${Date.now()}`, { cache: 'no-store' })
+                                    .then(r => r.json())
+                                    .then(newJson => {
+                                        if (newJson.success) setSimulation(newJson.data);
+                                    });
+                            }
+                        })
+                        .catch(e => console.error("Failed to generate archetype summaries:", e));
+                }
+
+                setSimulation(simData);
             }
         } catch (error) {
             console.error("Failed to fetch simulation:", error);
@@ -214,13 +243,35 @@ export default function ViewSessionPage({ params }: PageProps) {
         if (!simulation) return;
         setRegenerating(true);
         try {
-            const res = await fetch("/api/gemini/review", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ simulationId: simulation.id }),
-            });
-            const json = await res.json();
-            if (json.success) {
+            const promises = [
+                fetch("/api/gemini/review", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ simulationId: simulation.id }),
+                })
+            ];
+
+            if (simulation.isFocusGroup) {
+                promises.push(
+                    fetch("/api/gemini/archetype-summary", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ simulationId: simulation.id, force: true }),
+                    })
+                );
+            }
+
+            const results = await Promise.all(promises);
+            const reviewJson = await results[0].json();
+
+            // For focus groups, check results[1] (archetype summary API) as well if it exists
+            let summarySuccess = false;
+            if (promises.length > 1) {
+                const summaryJson = await results[1].json();
+                summarySuccess = summaryJson.success;
+            }
+
+            if (reviewJson.success || summarySuccess) {
                 await fetchSimulation();
             }
         } catch (error) {
@@ -298,7 +349,7 @@ export default function ViewSessionPage({ params }: PageProps) {
     };
 
     // Helper to find coaching feedback for a specific message
-    const getFeedbackForMessage = (messageIndex: number, role: "user" | "persona", messageId: string): {
+    const getFeedbackForMessage = (messageIndex: number, role: "user" | "persona", messageId: string, msgContent: string): {
         highlights: Highlight[];
         leadingMoments: LeadingMoment[];
         missedProbes: MissedProbe[];
@@ -311,19 +362,36 @@ export default function ViewSessionPage({ params }: PageProps) {
         const leadingMoments = findings?.leadingMoments?.filter(l => l.turn === turn) || [];
 
         // Missed Probes now come from LIVE COACH NUDGES (coachNudges)
-        // We search for nudges associated with this specific message ID
+        // We search for nudges associated with this specific message ID, OR if the quote matches this message's content (for focus groups)
         let missedProbes: MissedProbe[] = [];
 
         if (simulation?.coachNudges) {
-            const nudge = simulation.coachNudges.find(n => n.messageId === messageId);
-            if (nudge && nudge.opportunities && nudge.opportunities.length > 0) {
-                missedProbes = nudge.opportunities.map(op => ({
-                    turn: turn,
-                    opportunity: op.surfacedContext,
-                    quote: op.quote,
-                    suggestion: op.explorationDirection || "Dig deeper into this.",
-                }));
-            }
+            const matchingNudges = simulation.coachNudges.filter(n => {
+                if (n.messageId === messageId) return true;
+                if (n.opportunities && n.opportunities.length > 0) {
+                    return n.opportunities.some(op => op.quote && msgContent.toLowerCase().includes(op.quote.toLowerCase()));
+                }
+                return false;
+            });
+
+            matchingNudges.forEach(nudge => {
+                if (nudge.opportunities && nudge.opportunities.length > 0) {
+                    nudge.opportunities.forEach(op => {
+                        // Only include the quote if it actually appears in this message's content
+                        if (op.quote && msgContent.toLowerCase().includes(op.quote.toLowerCase())) {
+                            // Check to avoid duplicates
+                            if (!missedProbes.some(m => m.quote === op.quote)) {
+                                missedProbes.push({
+                                    turn: turn,
+                                    opportunity: op.surfacedContext,
+                                    quote: op.quote,
+                                    suggestion: op.explorationDirection || "Dig deeper into this.",
+                                });
+                            }
+                        }
+                    });
+                }
+            });
         }
 
         return {
@@ -508,7 +576,7 @@ export default function ViewSessionPage({ params }: PageProps) {
 
     return (
         <TooltipProvider delayDuration={200}>
-            <div className="min-h-screen bg-white pb-12">
+            <div className="min-h-screen pb-12">
                 {/* Main Card Container - full width */}
                 <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4">
                     <div className="relative min-h-[800px] px-8 py-4 md:px-12">
@@ -594,6 +662,68 @@ export default function ViewSessionPage({ params }: PageProps) {
 
 
 
+                        {/* Focus Group Archetype Summaries */}
+                        {isFocusGroup && isCompleted && (
+                            <div className="mb-8">
+                                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                                    <User className="h-5 w-5 text-muted-foreground" />
+                                    Participant Summaries
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {simulation.simulationArchetypes?.map((simArch, index) => {
+                                        const color = getArchetypeColor(simArch.archetype.id);
+                                        return (
+                                            <Card key={simArch.archetype.id} className={`border ${color.border} shadow-sm overflow-hidden`}>
+                                                <div className={`px-4 py-3 ${color.bg} border-b ${color.border} flex items-center gap-3`}>
+                                                    <div className={`w-8 h-8 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-xs font-bold shrink-0`}>
+                                                        {getInitial(simArch.archetype.name)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className={`font-semibold text-sm ${color.text}`}>{simArch.archetype.name}</h4>
+                                                        {simArch.archetype.kicker && (
+                                                            <p className={`text-[10px] uppercase tracking-wider font-semibold opacity-80 ${color.text}`}>{simArch.archetype.kicker}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <CardContent className="p-4 text-sm text-foreground leading-relaxed bg-card min-h-[100px]">
+                                                    {simArch.summary ? (
+                                                        <p>{simArch.summary}</p>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2 py-4">
+                                                            <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+                                                            <p className="text-xs">Generating summary...</p>
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Cross-Profile Comparison Card */}
+                                <div className="mt-6 mb-2">
+                                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                                        <Users className="h-5 w-5 text-muted-foreground" />
+                                        Cross-Profile Comparison
+                                    </h3>
+                                    <Card className="border border-indigo-100 shadow-sm overflow-hidden bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+                                        <CardContent className="p-5 text-sm text-foreground leading-relaxed min-h-[100px]">
+                                            {simulation.crossProfileSummary ? (
+                                                <p>{simulation.crossProfileSummary}</p>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2 py-4">
+                                                    <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+                                                    <p className="text-xs">Analyzing group dynamics...</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <div className="h-px bg-border/40 mt-8 mb-2 w-full" />
+                            </div>
+                        )}
+
                         {/* Legend */}
                         {hasReview && (
                             <div className="mb-6">
@@ -637,7 +767,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                                     </div>
                                 ) : (
                                     simulation.messages.map((msg, index) => {
-                                        const feedback = getFeedbackForMessage(index, msg.role, msg.id);
+                                        const feedback = getFeedbackForMessage(index, msg.role, msg.id, msg.content);
 
                                         // Build quotes array for highlighting with feedback keys
                                         const quotes: Array<{ quote: string; type: "highlight" | "leading" | "missed"; tooltip: string; suggestion?: string; feedbackKey: string; feedbackContent: any }> = [];
@@ -699,7 +829,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                 <div
                                                     className={`max-w-[75%] px-5 py-3 rounded-md text-sm leading-relaxed ${msg.role === "user"
                                                         ? "bg-accent border border-border text-foreground rounded-tr-none"
-                                                        : "bg-background border border-border text-foreground rounded-tl-none group/msg"
+                                                        : "bg-white border border-border text-foreground rounded-tl-none group/msg"
                                                         }`}
                                                 >
                                                     {isFocusGroup && msg.role === "persona" && msg.archetypeId && (() => {
@@ -709,10 +839,19 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                             <p className={`text-xs font-semibold mb-1 ${color?.text || "text-foreground"}`}>{arch.name}</p>
                                                         ) : null;
                                                     })()}
-                                                    {quotes.length > 0
-                                                        ? renderContentWithHighlights(msg.content, quotes, msg.role === "user")
-                                                        : msg.content
-                                                    }
+                                                    {msg.imageBase64 && (
+                                                        <img
+                                                            src={msg.imageBase64}
+                                                            alt="Shared image"
+                                                            className="max-w-full max-h-[200px] rounded-md mb-2 object-contain cursor-pointer hover:opacity-90 transition-opacity border border-border"
+                                                            onClick={() => setEnlargedImage(msg.imageBase64!)}
+                                                        />
+                                                    )}
+                                                    {msg.content && msg.content !== "[Shared an image]" && (
+                                                        quotes.length > 0
+                                                            ? renderContentWithHighlights(msg.content, quotes, msg.role === "user")
+                                                            : msg.content
+                                                    )}
                                                     {/* Feedback for persona messages */}
                                                     {msg.role === "persona" && (
                                                         <div className="mt-2 pt-2 border-t border-border opacity-0 group-hover/msg:opacity-100 transition-opacity">
@@ -887,6 +1026,23 @@ export default function ViewSessionPage({ params }: PageProps) {
                                 Close
                             </Button>
                         </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Image Lightbox Dialog */}
+                <Dialog open={!!enlargedImage} onOpenChange={() => setEnlargedImage(null)}>
+                    <DialogContent className="max-w-3xl p-2 bg-background border border-border shadow-lg rounded-md">
+                        <DialogHeader className="sr-only">
+                            <DialogTitle>Enlarged Image</DialogTitle>
+                            <DialogDescription>Enlarged view of the attached image</DialogDescription>
+                        </DialogHeader>
+                        {enlargedImage && (
+                            <img
+                                src={enlargedImage}
+                                alt="Enlarged view"
+                                className="w-full h-auto max-h-[80vh] object-contain rounded-md"
+                            />
+                        )}
                     </DialogContent>
                 </Dialog>
             </div>

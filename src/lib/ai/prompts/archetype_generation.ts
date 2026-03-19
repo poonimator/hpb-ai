@@ -13,6 +13,7 @@ export interface ArchetypeGenerationContext {
     researchStatement: string;
     ageRange: string;
     lifeStage: string;
+    profileTarget: string; // The specific group we are generating profiles for (e.g., "parents", "students")
 
     // Mapping data: clusters grouped by theme with transcript tags
     clustersByTheme: Record<string, Array<{
@@ -62,6 +63,7 @@ export function buildArchetypeGenerationPrompt(ctx: ArchetypeGenerationContext):
         researchStatement,
         ageRange,
         lifeStage,
+        profileTarget,
         clustersByTheme,
         insights,
         frameworkContext,
@@ -102,13 +104,18 @@ You are a Senior Design Researcher at HPB (Health Promotion Board) Singapore. Yo
 5. **Distinct archetypes.** Each archetype must represent a genuinely different behavioral pattern. Do not create variations of the same person.
 6. **Singapore context.** All archetypes must reflect Singapore cultural norms, social dynamics, and local context.
 
-## PROJECT CONTEXT
+## PROJECT OVERALL CONTEXT
 - **Project**: ${projectName}
 - **Description**: ${projectDescription}
 - **Sub-Project**: ${subProjectName}
-- **Research Goal**: ${researchStatement}
-- **Target Age Range**: ${ageRange}
-- **Life Stage**: ${lifeStage}
+- **Overall Project Research Goal**: ${researchStatement}
+
+---
+CRITICAL DIRECTIVE: TARGET AUDIENCE FOR THESE ARCHETYPES
+You are generating archetypes SPECIFICALLY for this target audience group: **${profileTarget}**
+
+You MUST ensure that the archetypes you generate exclusively represent **${profileTarget}**. Do NOT generate archetypes for the overall project subjects if they differ from this target group (e.g. if the project is about youth but the target group is 'parents', you MUST generate archetypes of parents).
+---
 
 ${frameworkSection}
 
@@ -120,16 +127,16 @@ ${JSON.stringify(clustersByTheme, null, 2)}
 ${insightsSection}
 
 ## YOUR TASK
-Analyze ALL the data above and generate **3 to 5 distinct behavioral archetypes**. Each archetype should represent a cluster of people who behave similarly across the mapped themes.
+Analyze ALL the data above and generate **3 to 5 distinct behavioral archetypes** of **${profileTarget}**. Each archetype should represent a cluster of **${profileTarget}** who behave similarly across the mapped themes.
 
-**IMPORTANT MODE NOTE**: Include this note with every archetype: "Archetype mode — a young person may shift between different modes depending on situation and support."
+**IMPORTANT MODE NOTE**: Include this exact note with every archetype: "Archetype mode — a person may shift between different modes depending on situation and support."
 
 ## OUTPUT STRUCTURE (Per Archetype)
 
 For EACH archetype, return EXACTLY these fields:
 
 ### 1. Identity
-- **name**: A sharp behavioral title using plain, simple words (3-4 words max, e.g., "The Self-Blamer", "The Switch-Off Seeker", "The Risk-Checker"). Use language a teenager would understand — no academic or clinical terms.
+- **name**: A sharp behavioral title using plain, simple words (3-4 words max, e.g., "The Self-Blamer", "The Switch-Off Seeker", "The Risk-Checker"). Use language that your audience would understand — no academic or clinical terms.
 - **kicker**: One punchy sentence that captures their core operating principle. This reads like a thesis statement about how they cope (e.g., "When there's no clear next step, stress turns inward." or "When it feels too much, they bring the feeling down first."). It should feel like a window into their logic.
 - **description**: 3-4 sentences. A brutally honest but empathetic summary. Describe what they actually DO when facing the issue, what drives the behavior, and why it is hard for them to change. No aspirational language. Write it as if explaining this person to a researcher who needs to design an intervention for them.
 - **demographic**: { "ageRange": "...", "occupation": "typical role/situation", "livingSetup": "living context" }
@@ -165,9 +172,22 @@ For EACH archetype, return EXACTLY these fields:
 Return ONLY valid JSON:
 {
   "archetypes": [
-    { ...archetype 1... },
-    { ...archetype 2... },
-    ...
+    {
+      "identity": {
+        "name": "...",
+        "kicker": "...",
+        "description": "...",
+        "demographic": { "ageRange": "...", "occupation": "...", "livingSetup": "..." }
+      },
+      "influences": ["..."],
+      "livedExperience": "...",
+      "behaviours": ["..."],
+      "barriers": ["..."],
+      "motivations": ["..."],
+      "goals": ["..."],
+      "habits": ["..."],
+      "spiral": { "pattern": "...", "avoidance": "..." }
+    }
   ]
 }
 

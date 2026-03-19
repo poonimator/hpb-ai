@@ -910,4 +910,123 @@ export async function processMapping(params: ProcessMappingParams): Promise<Proc
         return { clusters: [], success: false, error: String(error) };
     }
 }
+
+/**
+ * Generate Archetype Summary (Focus Group)
+ */
+export interface GenerateArchetypeSummaryParams {
+    archetypeName: string;
+    conversationTranscript: string;
+    modelName?: string;
+}
+
+export interface GenerateArchetypeSummaryResult {
+    summary: string;
+    success: boolean;
+    error?: string;
+}
+
+export async function generateArchetypeSummary(params: GenerateArchetypeSummaryParams): Promise<GenerateArchetypeSummaryResult> {
+    const { archetypeName, conversationTranscript, modelName = DEFAULT_MODEL } = params;
+
+    try {
+        if (!isOpenAIConfigured()) {
+            return {
+                summary: `This is a mock summary of what ${archetypeName} said during the focus group simulation.`,
+                success: true
+            };
+        }
+
+        const client = getOpenAIClient();
+        const prompt = `You are an expert qualitative researcher summarizing a focus group transcript.
+        
+        Analyze the following transcript and provide a single concise summary paragraph of what the participant "${archetypeName}" said, thought, or felt during the entire conversation.
+        Focus ONLY on the contributions, viewpoints, and reactions of "${archetypeName}".
+        
+        TRANSCRIPT:
+        ${conversationTranscript}
+        
+        Return the summary as plain text, no markdown. Max 100 words.`;
+
+        const response = await client.chat.completions.create({
+            model: modelName,
+            messages: [
+                { role: "system", content: "You are a qualitative researcher summarizing participant inputs." },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.3,
+        });
+
+        const content = response.choices[0]?.message?.content || "";
+
+        return {
+            summary: content.trim(),
+            success: true
+        };
+    } catch (error) {
+        console.error("[OpenAI] generateArchetypeSummary error:", error);
+        return { summary: "", success: false, error: String(error) };
+    }
+}
+
+/**
+ * Generate Cross-Profile Comparison (Focus Group)
+ */
+export interface GenerateCrossProfileSummaryParams {
+    archetypeNames: string[];
+    conversationTranscript: string;
+    modelName?: string;
+}
+
+export interface GenerateCrossProfileSummaryResult {
+    summary: string;
+    success: boolean;
+    error?: string;
+}
+
+export async function generateCrossProfileSummary(params: GenerateCrossProfileSummaryParams): Promise<GenerateCrossProfileSummaryResult> {
+    const { archetypeNames, conversationTranscript, modelName = DEFAULT_MODEL } = params;
+
+    try {
+        if (!isOpenAIConfigured()) {
+            return {
+                summary: `This is a mock cross-profile comparison. Profiles ${archetypeNames.join(", ")} generally agreed on most topics but had some tensions regarding key priorities.`,
+                success: true
+            };
+        }
+
+        const client = getOpenAIClient();
+        const prompt = `You are an expert qualitative researcher analyzing a focus group transcript involving the following profiles: ${archetypeNames.join(", ")}.
+        
+        Analyze the following transcript and provide a single concise summary paragraph highlighting the cross-profile dynamics. 
+        Specifically focus on:
+        1. Key agreements between the profiles.
+        2. Tensions or disagreements that emerged.
+        3. Gaps in perspectives or differing motivations.
+        
+        TRANSCRIPT:
+        ${conversationTranscript}
+        
+        Return the cross-profile comparison as plain text, no markdown. Max 150 words.`;
+
+        const response = await client.chat.completions.create({
+            model: modelName,
+            messages: [
+                { role: "system", content: "You are a qualitative researcher analyzing group dynamics." },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.3,
+        });
+
+        const content = response.choices[0]?.message?.content || "";
+
+        return {
+            summary: content.trim(),
+            success: true
+        };
+    } catch (error) {
+        console.error("[OpenAI] generateCrossProfileSummary error:", error);
+        return { summary: "", success: false, error: String(error) };
+    }
+}
 // Created by Swapnil Bapat © 2026

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
     ArrowLeft,
     Loader2,
@@ -41,6 +42,7 @@ export default function NewArchetypePage({ params }: PageProps) {
     const [mappingSessions, setMappingSessions] = useState<MappingSessionInfo[]>([]);
     const [selectedMappingIds, setSelectedMappingIds] = useState<string[]>([]);
     const [loadingMappings, setLoadingMappings] = useState(true);
+    const [profileTarget, setProfileTarget] = useState("");
 
     // Generation state
     const [generationPhase, setGenerationPhase] = useState(0);
@@ -48,7 +50,7 @@ export default function NewArchetypePage({ params }: PageProps) {
         "Reading mapping data...",
         "Analysing behavioural patterns...",
         "Identifying recurring tensions...",
-        "Synthesising archetypes...",
+        "Synthesising profiles...",
         "Grounding in evidence...",
     ];
 
@@ -133,7 +135,7 @@ export default function NewArchetypePage({ params }: PageProps) {
     };
 
     const handleGenerate = async () => {
-        if (selectedMappingIds.length === 0) return;
+        if (selectedMappingIds.length === 0 || profileTarget.trim() === "") return;
 
         setStep(2);
 
@@ -152,7 +154,7 @@ export default function NewArchetypePage({ params }: PageProps) {
             const genRes = await fetch(`/api/archetypes/${session.id}/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mappingSessionIds: selectedMappingIds }),
+                body: JSON.stringify({ mappingSessionIds: selectedMappingIds, profileTarget: profileTarget.trim() }),
             });
 
             if (!genRes.ok) {
@@ -193,7 +195,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-primary">
                                 <Users className="h-6 w-6" />
                             </div>
-                            Generate Archetypes
+                            Generate Profiles
                         </h1>
                     </div>
                 )}
@@ -209,7 +211,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                                         Select Mapping Sessions
                                     </Label>
                                     <p className="text-sm text-muted-foreground">
-                                        Choose which mapping data to use for generating archetypes. You can select multiple.
+                                        Choose which mapping data to use for generating profiles. You can select multiple.
                                     </p>
 
                                     {loadingMappings ? (
@@ -274,6 +276,23 @@ export default function NewArchetypePage({ params }: PageProps) {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Target Audience Input */}
+                                <div className="space-y-3 pt-6 border-t border-border">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        Who are you profiling? *
+                                    </Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Specify the exact group of people the AI should generate profiles for (e.g., &quot;parents&quot;, &quot;students&quot;, &quot;teachers&quot;). This helps the AI stay focused on the correct audience.
+                                    </p>
+                                    <Input
+                                        placeholder="e.g. parents"
+                                        className="max-w-md"
+                                        value={profileTarget}
+                                        onChange={(e) => setProfileTarget(e.target.value)}
+                                        required
+                                    />
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -281,10 +300,10 @@ export default function NewArchetypePage({ params }: PageProps) {
                             <Button
                                 size="lg"
                                 onClick={handleGenerate}
-                                disabled={selectedMappingIds.length === 0}
+                                disabled={selectedMappingIds.length === 0 || profileTarget.trim() === ""}
                                 className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-8"
                             >
-                                Generate Archetypes
+                                Generate Profiles
                                 <Sparkles className="h-4 w-4 ml-2" />
                             </Button>
                         </div>
@@ -306,7 +325,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                         </div>
                         <div className="mt-10 text-center space-y-3 relative z-10">
                             <h3 className="text-xl font-light tracking-tight text-foreground">
-                                Generating Archetypes
+                                Generating Profiles
                             </h3>
                             <div className="flex flex-col gap-2 items-center">
                                 <p className="text-[11px] font-medium tracking-widest text-primary uppercase">
@@ -329,10 +348,10 @@ export default function NewArchetypePage({ params }: PageProps) {
                         {/* Title */}
                         <div className={`text-center mb-10 transition-all duration-700 ${stacking ? 'opacity-0 -translate-y-4' : 'opacity-100'}`}>
                             <p className="text-[11px] font-medium tracking-widest text-primary uppercase mb-2">
-                                Archetypes Generated
+                                Profiles Generated
                             </p>
                             <h3 className="text-2xl font-light tracking-tight text-foreground">
-                                {generatedArchetypes.length} behavioural archetypes identified
+                                {generatedArchetypes.length} behavioural profiles identified
                             </h3>
                         </div>
 

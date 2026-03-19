@@ -38,7 +38,8 @@ import {
     ChevronUp,
     Trash2,
     Network,
-    Sparkles
+    Sparkles,
+    Lightbulb
 } from "lucide-react";
 
 const LIFE_STAGE_OPTIONS = [
@@ -483,6 +484,17 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 </div>
                             </div> */}
                         </div>
+                        <div className="flex-shrink-0">
+                            <Link href={`/projects/${projectId}/sub/${subProjectId}/hmw`}>
+                                <Button
+                                    variant="outline"
+                                    className="rounded-full bg-white border-border text-primary shadow-sm hover:bg-white hover:border-primary/40 hover:shadow transition-all duration-200 gap-2 font-bold text-xs uppercase tracking-wide"
+                                >
+                                    <Lightbulb className="h-4 w-4" />
+                                    How Might We
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
@@ -859,9 +871,9 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             <Sparkles className="h-5 w-5 text-primary" />
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate</h3>
+                                            <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate Profiles</h3>
                                             <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
-                                                Create new persona archetypes with AI
+                                                Create new persona profiles with AI
                                             </p>
                                         </div>
                                     </div>

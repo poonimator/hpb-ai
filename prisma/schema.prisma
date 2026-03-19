@@ -235,6 +235,7 @@ model Simulation {
   mixerJson      String?             // JSON string of slider settings
   seed           String?             // Reproducibility seed for Gemini
   modelName      String?             // e.g., "gemini-2.0-flash"
+  crossProfileSummary String?        // Cross-profile comparison summary for focus groups
   
   // Live Coach session data (persisted for resume)
   coachNudgesJson        String?     // JSON array of coach nudges from live coaching
@@ -266,6 +267,7 @@ model SimulationArchetype {
   simulation     Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
   archetypeId    String
   archetype      Archetype  @relation("FocusGroupArchetypes", fields: [archetypeId], references: [id])
+  summary        String?    // AI-generated summary of what this archetype said during the simulation
   order          Int        @default(0)
   @@unique([simulationId, archetypeId])
 }

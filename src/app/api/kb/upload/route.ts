@@ -64,12 +64,30 @@ export async function POST(request: NextRequest) {
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const blobUrl = await uploadFile(buffer, `kb/${docId}/${safeName}`, file.type);
 
-        // Extract text (if TXT)
+        // Extract text (if TXT or PDF)
         let extractedText: string | null = null;
         if (file.type === "text/plain") {
             extractedText = buffer.toString("utf-8");
+        } else if (file.type === "application/pdf") {
+            try {
+                const { PDFParse } = await import("pdf-parse");
+                // Initialize v2 class with buffer data
+                const parser = new PDFParse({ data: buffer });
+                const pdfData = await parser.getText();
+                // Strip null bytes as PostgreSQL text columns reject them
+                extractedText = pdfData.text ? pdfData.text.replace(/\0/g, "") : "";
+                await parser.destroy();
+
+                // Save as .txt of the same file name in the backend
+                if (extractedText) {
+                    const txtBuffer = Buffer.from(extractedText, "utf-8");
+                    const txtSafeName = safeName.replace(/\.[^/.]+$/, "") + ".txt";
+                    await uploadFile(txtBuffer, `kb/${docId}/${txtSafeName}`, "text/plain");
+                }
+            } catch (err) {
+                console.error("[KB Upload] Failed to extract text from PDF:", err);
+            }
         }
-        // PDF extraction is TODO - left as null
 
         // Create DB Record
         const kbDoc = await prisma.kbDocument.create({

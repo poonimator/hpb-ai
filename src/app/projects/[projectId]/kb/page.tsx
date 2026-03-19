@@ -294,14 +294,14 @@ export default function ProjectKbPage({ params }: PageProps) {
                                 <BookOpenText className="h-5 w-5" />
                             </div>
                             <div>
-                            <h1 className="text-3xl font-bold text-foreground tracking-tight mb-3">
-                                <span className="text-foreground">
-                                    Project Knowledge Base
-                                </span>
-                            </h1>
-                            <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-                                Manage project-specific personas, frameworks, and documents used to ground the AI in this research context.
-                            </p>
+                                <h1 className="text-3xl font-bold text-foreground tracking-tight mb-3">
+                                    <span className="text-foreground">
+                                        Project Knowledge Base
+                                    </span>
+                                </h1>
+                                <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
+                                    Manage project-specific personas, frameworks, and documents used to ground the AI in this research context.
+                                </p>
                             </div>
                         </div>
 
@@ -511,135 +511,13 @@ export default function ProjectKbPage({ params }: PageProps) {
                             </Button>
                         </div>
                     ) : (
-                        <div className={`grid gap-5 ${activeTab === 'PERSONA' ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+                        <div className="grid gap-5 grid-cols-1">
                             {filteredDocuments.map((doc) => {
                                 const IconComponent = DOC_TYPE_ICONS[doc.docType] || FileText;
                                 const isPending = doc.status === "DRAFT";
                                 const isRejected = doc.status === "REJECTED";
                                 const isPersona = doc.docType === "PERSONA";
                                 const persona = isPersona ? parsePersonaMeta(doc.parsedMetaJson) : null;
-
-                                // Parsing State Card
-                                if (isPersona && !persona) {
-                                    return (
-                                        <Card key={doc.id} className="border-border bg-card shadow-sm relative overflow-hidden min-h-[320px] rounded-md">
-                                            <CardContent className="p-8 flex flex-col items-center justify-center text-center h-full relative z-10">
-                                                <div className="h-12 w-12 rounded-md flex items-center justify-center mb-5" style={{ backgroundColor: 'var(--color-knowledge-muted)' }}>
-                                                    <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--color-knowledge)' }} />
-                                                </div>
-                                                <h3 className="font-semibold text-foreground text-sm mb-2">Analyzing Persona...</h3>
-                                                <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px]">
-                                                    Extracting traits from {doc.originalFileName}...
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                }
-
-                                // Persona Card - Beautiful & Clean (Matched to Global KB)
-                                if (isPersona && persona) {
-                                    return (
-                                        <Card
-                                            key={doc.id}
-                                            className={`
-                                                group relative flex flex-col overflow-hidden transition-all duration-300 border rounded-md
-                                                hover:shadow-sm hover:-translate-y-1
-                                                ${isPending
-                                                    ? 'border-amber-200 bg-amber-50/40'
-                                                    : isRejected
-                                                        ? 'border-red-200 bg-red-50/40'
-                                                        : 'border-border bg-card hover:bg-accent hover:border-input'
-                                                }
-                                            `}
-                                        >
-                                            <CardContent className="px-6 py-4 flex-1 flex flex-col">
-                                                {/* Header: Name, Age, Occupation */}
-                                                <div className="mb-3">
-                                                    <h3 className="font-bold text-foreground text-base leading-snug mb-1">
-                                                        {persona.name || doc.title}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                                                        {persona.age && (
-                                                            <span>{persona.age} yrs</span>
-                                                        )}
-                                                        {persona.age && persona.occupation && (
-                                                            <span className="text-border">•</span>
-                                                        )}
-                                                        {persona.occupation && (
-                                                            <span className="truncate max-w-[180px]">
-                                                                {persona.occupation}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Divider */}
-                                                <div className="h-px w-full bg-gradient-to-r from-muted to-transparent mb-3 opacity-70" />
-
-                                                {/* Motivations & Frustrations Grid */}
-                                                {(persona.gains || persona.pains) && (
-                                                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-1">
-                                                        {persona.gains && (
-                                                            <div className="space-y-1.5">
-                                                                <div className="flex items-center gap-1.5 text-foreground">
-                                                                    <Heart className="h-3 w-3 fill-muted" />
-                                                                    <span className="text-[10px] font-bold uppercase tracking-wider">Motivations</span>
-                                                                </div>
-                                                                <p className="text-xs text-muted-foreground leading-snug line-clamp-3">
-                                                                    {persona.gains}
-                                                                </p>
-                                                            </div>
-                                                        )}
-                                                        {persona.pains && (
-                                                            <div className="space-y-1.5">
-                                                                <div className="flex items-center gap-1.5 text-rose-600">
-                                                                    <AlertCircle className="h-3 w-3 fill-rose-50" />
-                                                                    <span className="text-[10px] font-bold uppercase tracking-wider">Frustrations</span>
-                                                                </div>
-                                                                <p className="text-xs text-muted-foreground leading-snug line-clamp-3">
-                                                                    {persona.pains}
-                                                                </p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* Footer Actions */}
-                                                <div className="mt-auto pt-2 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                    {isPending && (
-                                                        <div className="flex items-center gap-2 mr-auto opacity-100">
-                                                            <Button
-                                                                size="sm"
-                                                                className="h-7 text-[10px] font-bold tracking-wide uppercase bg-primary hover:bg-primary/90 text-primary-foreground border-none shadow-sm rounded-md"
-                                                                onClick={() => approveDocument(doc.id)}
-                                                            >
-                                                                Approve
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="h-7 text-[10px] font-bold tracking-wide uppercase text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                                                                onClick={() => rejectDocument(doc.id)}
-                                                            >
-                                                                Reject
-                                                            </Button>
-                                                        </div>
-                                                    )}
-
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                                        onClick={() => deleteDocument(doc.id)}
-                                                        title="Delete Persona"
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                }
 
                                 // Standard Document Card - Compact Row Design (Matched to Global KB)
                                 return (

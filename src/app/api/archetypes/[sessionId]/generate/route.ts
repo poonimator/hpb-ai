@@ -15,10 +15,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
         const { sessionId } = await params;
         const body = await request.json();
-        const { mappingSessionIds } = body;
+        const { mappingSessionIds, profileTarget } = body;
 
         if (!mappingSessionIds || !Array.isArray(mappingSessionIds) || mappingSessionIds.length === 0) {
             return errorResponse("At least one mapping session must be selected", 400);
+        }
+
+        if (!profileTarget || typeof profileTarget !== 'string' || profileTarget.trim() === '') {
+            return errorResponse("Profile target is required", 400);
         }
 
         // 1. Verify archetype session exists
@@ -115,6 +119,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             researchStatement: subProject.researchStatement,
             ageRange: subProject.ageRange,
             lifeStage: subProject.lifeStage,
+            profileTarget,
             clustersByTheme,
             insights: allInsights,
             frameworkContext,
@@ -182,18 +187,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             // Create new archetypes
             for (let i = 0; i < parsed.archetypes.length; i++) {
                 const a = parsed.archetypes[i];
-                // Robust name extraction: check multiple possible locations
+                // Robust extraction: sometimes AI returns `identity` as a nested object, or puts fields flat on the root archetype object
                 const archetypeName = a.name || a.identity?.name || a.title || `Unnamed Archetype ${i + 1}`;
+                const kicker = a.kicker || a.identity?.kicker || null;
+                const description = a.description || a.identity?.description || "";
+                const demographic = a.demographic || a.identity?.demographic || null;
+                const demographicJson = demographic ? JSON.stringify(demographic) : null;
+
+                // Behaviours, influences etc might occasionally be nested inside identity if AI messed up the structure
+                const goals = a.goals || a.identity?.goals;
+                const motivations = a.motivations || a.identity?.motivations;
+                const spiral = a.spiral || a.identity?.spiral;
+
                 const created = await tx.archetype.create({
                     data: {
                         archetypeSessionId: sessionId,
                         name: archetypeName,
-                        kicker: a.kicker || a.identity?.kicker || null,
-                        description: a.description || a.identity?.description || "",
-                        demographicJson: (a.demographic || a.identity?.demographic) ? JSON.stringify(a.demographic || a.identity?.demographic) : null,
-                        goalsJson: a.goals ? JSON.stringify(a.goals) : null,
-                        motivationsJson: a.motivations ? JSON.stringify(a.motivations) : null,
-                        spiralJson: a.spiral ? JSON.stringify(a.spiral) : null,
+                        kicker: kicker,
+                        description: description,
+                        demographicJson: demographicJson,
+                        goalsJson: goals ? JSON.stringify(goals) : null,
+                        motivationsJson: motivations ? JSON.stringify(motivations) : null,
+                        spiralJson: spiral ? JSON.stringify(spiral) : null,
                         // Legacy fields — set to null for new format
                         groundTruthJson: null,
                         internalConflictJson: null,

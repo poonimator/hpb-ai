@@ -130,14 +130,14 @@ export default function ArchetypeViewPage({ params }: PageProps) {
     const demographic = parse(archetype.demographicJson);
 
     // Extract all sections from fullContent
-    const influences = fullContent?.influences || [];
-    const livedExperience = fullContent?.livedExperience || "";
-    const behaviours = fullContent?.behaviours || [];
-    const barriers = fullContent?.barriers || [];
-    const motivations = fullContent?.motivations || [];
-    const goals = fullContent?.goals || [];
-    const habits = fullContent?.habits || [];
-    const spiral = fullContent?.spiral;
+    const influences = fullContent?.influences || fullContent?.identity?.influences || [];
+    const livedExperience = fullContent?.livedExperience || fullContent?.identity?.livedExperience || "";
+    const behaviours = fullContent?.behaviours || fullContent?.identity?.behaviours || [];
+    const barriers = fullContent?.barriers || fullContent?.identity?.barriers || [];
+    const motivations = fullContent?.motivations || fullContent?.identity?.motivations || [];
+    const goals = fullContent?.goals || fullContent?.identity?.goals || [];
+    const habits = fullContent?.habits || fullContent?.identity?.habits || [];
+    const spiral = fullContent?.spiral || fullContent?.identity?.spiral;
 
     const accentColor = colorScheme.accent;
 
@@ -169,26 +169,7 @@ export default function ArchetypeViewPage({ params }: PageProps) {
                         {archetype.description}
                     </p>
 
-                    {/* Demographic pills */}
-                    {demographic && (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                            {demographic.ageRange && (
-                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold ${colorScheme.accentBg} ${accentColor} border ${colorScheme.border}`}>
-                                    {demographic.ageRange}
-                                </span>
-                            )}
-                            {demographic.occupation && (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-accent text-muted-foreground border border-border">
-                                    {demographic.occupation}
-                                </span>
-                            )}
-                            {demographic.livingSetup && (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-accent text-muted-foreground border border-border">
-                                    {demographic.livingSetup}
-                                </span>
-                            )}
-                        </div>
-                    )}
+
                 </div>
 
                 {/* Divider */}

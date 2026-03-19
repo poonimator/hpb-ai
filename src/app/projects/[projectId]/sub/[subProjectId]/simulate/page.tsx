@@ -281,13 +281,12 @@ function SimulationPageContent({ params }: PageProps) {
     const [focusGroupArchetypes, setFocusGroupArchetypes] = useState<ArchetypeItem[]>([]);
     const [showAtMention, setShowAtMention] = useState(false);
 
-    // Focus group archetype colors
     const ARCHETYPE_COLORS = [
-        { bg: "bg-violet-100", border: "border-violet-200/50", text: "text-violet-900", avatar: "bg-gradient-to-br from-violet-500 to-purple-600", avatarText: "text-white" },
-        { bg: "bg-amber-100", border: "border-amber-200/50", text: "text-amber-900", avatar: "bg-gradient-to-br from-amber-500 to-orange-600", avatarText: "text-white" },
-        { bg: "bg-sky-100", border: "border-sky-200/50", text: "text-sky-900", avatar: "bg-gradient-to-br from-sky-500 to-blue-600", avatarText: "text-white" },
-        { bg: "bg-rose-100", border: "border-rose-200/50", text: "text-rose-900", avatar: "bg-gradient-to-br from-rose-500 to-pink-600", avatarText: "text-white" },
-        { bg: "bg-emerald-100", border: "border-emerald-200/50", text: "text-emerald-900", avatar: "bg-gradient-to-br from-emerald-500 to-teal-600", avatarText: "text-white" },
+        { bg: "bg-violet-50/50", border: "border-violet-100", text: "text-violet-800", avatar: "bg-violet-200/70", avatarText: "text-violet-900" },
+        { bg: "bg-amber-50/50", border: "border-amber-100", text: "text-amber-800", avatar: "bg-amber-200/70", avatarText: "text-amber-900" },
+        { bg: "bg-sky-50/50", border: "border-sky-100", text: "text-sky-800", avatar: "bg-sky-200/70", avatarText: "text-sky-900" },
+        { bg: "bg-rose-50/50", border: "border-rose-100", text: "text-rose-800", avatar: "bg-rose-200/70", avatarText: "text-rose-900" },
+        { bg: "bg-emerald-50/50", border: "border-emerald-100", text: "text-emerald-800", avatar: "bg-emerald-200/70", avatarText: "text-emerald-900" },
     ];
 
     // Get a distinctive initial from archetype name (skip "The" prefix)
@@ -1182,20 +1181,35 @@ function SimulationPageContent({ params }: PageProps) {
                                         !messages.slice(msgIndex + 1).some(m => m.role === "persona");
                                     // Collect all quotes from opportunities for highlighting
                                     const highlightsForMessage = coachNudges
-                                        .filter(n => n.messageId === msg.id)
+                                        .filter(n => {
+                                            if (n.messageId === msg.id) return true;
+                                            // Check if any opportunity quote appears literally in this message (key for focus groups)
+                                            if (isFocusGroup && n.opportunities) {
+                                                return n.opportunities.some(opp => opp.quote && msg.content.toLowerCase().includes(opp.quote.toLowerCase()));
+                                            }
+                                            return false;
+                                        })
                                         .flatMap(n => {
                                             // Get quotes from opportunities array
                                             const oppQuotes = (n.opportunities || [])
                                                 .map(opp => opp.quote)
-                                                .filter(Boolean);
+                                                .filter(quote => quote && msg.content.toLowerCase().includes(quote.toLowerCase()));
                                             // Fall back to legacy highlightQuote if no opportunities
-                                            return oppQuotes.length > 0 ? oppQuotes : (n.highlightQuote ? [n.highlightQuote] : []);
+                                            if (oppQuotes.length === 0 && n.highlightQuote && msg.content.toLowerCase().includes(n.highlightQuote.toLowerCase())) {
+                                                return [n.highlightQuote];
+                                            }
+                                            return oppQuotes as string[];
                                         });
 
                                     // Get coaching nudges for this message (with opportunities or legacy coachingNudge)
-                                    const nudgesForMessage = coachNudges.filter(
-                                        n => n.messageId === msg.id && ((n.opportunities && n.opportunities.length > 0) || n.coachingNudge)
-                                    );
+                                    const nudgesForMessage = coachNudges.filter(n => {
+                                        if (n.messageId === msg.id && ((n.opportunities && n.opportunities.length > 0) || n.coachingNudge)) return true;
+                                        // Also show the nudge card if the quote matches this specific focus group message
+                                        if (isFocusGroup && n.opportunities) {
+                                            return n.opportunities.some(opp => opp.quote && msg.content.toLowerCase().includes(opp.quote.toLowerCase()));
+                                        }
+                                        return false;
+                                    });
 
                                     const renderContentWithHighlights = (content: string, highlights: string[]) => {
                                         if (highlights.length === 0) return content;
@@ -2073,7 +2087,7 @@ function SimulationPageContent({ params }: PageProps) {
                                 <User className="h-8 w-8 text-border" />
                             </div>
                             <p className="text-foreground font-semibold mb-1">No personas or archetypes found</p>
-                            <p className="text-muted-foreground text-sm mb-6 max-w-xs">Upload a persona to the project Knowledge Base or generate archetypes to get started.</p>
+                            <p className="text-muted-foreground text-sm mb-6 max-w-xs">Upload a persona to the project Knowledge Base or generate profiles to get started.</p>
                             <Link href={`/projects/${projectId}/kb`}>
                                 <Button variant="outline" className="border-input text-primary hover:bg-accent">
                                     <Plus className="h-4 w-4 mr-2" />

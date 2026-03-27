@@ -63,6 +63,7 @@ model SubProject {
   simulations       Simulation[]
   mappingSessions   MappingSession[]
   archetypeSessions ArchetypeSession[]
+  hmwCritiques      HmwCritique[]
 }
 
 // Guide Version: A moderator guide version belonging to a sub-project
@@ -469,6 +470,23 @@ model Archetype {
   
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
+}
+
+// ============================================
+// HMW Critiques (How Might We Statement Analysis)
+// ============================================
+
+model HmwCritique {
+  id              String     @id @default(cuid())
+  subProjectId    String
+  subProject      SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+  hmwStatement    String
+  overallVerdict  String     // "PASS" | "NEEDS_WORK" | "FAIL"
+  critiqueJson    String     // Full HMWCritiqueResult JSON (lenses, research alignment, highlights)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([subProjectId, createdAt])
 }
 
 // ============================================

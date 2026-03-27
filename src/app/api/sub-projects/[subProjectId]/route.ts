@@ -99,6 +99,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                         simulations: true,
                         mappingSessions: true,
                         archetypeSessions: true,
+                        hmwCritiques: true,
                     },
                 },
                 mappingSessions: {
@@ -143,6 +144,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                                 archetypeSessionId: true,
                             },
                         },
+                    },
+                },
+                hmwCritiques: {
+                    orderBy: { createdAt: "desc" as const },
+                    select: {
+                        id: true,
+                        hmwStatement: true,
+                        overallVerdict: true,
+                        createdAt: true,
                     },
                 },
             },

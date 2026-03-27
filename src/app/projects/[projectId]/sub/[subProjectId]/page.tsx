@@ -103,6 +103,13 @@ interface ArchetypeSessionData {
     archetypes: ArchetypeInfo[];
 }
 
+interface HmwCritiqueInfo {
+    id: string;
+    hmwStatement: string;
+    overallVerdict: string;
+    createdAt: string;
+}
+
 interface SubProject {
     id: string;
     name: string;
@@ -118,11 +125,13 @@ interface SubProject {
     simulations: Simulation[];
     mappingSessions: MappingSession[];
     archetypeSessions: ArchetypeSessionData[];
+    hmwCritiques: HmwCritiqueInfo[];
     _count: {
         guideVersions: number;
         simulations: number;
         mappingSessions: number;
         archetypeSessions: number;
+        hmwCritiques: number;
     };
 }
 
@@ -159,10 +168,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
     // Tab state for content section — initialise from URL search param
     const searchParams = useSearchParams();
-    const initialTab = (searchParams.get("tab") as "guides" | "simulations" | "mapping" | "archetypes") || "guides";
-    const [activeContentTab, setActiveContentTab] = useState<"guides" | "simulations" | "mapping" | "archetypes">(initialTab);
+    const initialTab = (searchParams.get("tab") as "guides" | "simulations" | "mapping" | "archetypes" | "hmw") || "guides";
+    const [activeContentTab, setActiveContentTab] = useState<"guides" | "simulations" | "mapping" | "archetypes" | "hmw">(initialTab);
 
-    const switchTab = useCallback((tab: "guides" | "simulations" | "mapping" | "archetypes") => {
+    const switchTab = useCallback((tab: "guides" | "simulations" | "mapping" | "archetypes" | "hmw") => {
         setActiveContentTab(tab);
         const url = new URL(window.location.href);
         url.searchParams.set("tab", tab);
@@ -484,17 +493,6 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 </div>
                             </div> */}
                         </div>
-                        <div className="flex-shrink-0">
-                            <Link href={`/projects/${projectId}/sub/${subProjectId}/hmw`}>
-                                <Button
-                                    variant="outline"
-                                    className="rounded-full bg-white border-border text-primary shadow-sm hover:bg-white hover:border-primary/40 hover:shadow transition-all duration-200 gap-2 font-bold text-xs uppercase tracking-wide"
-                                >
-                                    <Lightbulb className="h-4 w-4" />
-                                    How Might We
-                                </Button>
-                            </Link>
-                        </div>
                     </div>
                 </div>
 
@@ -580,6 +578,26 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     </span>
                                 ) : null;
                             })()}
+                        </button>
+
+                        <button
+                            onClick={() => switchTab("hmw")}
+                            className={`
+                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                ${activeContentTab === "hmw"
+                                    ? "bg-white shadow-sm ring-1 ring-black/5"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                }
+                            `}
+                            style={activeContentTab === "hmw" ? { color: 'var(--color-knowledge)' } : undefined}
+                        >
+                            <Lightbulb className={`h-3.5 w-3.5 ${activeContentTab === "hmw" ? "" : "text-muted-foreground"}`} style={activeContentTab === "hmw" ? { color: 'var(--color-knowledge)' } : undefined} />
+                            How Might We
+                            {(subProject.hmwCritiques?.length || 0) > 0 && (
+                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "hmw" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "hmw" ? { backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' } : undefined}>
+                                    {subProject.hmwCritiques.length}
+                                </span>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -924,6 +942,83 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             </div>
                         );
                     })()}
+
+                    {/* How Might We */}
+                    {activeContentTab === "hmw" && (
+                        <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+                            {/* Create New HMW Card */}
+                            <Link
+                                href={`/projects/${projectId}/sub/${subProjectId}/hmw`}
+                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                            >
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                        <Lightbulb className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-foreground mb-0.5">Analyse HMW</h3>
+                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                            Critique statements with the 5-lens framework
+                                        </p>
+                                    </div>
+                                </div>
+                            </Link>
+
+                            {/* HMW Critique Cards */}
+                            {subProject.hmwCritiques?.map((critique) => {
+                                const verdictStyles: Record<string, { bg: string; text: string; border: string; label: string }> = {
+                                    PASS: { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", label: "Pass" },
+                                    NEEDS_WORK: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200", label: "Needs Work" },
+                                    FAIL: { bg: "bg-red-50", text: "text-red-600", border: "border-red-200", label: "Fail" },
+                                };
+                                const v = verdictStyles[critique.overallVerdict] || verdictStyles.NEEDS_WORK;
+
+                                return (
+                                    <div
+                                        key={critique.id}
+                                        onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/hmw?scrollTo=${critique.id}`}
+                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                    >
+                                        {/* Delete button on hover */}
+                                        <button
+                                            onClick={async (e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                if (!confirm("Delete this HMW critique?")) return;
+                                                try {
+                                                    const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques/${critique.id}`, { method: "DELETE" });
+                                                    if (res.ok) await fetchSubProject();
+                                                    else alert("Failed to delete");
+                                                } catch { alert("Failed to delete"); }
+                                            }}
+                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+
+                                        {/* Verdict badge */}
+                                        <div className="mb-auto">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${v.bg} ${v.text} ${v.border} border`}>
+                                                {v.label}
+                                            </span>
+                                        </div>
+
+                                        {/* Content at bottom */}
+                                        <div className="mt-3">
+                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                                <span className="text-primary">HMW </span>
+                                                {critique.hmwStatement}
+                                            </h4>
+                                            <p className="text-[11px] text-muted-foreground leading-snug">
+                                                {new Date(critique.createdAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
             {/* Edit Workspace Dialog */}

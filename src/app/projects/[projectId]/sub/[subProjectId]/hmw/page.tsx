@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
     Loader2,
@@ -72,8 +73,6 @@ interface PageProps {
 
 // ─── Constants ───────────────────────────────────────────────────────────
 
-const STORAGE_KEY_PREFIX = "hmw_critique_history_";
-
 const LENS_ICONS: Record<string, typeof Target> = {
     "Grounded in a Real Problem": Search,
     "Solution-Agnostic": ShieldCheck,
@@ -88,27 +87,6 @@ const VERDICT_CONFIG = {
     FAIL: { color: "text-red-600", bg: "bg-red-50", border: "border-red-200", icon: XCircle, label: "Fail" },
     NEEDS_WORK: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", icon: AlertTriangle, label: "Needs Work" },
 };
-
-// ─── localStorage helpers ────────────────────────────────────────────────
-
-function loadHistory(subProjectId: string): HistoryEntry[] {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY_PREFIX + subProjectId);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw) as Array<Omit<HistoryEntry, 'timestamp'> & { timestamp: string }>;
-        return parsed.map(e => ({ ...e, timestamp: new Date(e.timestamp) }));
-    } catch {
-        return [];
-    }
-}
-
-function saveHistory(subProjectId: string, history: HistoryEntry[]) {
-    try {
-        localStorage.setItem(STORAGE_KEY_PREFIX + subProjectId, JSON.stringify(history));
-    } catch {
-        console.error("[HMW] Failed to save history to localStorage");
-    }
-}
 
 // ─── Helper Components ───────────────────────────────────────────────────
 
@@ -272,7 +250,7 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
     const allHighlights = critique.lenses.flatMap(l => l.highlightedParts);
 
     return (
-        <div className="animate-in slide-in-from-bottom-3 fade-in duration-500">
+        <div id={`hmw-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500">
             {/* HMW Statement with highlights */}
             <div className="bg-white rounded-2xl border border-border p-6 mb-3 shadow-sm">
                 <div className="flex items-start justify-between gap-4 mb-3">
@@ -357,19 +335,51 @@ export default function HMWPage({ params }: PageProps) {
     const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
+    const searchParams = useSearchParams();
+    const scrollToId = searchParams.get("scrollTo");
 
-    // Load persisted history on mount
-    useEffect(() => {
-        setHistory(loadHistory(subProjectId));
-        setIsHistoryLoaded(true);
+    // Fetch history from API
+    const fetchHistory = useCallback(async () => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques`);
+            const data = await res.json();
+            if (data.success && data.data) {
+                setHistory(data.data.map((c: any) => ({
+                    id: c.id,
+                    hmwStatement: c.hmwStatement,
+                    critique: JSON.parse(c.critiqueJson),
+                    timestamp: new Date(c.createdAt),
+                })));
+            }
+        } catch (err) {
+            console.error("[HMW] Failed to fetch history:", err);
+        } finally {
+            setIsHistoryLoaded(true);
+        }
     }, [subProjectId]);
 
-    // Persist history whenever it changes (but only after initial load)
     useEffect(() => {
-        if (isHistoryLoaded) {
-            saveHistory(subProjectId, history);
+        fetchHistory();
+    }, [fetchHistory]);
+
+    // One-time localStorage cleanup
+    useEffect(() => {
+        try {
+            localStorage.removeItem("hmw_critique_history_" + subProjectId);
+        } catch {}
+    }, [subProjectId]);
+
+    // Scroll to specific critique if scrollTo param is present
+    useEffect(() => {
+        if (scrollToId && isHistoryLoaded && history.length > 0) {
+            const el = document.getElementById(`hmw-critique-${scrollToId}`);
+            if (el) {
+                setTimeout(() => {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 300);
+            }
         }
-    }, [history, subProjectId, isHistoryLoaded]);
+    }, [scrollToId, isHistoryLoaded, history]);
 
     useEffect(() => {
         fetchSubProject();
@@ -389,9 +399,18 @@ export default function HMWPage({ params }: PageProps) {
         }
     };
 
-    const handleDelete = useCallback((id: string) => {
-        setHistory(prev => prev.filter(e => e.id !== id));
-    }, []);
+    const handleDelete = useCallback(async (id: string) => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                setHistory(prev => prev.filter(e => e.id !== id));
+            } else {
+                alert("Failed to delete");
+            }
+        } catch {
+            alert("Failed to delete");
+        }
+    }, [subProjectId]);
 
     const handleCheck = async () => {
         if (!hmwInput.trim() || isChecking) return;
@@ -414,15 +433,8 @@ export default function HMWPage({ params }: PageProps) {
             const data = await res.json();
 
             if (data.success && data.data) {
-                const newEntry: HistoryEntry = {
-                    id: `hmw_${Date.now()}`,
-                    hmwStatement: statement,
-                    critique: data.data,
-                    timestamp: new Date(),
-                };
-
-                setHistory(prev => [newEntry, ...prev]);
-                setHmwInput(""); // Clear input for next iteration
+                setHmwInput("");
+                await fetchHistory();
 
                 // Scroll to results
                 setTimeout(() => {

@@ -169,7 +169,26 @@ export default function ArchetypeViewPage({ params }: PageProps) {
                         {archetype.description}
                     </p>
 
-
+                    {/* Demographic tags */}
+                    {demographic && (demographic.ageRange || demographic.occupation || demographic.livingSetup) && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                            {demographic.ageRange && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-accent text-muted-foreground border border-border">
+                                    {demographic.ageRange}
+                                </span>
+                            )}
+                            {demographic.occupation && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-accent text-muted-foreground border border-border">
+                                    {demographic.occupation}
+                                </span>
+                            )}
+                            {demographic.livingSetup && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-accent text-muted-foreground border border-border">
+                                    {demographic.livingSetup}
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Divider */}
@@ -257,7 +276,7 @@ export default function ArchetypeViewPage({ params }: PageProps) {
 
                 {/* Mode note */}
                 <p className="text-[11px] text-muted-foreground mt-8 italic">
-                    Archetype mode — a young person may shift between different modes depending on situation and support.
+                    Archetype mode — a person may shift between different modes depending on situation and support.
                 </p>
             </div>
         </div>

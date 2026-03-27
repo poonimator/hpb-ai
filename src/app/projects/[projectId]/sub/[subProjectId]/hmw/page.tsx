@@ -344,12 +344,18 @@ export default function HMWPage({ params }: PageProps) {
             const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques`);
             const data = await res.json();
             if (data.success && data.data) {
-                setHistory(data.data.map((c: any) => ({
-                    id: c.id,
-                    hmwStatement: c.hmwStatement,
-                    critique: JSON.parse(c.critiqueJson),
-                    timestamp: new Date(c.createdAt),
-                })));
+                setHistory(data.data.map((c: any) => {
+                    try {
+                        return {
+                            id: c.id,
+                            hmwStatement: c.hmwStatement,
+                            critique: JSON.parse(c.critiqueJson),
+                            timestamp: new Date(c.createdAt),
+                        };
+                    } catch {
+                        return null;
+                    }
+                }).filter(Boolean) as HistoryEntry[]);
             }
         } catch (err) {
             console.error("[HMW] Failed to fetch history:", err);

@@ -21,6 +21,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: "Project ID is required" }, { status: 400 });
         }
 
+        if (!subProjectId) {
+            return NextResponse.json({ success: false, error: "Sub-project ID is required" }, { status: 400 });
+        }
+
         // 1. Fetch "OTHER" documents from the project's knowledge base
         const projectOtherDocs = await prisma.projectKbDocument.findMany({
             where: {
@@ -75,10 +79,25 @@ export async function POST(req: Request) {
 
         // 3. Call OpenAI
         if (!isOpenAIConfigured()) {
-            // Return mock response if not configured
+            const mockData = getMockHMWCritique(hmwStatement);
+            let savedId: string | null = null;
+            try {
+                const saved = await prisma.hmwCritique.create({
+                    data: {
+                        subProjectId,
+                        hmwStatement: hmwStatement.trim(),
+                        overallVerdict: mockData.overallVerdict,
+                        critiqueJson: JSON.stringify(mockData),
+                    },
+                });
+                savedId = saved.id;
+            } catch (dbErr) {
+                console.error("[HMW Critique] Mock DB save error:", dbErr);
+            }
             return NextResponse.json({
                 success: true,
-                data: getMockHMWCritique(hmwStatement),
+                data: mockData,
+                savedId,
                 disclaimer: DISCLAIMER,
                 modelName: "mock",
             });
@@ -201,6 +220,22 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: "Failed to parse AI response" }, { status: 500 });
         }
 
+        // Persist to database
+        let savedId: string | null = null;
+        try {
+            const saved = await prisma.hmwCritique.create({
+                data: {
+                    subProjectId,
+                    hmwStatement: hmwStatement.trim(),
+                    overallVerdict: parsed.overallVerdict,
+                    critiqueJson: JSON.stringify(parsed),
+                },
+            });
+            savedId = saved.id;
+        } catch (dbErr) {
+            console.error("[HMW Critique] DB save error:", dbErr);
+        }
+
         // Log audit
         try {
             await logAudit({
@@ -222,6 +257,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
             success: true,
             data: parsed,
+            savedId,
             disclaimer: DISCLAIMER,
             modelName: DEFAULT_MODEL,
             latencyMs,

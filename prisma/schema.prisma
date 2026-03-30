@@ -64,6 +64,7 @@ model SubProject {
   mappingSessions   MappingSession[]
   archetypeSessions ArchetypeSession[]
   hmwCritiques      HmwCritique[]
+  insightCritiques  InsightCritique[]
 }
 
 // Guide Version: A moderator guide version belonging to a sub-project
@@ -485,6 +486,23 @@ model HmwCritique {
   critiqueJson    String     // Full HMWCritiqueResult JSON (lenses, research alignment, highlights)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+
+  @@index([subProjectId, createdAt])
+}
+
+// ============================================
+// Insight Critiques (Insight Statement Analysis)
+// ============================================
+
+model InsightCritique {
+  id                String     @id @default(cuid())
+  subProjectId      String
+  subProject        SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+  insightStatement  String
+  overallVerdict    String     // "PASS" | "NEEDS_WORK" | "FAIL"
+  critiqueJson      String     // Full structured critique JSON
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   @@index([subProjectId, createdAt])
 }

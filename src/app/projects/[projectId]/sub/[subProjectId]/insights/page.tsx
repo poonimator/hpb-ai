@@ -97,10 +97,10 @@ const CRITERIA_ICONS: Record<string, typeof Target> = {
 };
 
 const VERDICT_CONFIG = {
-    PASS: { color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200", icon: CheckCircle2, label: "Pass" },
-    PARTIAL: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", icon: AlertTriangle, label: "Needs Work" },
-    FAIL: { color: "text-red-600", bg: "bg-red-50", border: "border-red-200", icon: XCircle, label: "Fail" },
-    NEEDS_WORK: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", icon: AlertTriangle, label: "Needs Work" },
+    PASS: { color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200", leftBorder: "border-l-emerald-400", icon: CheckCircle2, label: "Pass" },
+    PARTIAL: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", leftBorder: "border-l-amber-400", icon: AlertTriangle, label: "Needs Work" },
+    FAIL: { color: "text-red-600", bg: "bg-red-50", border: "border-red-200", leftBorder: "border-l-red-400", icon: XCircle, label: "Fail" },
+    NEEDS_WORK: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", leftBorder: "border-l-amber-400", icon: AlertTriangle, label: "Needs Work" },
 };
 
 // ─── Helper Components ───────────────────────────────────────────────────
@@ -298,71 +298,12 @@ function VerdictBadge({ verdict }: { verdict: string }) {
     );
 }
 
-function CriteriaRow({ criteria }: { criteria: InsightCriteria }) {
-    const [expanded, setExpanded] = useState(false);
-    const Icon = CRITERIA_ICONS[criteria.name] || Target;
-    const config = VERDICT_CONFIG[criteria.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
-    const VerdictIcon = config.icon;
-    const hasDetail = criteria.explanation || criteria.highlightedParts.length > 0 || criteria.suggestedImprovement;
-
-    return (
-        <div>
-            <button
-                onClick={() => hasDetail && setExpanded(!expanded)}
-                className={`w-full flex items-center gap-3 py-2.5 text-left transition-colors ${hasDetail ? 'cursor-pointer hover:bg-muted/20' : 'cursor-default'} rounded-lg px-2 -mx-2`}
-            >
-                <VerdictIcon className={`h-4 w-4 flex-shrink-0 ${config.color}`} />
-                <span className="text-[13px] font-medium text-foreground flex-1 min-w-0 truncate">{criteria.name}</span>
-                <span className={`text-[11px] font-bold uppercase tracking-wide ${config.color}`}>{config.label}</span>
-                {hasDetail && (
-                    expanded
-                        ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                )}
-            </button>
-
-            {expanded && hasDetail && (
-                <div className="pl-9 pr-2 pb-2 animate-in slide-in-from-top-1 fade-in duration-150">
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-2">{criteria.explanation}</p>
-
-                    {criteria.highlightedParts.length > 0 && (
-                        <div className="space-y-1.5 mb-2">
-                            {criteria.highlightedParts.map((hp, i) => (
-                                <div key={i} className="flex items-start gap-2 pl-2.5 border-l-2 border-amber-300">
-                                    <div className="flex-1">
-                                        <span className="text-[11px] font-mono bg-amber-100 text-amber-800 px-1 py-0.5 rounded">
-                                            &ldquo;{hp.text}&rdquo;
-                                        </span>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5">{hp.issue}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {criteria.suggestedImprovement && (
-                        <div className="bg-muted/30 rounded-md p-2 border border-border/60">
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                <span className="font-semibold text-foreground">Tip: </span>{criteria.suggestedImprovement}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-}
-
 function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (id: string) => void }) {
     const { critique, insightStatement } = entry;
-    const allHighlights = critique.criteria.flatMap(c => c.highlightedParts);
-    const hasBreakdown = critique.statementBreakdown && critique.statementBreakdown.length > 0;
-    const hasEvidence = critique.researchAlignment.evidence && critique.researchAlignment.evidence.length > 0;
-    const ra = critique.researchAlignment;
 
     return (
         <div id={`insight-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500">
-            {/* Insight Statement — annotated with connectors or fallback to highlights */}
+            {/* Insight Statement + verdict */}
             <div className="bg-white rounded-2xl border border-border p-6 mb-3 shadow-sm">
                 <div className="flex items-center justify-between gap-4 mb-4">
                     <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
@@ -380,89 +321,48 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                     </div>
                 </div>
 
-                {hasBreakdown ? (
-                    <AnnotatedInsight statement={insightStatement} annotations={critique.statementBreakdown!} />
-                ) : (
-                    <p className="text-lg text-foreground leading-relaxed">
-                        <HighlightedInsight statement={insightStatement} highlights={allHighlights} />
-                    </p>
-                )}
+                <p className="text-lg font-semibold text-foreground leading-relaxed">
+                    {insightStatement}
+                </p>
 
                 <p className="text-sm text-muted-foreground leading-relaxed border-t border-border/60 pt-3 mt-4">
                     {critique.overallSummary}
                 </p>
             </div>
 
-            {/* 5 Criteria — compact single card */}
+            {/* 5 Criteria — single card with divided rows, all expanded */}
             <div className="bg-white rounded-xl border border-border p-4 mb-3 shadow-sm">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">5-Criteria Assessment</p>
                 <div className="divide-y divide-border/60">
-                    {critique.criteria.map((criteria, i) => (
-                        <CriteriaRow key={i} criteria={criteria} />
-                    ))}
-                </div>
-            </div>
+                    {[...critique.criteria].sort((a, b) => {
+                        const order: Record<string, number> = { PASS: 0, PARTIAL: 1, NEEDS_WORK: 1, FAIL: 2 };
+                        return (order[a.verdict] ?? 1) - (order[b.verdict] ?? 1);
+                    }).map((c, i) => {
+                        const Icon = CRITERIA_ICONS[c.name] || Target;
+                        const config = VERDICT_CONFIG[c.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
+                        const VIcon = config.icon;
 
-            {/* Research Alignment — redesigned */}
-            <div className={`rounded-xl border p-4 mb-3 ${ra.isAligned ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30'}`}>
-                {/* Header with verdict */}
-                <div className="flex items-center gap-2 mb-3">
-                    <BookOpen className={`h-3.5 w-3.5 ${ra.isAligned ? 'text-emerald-600' : 'text-amber-600'}`} />
-                    <span className="text-[13px] font-semibold text-foreground">Research Alignment</span>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ra.isAligned
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}>
-                        {ra.isAligned ? "Aligned" : "Misaligned"}
-                    </span>
-                </div>
-
-                {/* So What — the key insight */}
-                {ra.soWhat && (
-                    <p className={`text-sm font-semibold leading-relaxed mb-3 ${ra.isAligned ? 'text-emerald-800' : 'text-amber-800'}`}>
-                        {ra.soWhat}
-                    </p>
-                )}
-
-                {/* Evidence cards */}
-                {hasEvidence && (
-                    <div className="space-y-2 mt-2">
-                        {ra.evidence!.map((ev, i) => (
-                            <div key={i} className="bg-white/70 rounded-lg border border-border/40 p-3">
-                                <div className="flex items-center gap-1.5 mb-1.5">
-                                    <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">
-                                        {ev.source}
-                                    </span>
+                        return (
+                            <div key={i} className="py-2.5">
+                                <div className="flex items-center gap-3 px-2">
+                                    <VIcon className={`h-4 w-4 flex-shrink-0 ${config.color}`} />
+                                    <span className="text-[13px] font-medium text-foreground flex-1 min-w-0">{c.name}</span>
+                                    <span className={`text-[11px] font-bold uppercase tracking-wide ${config.color}`}>{config.label}</span>
                                 </div>
-                                <p className="text-[12px] text-foreground leading-relaxed mb-1.5 italic">
-                                    &ldquo;{ev.quote}&rdquo;
-                                </p>
-                                <p className="text-[11px] text-muted-foreground leading-relaxed flex items-start gap-1.5">
-                                    <ArrowRight className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                    {ev.connection}
-                                </p>
+                                <div className="pl-9 pr-2 pt-1.5">
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{c.explanation}</p>
+                                    {c.suggestedImprovement && (
+                                        <div className="bg-muted/30 rounded-md p-2 border border-border/60 mt-2">
+                                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                                <span className="font-semibold text-foreground">Tip: </span>{c.suggestedImprovement}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Fallback for old critiques without evidence */}
-                {!hasEvidence && ra.relevantFindings.length > 0 && (
-                    <div className="space-y-1 mt-2">
-                        {ra.relevantFindings.map((finding, i) => (
-                            <div key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-                                <span className="text-primary mt-0.5">&bull;</span>
-                                <span>{finding}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Fallback for old critiques without soWhat */}
-                {!ra.soWhat && (
-                    <p className="text-xs text-muted-foreground leading-relaxed">{ra.explanation}</p>
-                )}
+                        );
+                    })}
+                </div>
             </div>
 
         </div>
@@ -665,7 +565,7 @@ export default function InsightsPage({ params }: PageProps) {
                             value={insightInput}
                             onChange={(e) => setInsightInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="e.g., Young people don't avoid help because they don't want it — they avoid it because the cost of asking feels higher than the cost of struggling alone."
+                            placeholder="Type your insight statement here..."
                             className="w-full resize-none border-0 bg-transparent text-foreground text-lg leading-relaxed focus:outline-none min-h-[80px] placeholder:text-muted-foreground/50"
                             disabled={isChecking}
                             rows={3}

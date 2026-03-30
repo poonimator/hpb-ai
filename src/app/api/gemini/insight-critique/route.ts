@@ -65,8 +65,8 @@ export async function POST(req: Request) {
                         properties: {
                             name: { type: "string" as const, description: "Criterion name: 'Well-Informed', 'More Than an Observation', 'So What?', 'Sticky', 'Actionable'" },
                             verdict: { type: "string" as const, description: "PASS, PARTIAL, or FAIL" },
-                            explanation: { type: "string" as const, description: "Brief, sharp critique. No sugarcoating." },
-                            suggestedImprovement: { type: "string" as const, description: "Concrete improvement suggestion, or empty string if it passes" }
+                            explanation: { type: "string" as const, description: "MAX 20 words. One sharp sentence. No sugarcoating." },
+                            suggestedImprovement: { type: "string" as const, description: "MAX 15 words. One concrete action, or empty string if it passes." }
                         },
                         required: ["name", "verdict", "explanation", "suggestedImprovement"]
                     }

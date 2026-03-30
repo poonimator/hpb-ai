@@ -100,6 +100,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                         mappingSessions: true,
                         archetypeSessions: true,
                         hmwCritiques: true,
+                        insightCritiques: true,
                     },
                 },
                 mappingSessions: {
@@ -151,6 +152,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                     select: {
                         id: true,
                         hmwStatement: true,
+                        overallVerdict: true,
+                        createdAt: true,
+                    },
+                },
+                insightCritiques: {
+                    orderBy: { createdAt: "desc" as const },
+                    select: {
+                        id: true,
+                        insightStatement: true,
                         overallVerdict: true,
                         createdAt: true,
                     },

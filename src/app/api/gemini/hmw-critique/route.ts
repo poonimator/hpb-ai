@@ -175,18 +175,68 @@ export async function POST(req: Request) {
                             type: "string" as const,
                             description: "Assessment of how well this HMW aligns with the completed research. Be brutally honest."
                         },
+                        soWhat: {
+                            type: "string" as const,
+                            description: "One punchy sentence answering 'so what?' — the key implication of the research alignment (or misalignment). E.g., 'This HMW ignores the core finding that youth avoid help because of self-blame, not lack of access.'"
+                        },
                         relevantFindings: {
                             type: "array" as const,
                             description: "Key research findings from the knowledge base that are relevant or contradictory",
                             items: {
                                 type: "string" as const
                             }
+                        },
+                        evidence: {
+                            type: "array" as const,
+                            description: "2-3 specific pieces of evidence from the research documents. Each should cite a specific source document and include a near-verbatim quote or specific data point.",
+                            items: {
+                                type: "object" as const,
+                                additionalProperties: false,
+                                properties: {
+                                    source: {
+                                        type: "string" as const,
+                                        description: "Name of the source document from the knowledge base (use the exact document title)"
+                                    },
+                                    quote: {
+                                        type: "string" as const,
+                                        description: "A near-verbatim quote or specific data point from the source. Keep it short (1-2 sentences max)."
+                                    },
+                                    connection: {
+                                        type: "string" as const,
+                                        description: "One sentence explaining how this evidence supports or contradicts the HMW statement"
+                                    }
+                                },
+                                required: ["source", "quote", "connection"]
+                            }
                         }
                     },
-                    required: ["isAligned", "explanation", "relevantFindings"]
+                    required: ["isAligned", "explanation", "soWhat", "relevantFindings", "evidence"]
+                },
+                statementBreakdown: {
+                    type: "array" as const,
+                    description: "Break the HMW statement into 3-5 meaningful phrases and annotate each. For parts that work well, explain WHY they work (e.g., 'grounds the scope without being too narrow'). For parts that are problematic, explain the issue. Each annotation should be a brief 1-2 sentence insight, not a generic label.",
+                    items: {
+                        type: "object" as const,
+                        additionalProperties: false,
+                        properties: {
+                            text: {
+                                type: "string" as const,
+                                description: "The exact substring from the HMW statement (use EXACT text, not paraphrased)"
+                            },
+                            note: {
+                                type: "string" as const,
+                                description: "A brief 1-2 sentence annotation explaining why this part works well or what is wrong with it. Be specific and insightful — not generic."
+                            },
+                            sentiment: {
+                                type: "string" as const,
+                                description: "strength (this part works well), issue (this part is problematic), or neutral (acceptable but unremarkable)"
+                            }
+                        },
+                        required: ["text", "note", "sentiment"]
+                    }
                 }
             },
-            required: ["overallVerdict", "overallSummary", "lenses", "researchAlignment"]
+            required: ["overallVerdict", "overallSummary", "lenses", "researchAlignment", "statementBreakdown"]
         };
 
         const response = await client.chat.completions.create({
@@ -323,6 +373,18 @@ The HMW should use positive action verbs (increase, create, enhance, promote) ra
 - ❌ wrong: "How might we make the return process *less difficult*?"
 - ✅ right: "How might we make the return process *quick and intuitive*?"
 
+## STATEMENT BREAKDOWN
+Break the HMW into 3-5 meaningful phrases and annotate each one:
+- For each phrase, explain WHY it works or what is wrong. Be specific and insightful.
+- Use "strength" for parts that are well-crafted, "issue" for problematic parts, "neutral" for acceptable but unremarkable parts.
+- Use EXACT substrings from the HMW statement — do not paraphrase.
+- Annotations should read like expert design thinking insights, not generic labels.
+
+## RESEARCH ALIGNMENT
+- Include a punchy "soWhat" sentence that answers "so what?" — the key implication.
+- For "evidence", cite 2-3 SPECIFIC pieces from the research documents. Use exact document titles as source names and include near-verbatim quotes or specific data points. If no research docs are available, return an empty evidence array.
+- The evidence should signpost WHERE in the research this comes from, not just summarize generically.
+
 ## CRITICAL INSTRUCTIONS
 - For each lens, identify EXACT substrings from the HMW statement that are problematic. Use the EXACT text — do not paraphrase.
 - Cross-reference the HMW against the research context. Does this HMW actually relate to real findings? Or is it made up / too generic?
@@ -375,8 +437,11 @@ function getMockHMWCritique(hmwStatement: string) {
         researchAlignment: {
             isAligned: false,
             explanation: "No research documents were available to verify alignment. This is a mock response.",
-            relevantFindings: []
-        }
+            soWhat: "Without research grounding, this HMW is an educated guess at best.",
+            relevantFindings: [],
+            evidence: []
+        },
+        statementBreakdown: []
     };
 }
 // Created by Swapnil Bapat © 2026

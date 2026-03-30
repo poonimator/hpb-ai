@@ -932,26 +932,35 @@ export async function generateArchetypeSummary(params: GenerateArchetypeSummaryP
     try {
         if (!isOpenAIConfigured()) {
             return {
-                summary: `This is a mock summary of what ${archetypeName} said during the focus group simulation.`,
+                summary: JSON.stringify({
+                    stance: "Cautiously open but skeptical",
+                    keyPoints: ["Expressed concern about trust", "Wanted practical next steps", "Pushed back on generic advice"],
+                    quote: "This is a mock quote from the focus group."
+                }),
                 success: true
             };
         }
 
         const client = getOpenAIClient();
         const prompt = `You are an expert qualitative researcher summarizing a focus group transcript.
-        
-        Analyze the following transcript and provide a single concise summary paragraph of what the participant "${archetypeName}" said, thought, or felt during the entire conversation.
-        Focus ONLY on the contributions, viewpoints, and reactions of "${archetypeName}".
-        
-        TRANSCRIPT:
-        ${conversationTranscript}
-        
-        Return the summary as plain text, no markdown. Max 100 words.`;
+
+Analyze the transcript and summarize what "${archetypeName}" contributed. Return ONLY valid JSON:
+
+{
+  "stance": "A short phrase (3-6 words) capturing their overall position or attitude during the discussion (e.g., 'Cautiously open but skeptical', 'Pragmatic and solution-focused', 'Emotionally guarded')",
+  "keyPoints": ["3 concise bullet points (max 12 words each) capturing their main contributions, reactions, or viewpoints"],
+  "quote": "One representative near-verbatim quote or paraphrase (max 20 words) that best captures their voice in the discussion"
+}
+
+Focus ONLY on "${archetypeName}". Be specific and concise.
+
+TRANSCRIPT:
+${conversationTranscript}`;
 
         const response = await client.chat.completions.create({
             model: modelName,
             messages: [
-                { role: "system", content: "You are a qualitative researcher summarizing participant inputs." },
+                { role: "system", content: "You are a qualitative researcher. Return only valid JSON, no markdown." },
                 { role: "user", content: prompt }
             ],
             temperature: 0.3,
@@ -990,29 +999,59 @@ export async function generateCrossProfileSummary(params: GenerateCrossProfileSu
     try {
         if (!isOpenAIConfigured()) {
             return {
-                summary: `This is a mock cross-profile comparison. Profiles ${archetypeNames.join(", ")} generally agreed on most topics but had some tensions regarding key priorities.`,
+                summary: JSON.stringify({
+                    agreements: [
+                        { point: "All profiles valued practical support over abstract advice", profiles: archetypeNames.slice(0, 2) },
+                    ],
+                    tensions: [
+                        { point: "Disagreed on whether adults can be trusted with personal information", between: [archetypeNames[0], archetypeNames[1] || archetypeNames[0]] },
+                    ],
+                    gaps: [
+                        "No profile raised the role of school counsellors",
+                    ],
+                    recommendedSteps: [
+                        { action: "Test trust-building mechanisms before scaling", why: "Trust was the key divide — without it, no intervention lands" },
+                        { action: "Segment by coping style, not demographics", why: "Profiles with similar ages had opposite coping strategies" },
+                    ]
+                }),
                 success: true
             };
         }
 
         const client = getOpenAIClient();
-        const prompt = `You are an expert qualitative researcher analyzing a focus group transcript involving the following profiles: ${archetypeNames.join(", ")}.
-        
-        Analyze the following transcript and provide a single concise summary paragraph highlighting the cross-profile dynamics. 
-        Specifically focus on:
-        1. Key agreements between the profiles.
-        2. Tensions or disagreements that emerged.
-        3. Gaps in perspectives or differing motivations.
-        
-        TRANSCRIPT:
-        ${conversationTranscript}
-        
-        Return the cross-profile comparison as plain text, no markdown. Max 150 words.`;
+        const prompt = `You are an expert qualitative researcher analyzing a focus group transcript involving these profiles: ${archetypeNames.join(", ")}.
+
+Analyze the transcript and return ONLY valid JSON with this structure:
+
+{
+  "agreements": [
+    { "point": "One sentence describing what they agreed on (max 15 words)", "profiles": ["names of profiles who agreed"] }
+  ],
+  "tensions": [
+    { "point": "One sentence describing the disagreement (max 15 words)", "between": ["profile A", "profile B"] }
+  ],
+  "gaps": [
+    "One sentence describing a perspective or topic nobody raised (max 15 words)"
+  ],
+  "recommendedSteps": [
+    { "action": "A specific, actionable next step for the research/design team (max 15 words)", "why": "Brief rationale tied to what emerged in the discussion (max 20 words)" }
+  ]
+}
+
+Rules:
+- 2-3 items per section. Be specific, not generic.
+- agreements/tensions should name the actual profiles involved.
+- gaps should highlight what was MISSING from the conversation.
+- recommendedSteps should be concrete actions the team can take based on what emerged.
+- No markdown. Only valid JSON.
+
+TRANSCRIPT:
+${conversationTranscript}`;
 
         const response = await client.chat.completions.create({
             model: modelName,
             messages: [
-                { role: "system", content: "You are a qualitative researcher analyzing group dynamics." },
+                { role: "system", content: "You are a qualitative researcher analyzing group dynamics. Return only valid JSON, no markdown." },
                 { role: "user", content: prompt }
             ],
             temperature: 0.3,

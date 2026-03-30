@@ -20,6 +20,8 @@ import {
     Smile,
     ShieldCheck,
     Trash2,
+    FileText,
+    ArrowRight,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────
@@ -37,10 +39,24 @@ interface LensCritique {
     suggestedImprovement: string;
 }
 
+interface ResearchEvidence {
+    source: string;
+    quote: string;
+    connection: string;
+}
+
 interface ResearchAlignment {
     isAligned: boolean;
     explanation: string;
+    soWhat?: string;
     relevantFindings: string[];
+    evidence?: ResearchEvidence[];
+}
+
+interface StatementAnnotation {
+    text: string;
+    note: string;
+    sentiment: "strength" | "issue" | "neutral";
 }
 
 interface HMWCritiqueResult {
@@ -48,6 +64,7 @@ interface HMWCritiqueResult {
     overallSummary: string;
     lenses: LensCritique[];
     researchAlignment: ResearchAlignment;
+    statementBreakdown?: StatementAnnotation[];
 }
 
 interface HistoryEntry {
@@ -179,6 +196,126 @@ function HighlightedHMW({ statement, highlights, activeLens }: {
     );
 }
 
+// ─── Annotated HMW with Connector Lines ────────────────────────────────
+
+function parseAnnotatedParts(statement: string, annotations: StatementAnnotation[]) {
+    const stmtLower = statement.toLowerCase();
+
+    // Try to find each annotation in the statement, stripping common prefixes if needed
+    const withPositions = annotations.map((a, origIdx) => {
+        let searchText = a.text.toLowerCase();
+        let idx = stmtLower.indexOf(searchText);
+
+        // If not found, try stripping "how might we " prefix the AI sometimes includes
+        if (idx < 0) {
+            const prefixes = ["how might we ", "how might we"];
+            for (const p of prefixes) {
+                if (searchText.startsWith(p)) {
+                    const stripped = searchText.slice(p.length);
+                    idx = stmtLower.indexOf(stripped);
+                    if (idx >= 0) { searchText = stripped; break; }
+                }
+            }
+        }
+
+        return { ...a, origIdx, index: idx, matchLength: searchText.length };
+    }).filter(a => a.index >= 0);
+
+    // Sort by position in the statement
+    withPositions.sort((a, b) => a.index - b.index);
+
+    // Resolve overlaps: if two annotations overlap, keep the one that starts first
+    const resolved: typeof withPositions = [];
+    let lastEnd = 0;
+    for (const a of withPositions) {
+        if (a.index >= lastEnd) {
+            resolved.push(a);
+            lastEnd = a.index + a.matchLength;
+        } else {
+            // Try to find this text further in the statement (past lastEnd)
+            const laterIdx = stmtLower.indexOf(stmtLower.substring(a.index, a.index + a.matchLength), lastEnd);
+            if (laterIdx >= 0) {
+                resolved.push({ ...a, index: laterIdx });
+                lastEnd = laterIdx + a.matchLength;
+            }
+        }
+    }
+
+    // Re-sort after potential repositioning
+    resolved.sort((a, b) => a.index - b.index);
+
+    const parts: { text: string; annIdx: number | null }[] = [];
+    let cursor = 0;
+    for (const a of resolved) {
+        if (a.index > cursor) {
+            parts.push({ text: statement.substring(cursor, a.index), annIdx: null });
+        }
+        parts.push({ text: statement.substring(a.index, a.index + a.matchLength), annIdx: a.origIdx });
+        cursor = a.index + a.matchLength;
+    }
+    if (cursor < statement.length) {
+        parts.push({ text: statement.substring(cursor), annIdx: null });
+    }
+    return { parts, sorted: resolved };
+}
+
+// Each annotation gets a unique colour so you can trace which highlight matches which card
+const ANNOTATION_PALETTE = [
+    { text: "text-emerald-700", mark: "bg-emerald-200/60", bg: "bg-emerald-50", border: "border-emerald-200" },
+    { text: "text-amber-700", mark: "bg-amber-200/60", bg: "bg-amber-50", border: "border-amber-200" },
+    { text: "text-sky-700", mark: "bg-sky-200/60", bg: "bg-sky-50", border: "border-sky-200" },
+    { text: "text-violet-700", mark: "bg-violet-200/60", bg: "bg-violet-50", border: "border-violet-200" },
+    { text: "text-rose-700", mark: "bg-rose-200/60", bg: "bg-rose-50", border: "border-rose-200" },
+];
+
+function AnnotatedHMW({ statement, annotations }: {
+    statement: string;
+    annotations: StatementAnnotation[];
+}) {
+    const { parts } = parseAnnotatedParts(statement, annotations);
+
+    return (
+        <div>
+            {/* HMW Statement with background highlights */}
+            <p className="text-xl md:text-2xl font-bold text-center leading-relaxed px-4 text-foreground mb-6">
+                <span className="text-primary">How might we </span>
+                {parts.map((part, i) => {
+                    if (part.annIdx !== null) {
+                        const colors = ANNOTATION_PALETTE[part.annIdx % ANNOTATION_PALETTE.length];
+                        return (
+                            <span key={i} className={`${colors.mark} rounded-sm px-0.5`}>
+                                {part.text}
+                            </span>
+                        );
+                    }
+                    return <span key={i}>{part.text}</span>;
+                })}
+                ?
+            </p>
+
+            {/* Annotation cards grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {annotations.map((ann, i) => {
+                    const colors = ANNOTATION_PALETTE[i % ANNOTATION_PALETTE.length];
+                    const tagLabel = ann.sentiment === "strength" ? "Strength" : ann.sentiment === "issue" ? "Issue" : "Neutral";
+                    return (
+                        <div
+                            key={i}
+                            className={`text-[11px] leading-relaxed px-3 py-2.5 rounded-lg border ${colors.bg} ${colors.border} ${colors.text}`}
+                        >
+                            <div className="mb-2"><span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/80 text-foreground/70 border border-border/40">{tagLabel}</span></div>
+                            <p className={`font-semibold mb-1 ${colors.mark} rounded-sm inline`}>
+                                &ldquo;{ann.text}&rdquo;
+                            </p>
+                            <p className="mt-1">{ann.note}</p>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 function VerdictBadge({ verdict }: { verdict: string }) {
     const config = VERDICT_CONFIG[verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.NEEDS_WORK;
     const Icon = config.icon;
@@ -248,25 +385,18 @@ function LensRow({ lens }: { lens: LensCritique }) {
 function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (id: string) => void }) {
     const { critique, hmwStatement } = entry;
     const allHighlights = critique.lenses.flatMap(l => l.highlightedParts);
+    const hasBreakdown = critique.statementBreakdown && critique.statementBreakdown.length > 0;
+    const hasEvidence = critique.researchAlignment.evidence && critique.researchAlignment.evidence.length > 0;
+    const ra = critique.researchAlignment;
 
     return (
         <div id={`hmw-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500">
-            {/* HMW Statement with highlights */}
+            {/* HMW Statement — annotated with connectors or fallback to highlights */}
             <div className="bg-white rounded-2xl border border-border p-6 mb-3 shadow-sm">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                    <div className="flex-1">
-                        <p className="text-[11px] text-muted-foreground font-medium mb-2 uppercase tracking-wide">
-                            Checked at {entry.timestamp.toLocaleTimeString()}
-                        </p>
-                        <p className="text-lg text-foreground leading-relaxed">
-                            <span className="font-bold text-primary">How might we </span>
-                            <HighlightedHMW
-                                statement={hmwStatement}
-                                highlights={allHighlights}
-                                activeLens={null}
-                            />
-                        </p>
-                    </div>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
+                        Checked at {entry.timestamp.toLocaleTimeString()}
+                    </p>
                     <div className="flex items-center gap-2 flex-shrink-0">
                         <VerdictBadge verdict={critique.overallVerdict} />
                         <button
@@ -278,7 +408,17 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                         </button>
                     </div>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed border-t border-border/60 pt-3">
+
+                {hasBreakdown ? (
+                    <AnnotatedHMW statement={hmwStatement} annotations={critique.statementBreakdown!} />
+                ) : (
+                    <p className="text-lg text-foreground leading-relaxed">
+                        <span className="font-bold text-primary">How might we </span>
+                        <HighlightedHMW statement={hmwStatement} highlights={allHighlights} activeLens={null} />
+                    </p>
+                )}
+
+                <p className="text-sm text-muted-foreground leading-relaxed border-t border-border/60 pt-3 mt-4">
                     {critique.overallSummary}
                 </p>
             </div>
@@ -293,29 +433,65 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                 </div>
             </div>
 
-            {/* Research Alignment — compact */}
-            <div className={`rounded-xl border p-4 mb-3 ${critique.researchAlignment.isAligned ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30'}`}>
-                <div className="flex items-center gap-2 mb-1.5">
-                    <BookOpen className={`h-3.5 w-3.5 ${critique.researchAlignment.isAligned ? 'text-emerald-600' : 'text-amber-600'}`} />
+            {/* Research Alignment — redesigned */}
+            <div className={`rounded-xl border p-4 mb-3 ${ra.isAligned ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30'}`}>
+                {/* Header with verdict */}
+                <div className="flex items-center gap-2 mb-3">
+                    <BookOpen className={`h-3.5 w-3.5 ${ra.isAligned ? 'text-emerald-600' : 'text-amber-600'}`} />
                     <span className="text-[13px] font-semibold text-foreground">Research Alignment</span>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${critique.researchAlignment.isAligned
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ra.isAligned
                         ? 'bg-emerald-100 text-emerald-700'
                         : 'bg-amber-100 text-amber-700'
-                        }`}>
-                        {critique.researchAlignment.isAligned ? "Aligned" : "Misaligned"}
+                    }`}>
+                        {ra.isAligned ? "Aligned" : "Misaligned"}
                     </span>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{critique.researchAlignment.explanation}</p>
 
-                {critique.researchAlignment.relevantFindings.length > 0 && (
+                {/* So What — the key insight */}
+                {ra.soWhat && (
+                    <p className={`text-sm font-semibold leading-relaxed mb-3 ${ra.isAligned ? 'text-emerald-800' : 'text-amber-800'}`}>
+                        {ra.soWhat}
+                    </p>
+                )}
+
+                {/* Evidence cards */}
+                {hasEvidence && (
+                    <div className="space-y-2 mt-2">
+                        {ra.evidence!.map((ev, i) => (
+                            <div key={i} className="bg-white/70 rounded-lg border border-border/40 p-3">
+                                <div className="flex items-center gap-1.5 mb-1.5">
+                                    <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                                        {ev.source}
+                                    </span>
+                                </div>
+                                <p className="text-[12px] text-foreground leading-relaxed mb-1.5 italic">
+                                    &ldquo;{ev.quote}&rdquo;
+                                </p>
+                                <p className="text-[11px] text-muted-foreground leading-relaxed flex items-start gap-1.5">
+                                    <ArrowRight className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                    {ev.connection}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Fallback for old critiques without evidence */}
+                {!hasEvidence && ra.relevantFindings.length > 0 && (
                     <div className="space-y-1 mt-2">
-                        {critique.researchAlignment.relevantFindings.map((finding, i) => (
+                        {ra.relevantFindings.map((finding, i) => (
                             <div key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                                 <span className="text-primary mt-0.5">•</span>
                                 <span>{finding}</span>
                             </div>
                         ))}
                     </div>
+                )}
+
+                {/* Fallback for old critiques without soWhat */}
+                {!ra.soWhat && (
+                    <p className="text-xs text-muted-foreground leading-relaxed">{ra.explanation}</p>
                 )}
             </div>
 

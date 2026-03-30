@@ -29,6 +29,11 @@ import {
     Send,
     X,
     FileText,
+    ArrowRight,
+    Handshake,
+    Zap,
+    CircleDot,
+    Quote,
 } from "lucide-react";
 import {
     Tooltip,
@@ -670,29 +675,56 @@ export default function ViewSessionPage({ params }: PageProps) {
                                     Participant Summaries
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {simulation.simulationArchetypes?.map((simArch, index) => {
+                                    {simulation.simulationArchetypes?.map((simArch) => {
                                         const color = getArchetypeColor(simArch.archetype.id);
+
+                                        // Parse structured JSON or fall back to plain text
+                                        let structured: { stance?: string; keyPoints?: string[]; quote?: string } | null = null;
+                                        if (simArch.summary) {
+                                            try { structured = JSON.parse(simArch.summary); } catch { structured = null; }
+                                        }
+
                                         return (
                                             <Card key={simArch.archetype.id} className={`border ${color.border} shadow-sm overflow-hidden`}>
                                                 <div className={`px-4 py-3 ${color.bg} border-b ${color.border} flex items-center gap-3`}>
                                                     <div className={`w-8 h-8 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-xs font-bold shrink-0`}>
                                                         {getInitial(simArch.archetype.name)}
                                                     </div>
-                                                    <div>
+                                                    <div className="min-w-0">
                                                         <h4 className={`font-semibold text-sm ${color.text}`}>{simArch.archetype.name}</h4>
-                                                        {simArch.archetype.kicker && (
+                                                        {structured?.stance ? (
+                                                            <p className={`text-[10px] uppercase tracking-wider font-semibold opacity-80 ${color.text}`}>{structured.stance}</p>
+                                                        ) : simArch.archetype.kicker ? (
                                                             <p className={`text-[10px] uppercase tracking-wider font-semibold opacity-80 ${color.text}`}>{simArch.archetype.kicker}</p>
-                                                        )}
+                                                        ) : null}
                                                     </div>
                                                 </div>
-                                                <CardContent className="p-4 text-sm text-foreground leading-relaxed bg-card min-h-[100px]">
-                                                    {simArch.summary ? (
-                                                        <p>{simArch.summary}</p>
-                                                    ) : (
-                                                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2 py-4">
+                                                <CardContent className="p-4 text-sm text-foreground leading-relaxed bg-card">
+                                                    {!simArch.summary ? (
+                                                        <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-4">
                                                             <Loader2 className="h-5 w-5 animate-spin opacity-50" />
                                                             <p className="text-xs">Generating summary...</p>
                                                         </div>
+                                                    ) : structured?.keyPoints ? (
+                                                        <div>
+                                                            <ul className="space-y-1.5 mb-3">
+                                                                {structured.keyPoints.map((point, i) => (
+                                                                    <li key={i} className="flex items-start gap-2 text-[12px] text-foreground">
+                                                                        <CircleDot className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                                                        {point}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                            {structured.quote && (
+                                                                <div className="border-l-2 border-muted-foreground/20 pl-3 mt-2">
+                                                                    <p className="text-[11px] text-muted-foreground italic leading-relaxed">
+                                                                        &ldquo;{structured.quote}&rdquo;
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <p>{simArch.summary}</p>
                                                     )}
                                                 </CardContent>
                                             </Card>
@@ -700,25 +732,140 @@ export default function ViewSessionPage({ params }: PageProps) {
                                     })}
                                 </div>
 
-                                {/* Cross-Profile Comparison Card */}
+                                {/* Cross-Profile Comparison */}
                                 <div className="mt-6 mb-2">
                                     <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                                         <Users className="h-5 w-5 text-muted-foreground" />
                                         Cross-Profile Comparison
                                     </h3>
-                                    <Card className="border border-indigo-100 shadow-sm overflow-hidden bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
-                                        <CardContent className="p-5 text-sm text-foreground leading-relaxed min-h-[100px]">
-                                            {simulation.crossProfileSummary ? (
-                                                <p>{simulation.crossProfileSummary}</p>
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2 py-4">
-                                                    <Loader2 className="h-5 w-5 animate-spin opacity-50" />
-                                                    <p className="text-xs">Analyzing group dynamics...</p>
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+
+                                    {(() => {
+                                        if (!simulation.crossProfileSummary) {
+                                            return (
+                                                <Card className="border border-indigo-100 shadow-sm bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+                                                    <CardContent className="p-5 flex flex-col items-center justify-center text-muted-foreground gap-2 py-8">
+                                                        <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+                                                        <p className="text-xs">Analyzing group dynamics...</p>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        }
+
+                                        // Parse structured JSON or fall back to plain text
+                                        let cross: { agreements?: { point: string; profiles: string[] }[]; tensions?: { point: string; between: string[] }[]; gaps?: string[]; recommendedSteps?: { action: string; why: string }[] } | null = null;
+                                        try { cross = JSON.parse(simulation.crossProfileSummary); } catch { cross = null; }
+
+                                        if (!cross) {
+                                            return (
+                                                <Card className="border border-indigo-100 shadow-sm bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+                                                    <CardContent className="p-5 text-sm text-foreground leading-relaxed">
+                                                        <p>{simulation.crossProfileSummary}</p>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        }
+
+                                        return (
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {/* Agreements */}
+                                                {cross.agreements && cross.agreements.length > 0 && (
+                                                    <Card className="border border-emerald-200 shadow-sm overflow-hidden">
+                                                        <div className="px-4 py-2.5 bg-emerald-50 border-b border-emerald-200 flex items-center gap-2">
+                                                            <Handshake className="h-4 w-4 text-emerald-600" />
+                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700">Agreements</h4>
+                                                        </div>
+                                                        <CardContent className="p-4 space-y-3">
+                                                            {cross.agreements.map((a, i) => (
+                                                                <div key={i}>
+                                                                    <p className="text-[12px] text-foreground leading-relaxed">{a.point}</p>
+                                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                                        {a.profiles.map((p, j) => (
+                                                                            <span key={j} className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">{p}</span>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {/* Tensions */}
+                                                {cross.tensions && cross.tensions.length > 0 && (
+                                                    <Card className="border border-amber-200 shadow-sm overflow-hidden">
+                                                        <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
+                                                            <Zap className="h-4 w-4 text-amber-600" />
+                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700">Tensions</h4>
+                                                        </div>
+                                                        <CardContent className="p-4 space-y-3">
+                                                            {cross.tensions.map((t, i) => (
+                                                                <div key={i}>
+                                                                    <p className="text-[12px] text-foreground leading-relaxed">{t.point}</p>
+                                                                    <div className="flex items-center gap-1 mt-1">
+                                                                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{t.between[0]}</span>
+                                                                        <span className="text-[9px] text-muted-foreground">vs</span>
+                                                                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{t.between[1]}</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {/* Gaps */}
+                                                {cross.gaps && cross.gaps.length > 0 && (
+                                                    <Card className="border border-slate-200 shadow-sm overflow-hidden">
+                                                        <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                                                            <CircleDot className="h-4 w-4 text-slate-500" />
+                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">Gaps</h4>
+                                                        </div>
+                                                        <CardContent className="p-4 space-y-2">
+                                                            {cross.gaps.map((g, i) => (
+                                                                <p key={i} className="text-[12px] text-foreground leading-relaxed flex items-start gap-2">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 flex-shrink-0" />
+                                                                    {g}
+                                                                </p>
+                                                            ))}
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
+
+                                {/* Recommended Steps */}
+                                {(() => {
+                                    if (!simulation.crossProfileSummary) return null;
+                                    let cross: { recommendedSteps?: { action: string; why: string }[] } | null = null;
+                                    try { cross = JSON.parse(simulation.crossProfileSummary); } catch { return null; }
+                                    if (!cross?.recommendedSteps?.length) return null;
+
+                                    return (
+                                        <div className="mt-6 mb-2">
+                                            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                                                <Lightbulb className="h-5 w-5 text-muted-foreground" />
+                                                Recommended Steps
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {cross.recommendedSteps.map((step, i) => (
+                                                    <Card key={i} className="border border-primary/20 shadow-sm overflow-hidden">
+                                                        <CardContent className="p-4">
+                                                            <div className="flex items-start gap-3">
+                                                                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                                    <span className="text-xs font-bold text-primary">{i + 1}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[13px] font-semibold text-foreground leading-snug">{step.action}</p>
+                                                                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{step.why}</p>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 <div className="h-px bg-border/40 mt-8 mb-2 w-full" />
                             </div>

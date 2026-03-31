@@ -56,6 +56,7 @@ interface ResearchAlignment {
 interface StatementAnnotation {
     text: string;
     note: string;
+    rationale?: string;
     sentiment: "strength" | "issue" | "neutral";
 }
 
@@ -260,12 +261,13 @@ function parseAnnotatedParts(statement: string, annotations: StatementAnnotation
 }
 
 // Each annotation gets a unique colour so you can trace which highlight matches which card
+// Muted desaturated tones from distinct hue families — neutral-feeling but visually distinct
 const ANNOTATION_PALETTE = [
-    { text: "text-emerald-700", mark: "bg-emerald-200/60", bg: "bg-emerald-50", border: "border-emerald-200" },
-    { text: "text-amber-700", mark: "bg-amber-200/60", bg: "bg-amber-50", border: "border-amber-200" },
-    { text: "text-sky-700", mark: "bg-sky-200/60", bg: "bg-sky-50", border: "border-sky-200" },
-    { text: "text-violet-700", mark: "bg-violet-200/60", bg: "bg-violet-50", border: "border-violet-200" },
-    { text: "text-rose-700", mark: "bg-rose-200/60", bg: "bg-rose-50", border: "border-rose-200" },
+    { text: "text-slate-700", mark: "bg-blue-100/70", bg: "bg-blue-50/50", border: "border-blue-200/60" },
+    { text: "text-stone-700", mark: "bg-amber-100/70", bg: "bg-amber-50/40", border: "border-amber-200/60" },
+    { text: "text-slate-700", mark: "bg-indigo-100/70", bg: "bg-indigo-50/50", border: "border-indigo-200/60" },
+    { text: "text-stone-700", mark: "bg-rose-100/60", bg: "bg-rose-50/40", border: "border-rose-200/60" },
+    { text: "text-slate-700", mark: "bg-teal-100/70", bg: "bg-teal-50/50", border: "border-teal-200/60" },
 ];
 
 function AnnotatedHMW({ statement, annotations }: {
@@ -297,17 +299,29 @@ function AnnotatedHMW({ statement, annotations }: {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {annotations.map((ann, i) => {
                     const colors = ANNOTATION_PALETTE[i % ANNOTATION_PALETTE.length];
-                    const tagLabel = ann.sentiment === "strength" ? "Strength" : ann.sentiment === "issue" ? "Issue" : "Neutral";
                     return (
                         <div
                             key={i}
-                            className={`text-[11px] leading-relaxed px-3 py-2.5 rounded-lg border ${colors.bg} ${colors.border} ${colors.text}`}
+                            className={`text-[11px] leading-relaxed rounded-lg border ${colors.bg} ${colors.border} ${colors.text} overflow-hidden`}
                         >
-                            <div className="mb-2"><span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/80 text-foreground/70 border border-border/40">{tagLabel}</span></div>
-                            <p className={`font-semibold mb-1 ${colors.mark} rounded-sm inline`}>
-                                &ldquo;{ann.text}&rdquo;
-                            </p>
-                            <p className="mt-1">{ann.note}</p>
+                            {/* Top sub-card: positive rationale */}
+                            {ann.rationale && (
+                                <div className="bg-white border-b border-border/30 px-3 py-2.5">
+                                    <div className="flex items-start gap-1.5">
+                                        <Lightbulb className="h-3 w-3 mt-0.5 text-amber-500 flex-shrink-0" />
+                                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                            {ann.rationale}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Bottom section: quoted text + critique */}
+                            <div className="px-3 py-2.5">
+                                <p className={`font-semibold mb-1.5 ${colors.mark} rounded-sm inline`}>
+                                    &ldquo;{ann.text}&rdquo;
+                                </p>
+                                <p className="mt-1.5">{ann.note}</p>
+                            </div>
                         </div>
                     );
                 })}

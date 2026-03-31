@@ -214,7 +214,7 @@ export async function POST(req: Request) {
                 },
                 statementBreakdown: {
                     type: "array" as const,
-                    description: "Break the HMW statement into 3-5 meaningful phrases and annotate each. For parts that work well, explain WHY they work (e.g., 'grounds the scope without being too narrow'). For parts that are problematic, explain the issue. Each annotation should be a brief 1-2 sentence insight, not a generic label.",
+                    description: "Break the HMW statement into 3-5 meaningful phrases and annotate each. Each annotation has TWO parts: a short actionable critique ('note') and a positive rationale ('rationale') explaining why this phrase exists and what design value it contributes.",
                     items: {
                         type: "object" as const,
                         additionalProperties: false,
@@ -225,14 +225,18 @@ export async function POST(req: Request) {
                             },
                             note: {
                                 type: "string" as const,
-                                description: "A brief 1-2 sentence annotation explaining why this part works well or what is wrong with it. Be specific and insightful — not generic."
+                                description: "A short, punchy, actionable critique (1 sentence max). For issues: state the specific problem and what to do about it — no vague observations. For strengths: state why it works in one sharp line. Must never make the reader go 'so what?'."
+                            },
+                            rationale: {
+                                type: "string" as const,
+                                description: "A positive explanation of what this phrase DOES and why it matters. Write in third person about the phrase itself — e.g. 'It grounds the scope to a specific life stage without being too narrow' or 'It shifts support from fixing to steadying.' NEVER start with 'You're trying to' or 'The author is trying to' — instead describe the effect of the phrasing itself. Even for problematic parts, acknowledge what the phrase achieves."
                             },
                             sentiment: {
                                 type: "string" as const,
                                 description: "strength (this part works well), issue (this part is problematic), or neutral (acceptable but unremarkable)"
                             }
                         },
-                        required: ["text", "note", "sentiment"]
+                        required: ["text", "note", "rationale", "sentiment"]
                     }
                 }
             },
@@ -374,11 +378,29 @@ The HMW should use positive action verbs (increase, create, enhance, promote) ra
 - ✅ right: "How might we make the return process *quick and intuitive*?"
 
 ## STATEMENT BREAKDOWN
-Break the HMW into 3-5 meaningful phrases and annotate each one:
-- For each phrase, explain WHY it works or what is wrong. Be specific and insightful.
+Break the HMW into 3-5 meaningful phrases and annotate each one with TWO separate fields:
+
+### "note" — the actionable critique (1 sentence max)
+- For issues: name the specific problem and suggest what to change. Never leave the reader thinking "so what?".
+- For strengths: say exactly why it works in one sharp line.
+- For neutral parts: note what's acceptable but what could be sharper.
+- BAD note: "This is filler. It doesn't point to a moment, context, or friction, so it won't drive sharp concepts or prioritisation." (too long, not actionable)
+- GOOD note: "Too vague — specify a moment or context (e.g. 'during exam weeks') to drive sharper ideation."
+
+### "rationale" — why this phrase exists (1-2 sentences)
+- Describe what the phrase DOES and why it matters. Write about the phrase itself in third person.
+- NEVER use "You're trying to…" or "The author is trying to…" — instead state the effect directly.
+- BAD rationale: "You're trying to narrow the target user to a specific age group." 
+- GOOD rationale: "It grounds the scope to a specific life stage without being too narrow."
+- More examples:
+  - "It doesn't demand a deep talk: 'get your bearings' can be small, private, and quick, which makes it doable in the moment."
+  - "It meets the common failure point we saw: when they can't tell what is next, stress can turn inward fast and become self-blame."
+  - "It fits how reaching out actually happens: it allows a small start with no pressure to share more."
+  - "It supports prevention: small resets and small steps during the day reduce the build-up that later drives heavy switching off."
+
+### General rules:
 - Use "strength" for parts that are well-crafted, "issue" for problematic parts, "neutral" for acceptable but unremarkable parts.
 - Use EXACT substrings from the HMW statement — do not paraphrase.
-- Annotations should read like expert design thinking insights, not generic labels.
 
 ## RESEARCH ALIGNMENT
 - Include a punchy "soWhat" sentence that answers "so what?" — the key implication.

@@ -24,11 +24,12 @@ export async function uploadFile(
         return blob.url;
     }
 
-    // Local filesystem
-    const filePath = path.join(process.cwd(), "data", "uploads", pathname);
+    // Local filesystem — store relative path for portability
+    const relativePath = path.join("data", "uploads", pathname);
+    const filePath = path.join(process.cwd(), relativePath);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, buffer);
-    return filePath;
+    return relativePath;
 }
 
 /**
@@ -43,8 +44,11 @@ export async function deleteFile(storagePath: string): Promise<void> {
             return;
         }
 
-        // Local filesystem
-        await fs.rm(storagePath, { force: true });
+        // Local filesystem — resolve relative or absolute path
+        const resolvedPath = path.isAbsolute(storagePath)
+            ? storagePath
+            : path.join(process.cwd(), storagePath);
+        await fs.rm(resolvedPath, { force: true });
     } catch (error) {
         console.warn("[Storage] Failed to delete file:", error);
     }

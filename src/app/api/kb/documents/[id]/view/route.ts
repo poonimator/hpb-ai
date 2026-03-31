@@ -8,6 +8,17 @@ interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
+/**
+ * Resolve a storagePath to an actual file system path.
+ * Handles both absolute paths (legacy) and relative paths.
+ */
+function resolveFilePath(storagePath: string): string {
+    if (path.isAbsolute(storagePath)) {
+        return storagePath;
+    }
+    return path.join(process.cwd(), storagePath);
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
         const { id } = await params;
@@ -29,18 +40,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             return NextResponse.redirect(doc.storagePath);
         }
 
-        // Local file — read and serve
-        if (!fs.existsSync(doc.storagePath)) {
-            return new NextResponse("File not found on disk", { status: 404 });
+        // Local file — try to read and serve
+        const resolvedPath = resolveFilePath(doc.storagePath);
+        if (fs.existsSync(resolvedPath)) {
+            const fileBuffer = fs.readFileSync(resolvedPath);
+            return new NextResponse(fileBuffer, {
+                headers: {
+                    "Content-Type": doc.mimeType || "application/octet-stream",
+                    "Content-Disposition": `inline; filename="${doc.originalFileName || path.basename(resolvedPath)}"`,
+                },
+            });
         }
 
-        const fileBuffer = fs.readFileSync(doc.storagePath);
-        return new NextResponse(fileBuffer, {
-            headers: {
-                "Content-Type": doc.mimeType || "application/octet-stream",
-                "Content-Disposition": `inline; filename="${doc.originalFileName || path.basename(doc.storagePath)}"`,
-            },
-        });
+        // File not on disk — fall back to extracted text stored in DB
+        if (doc.extractedText) {
+            return new NextResponse(doc.extractedText, {
+                headers: {
+                    "Content-Type": "text/plain; charset=utf-8",
+                    "Content-Disposition": `inline; filename="${doc.originalFileName?.replace(/\.[^/.]+$/, '') || 'document'}.txt"`,
+                },
+            });
+        }
+
+        return new NextResponse("File not found on disk and no extracted text available", { status: 404 });
 
     } catch (error) {
         console.error("[API] GET /api/kb/documents/[id]/view error:", error);

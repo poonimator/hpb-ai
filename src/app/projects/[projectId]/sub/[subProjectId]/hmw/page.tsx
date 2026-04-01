@@ -447,9 +447,9 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                 </div>
             </div>
 
-            {/* Research Alignment — redesigned */}
+            {/* Research Alignment — concise redesign */}
             <div className={`rounded-xl border p-4 mb-3 ${ra.isAligned ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30'}`}>
-                {/* Header with verdict */}
+                {/* Header */}
                 <div className="flex items-center gap-2 mb-3">
                     <BookOpen className={`h-3.5 w-3.5 ${ra.isAligned ? 'text-emerald-600' : 'text-amber-600'}`} />
                     <span className="text-[13px] font-semibold text-foreground">Research Alignment</span>
@@ -457,33 +457,37 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                         ? 'bg-emerald-100 text-emerald-700'
                         : 'bg-amber-100 text-amber-700'
                     }`}>
-                        {ra.isAligned ? "Aligned" : "Misaligned"}
+                        {ra.isAligned ? "Aligned" : "Gaps Found"}
                     </span>
                 </div>
 
-                {/* So What — the key insight */}
+                {/* Explanation */}
+                <p className="text-[13px] text-foreground leading-relaxed mb-2">
+                    {ra.explanation}
+                </p>
+
+                {/* So What — actionable callout */}
                 {ra.soWhat && (
-                    <p className={`text-sm font-semibold leading-relaxed mb-3 ${ra.isAligned ? 'text-emerald-800' : 'text-amber-800'}`}>
-                        {ra.soWhat}
-                    </p>
+                    <div className={`rounded-lg px-3 py-2 mb-3 ${ra.isAligned ? 'bg-emerald-100/50 border border-emerald-200/60' : 'bg-amber-100/50 border border-amber-200/60'}`}>
+                        <p className={`text-[12px] font-medium leading-relaxed ${ra.isAligned ? 'text-emerald-800' : 'text-amber-800'}`}>
+                            <ArrowRight className="h-3 w-3 inline mr-1 -mt-0.5" />
+                            {ra.soWhat}
+                        </p>
+                    </div>
                 )}
 
-                {/* Evidence cards */}
+                {/* Evidence — compact */}
                 {hasEvidence && (
-                    <div className="space-y-2 mt-2">
+                    <div className="space-y-1.5">
                         {ra.evidence!.map((ev, i) => (
-                            <div key={i} className="bg-white/70 rounded-lg border border-border/40 p-3">
-                                <div className="flex items-center gap-1.5 mb-1.5">
-                                    <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">
-                                        {ev.source}
-                                    </span>
-                                </div>
-                                <p className="text-[12px] text-foreground leading-relaxed mb-1.5 italic">
+                            <div key={i} className="bg-white/70 rounded-lg border border-border/40 px-3 py-2">
+                                <p className="text-[12px] text-foreground leading-relaxed italic mb-1">
                                     &ldquo;{ev.quote}&rdquo;
+                                    <span className="not-italic text-[10px] font-semibold text-muted-foreground ml-1.5 uppercase tracking-wide">
+                                        — {ev.source}
+                                    </span>
                                 </p>
-                                <p className="text-[11px] text-muted-foreground leading-relaxed flex items-start gap-1.5">
-                                    <ArrowRight className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                <p className="text-[11px] text-muted-foreground leading-relaxed">
                                     {ev.connection}
                                 </p>
                             </div>
@@ -493,7 +497,7 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
 
                 {/* Fallback for old critiques without evidence */}
                 {!hasEvidence && ra.relevantFindings.length > 0 && (
-                    <div className="space-y-1 mt-2">
+                    <div className="space-y-1 mt-1">
                         {ra.relevantFindings.map((finding, i) => (
                             <div key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                                 <span className="text-primary mt-0.5">•</span>
@@ -504,7 +508,7 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                 )}
 
                 {/* Fallback for old critiques without soWhat */}
-                {!ra.soWhat && (
+                {!ra.soWhat && !ra.explanation && (
                     <p className="text-xs text-muted-foreground leading-relaxed">{ra.explanation}</p>
                 )}
             </div>

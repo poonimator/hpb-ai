@@ -30,7 +30,6 @@ export async function POST(req: Request) {
             where: {
                 projectId: projectId,
                 docType: "OTHER",
-                status: "APPROVED",
             },
             select: {
                 title: true,
@@ -47,7 +46,6 @@ export async function POST(req: Request) {
             where: {
                 projectId: projectId,
                 docType: "RESEARCH",
-                status: "APPROVED",
             },
             select: {
                 title: true,
@@ -59,19 +57,20 @@ export async function POST(req: Request) {
             },
         });
 
-        const allDocs = [...projectOtherDocs, ...projectResearchDocs];
+        // Build context from documents, tagging each with its type
+        const buildDocContext = (docs: typeof projectOtherDocs, docType: string) =>
+            docs.map(doc => {
+                const text = doc.extractedText || doc.chunks.map(c => c.content).join("\n\n");
+                if (!text) return "";
+                return `--- DOCUMENT [${docType}]: ${doc.title} ---\n${text}\n--- END ---\n`;
+            }).filter(Boolean);
 
-        // Build context from documents
         let kbContext = "";
-        if (allDocs.length > 0) {
-            kbContext = allDocs
-                .map(doc => {
-                    const text = doc.extractedText || doc.chunks.map(c => c.content).join("\n\n");
-                    if (!text) return "";
-                    return `--- DOCUMENT: ${doc.title} ---\n${text}\n--- END ---\n`;
-                })
-                .filter(Boolean)
-                .join("\n");
+        const otherContext = buildDocContext(projectOtherDocs, "OTHER");
+        const researchContext = buildDocContext(projectResearchDocs, "RESEARCH");
+        const allContextParts = [...otherContext, ...researchContext];
+        if (allContextParts.length > 0) {
+            kbContext = allContextParts.join("\n");
         }
 
         // 2. Build the critique prompt
@@ -169,41 +168,41 @@ export async function POST(req: Request) {
                     properties: {
                         isAligned: {
                             type: "boolean" as const,
-                            description: "Whether the HMW is grounded in actual research from the knowledge base"
+                            description: "Whether the HMW is grounded in actual findings from the knowledge base documents"
                         },
                         explanation: {
                             type: "string" as const,
-                            description: "Assessment of how well this HMW aligns with the completed research. Be brutally honest."
+                            description: "A concise 1-2 sentence plain-language assessment of research alignment. No jargon. State clearly what the research says and whether the HMW reflects it. E.g., 'Your research shows sleep sacrifice is the main coping mechanism, but this HMW doesn't mention it — so ideas won't target the real behaviour.'"
                         },
                         soWhat: {
                             type: "string" as const,
-                            description: "One punchy sentence answering 'so what?' — the key implication of the research alignment (or misalignment). E.g., 'This HMW ignores the core finding that youth avoid help because of self-blame, not lack of access.'"
+                            description: "One plain-language sentence telling the user exactly what to do next or what risk they face. Must answer 'so what does this mean for me?' — not just restate the problem. E.g., 'Rewrite the HMW to target the specific coping trade-off (sleep vs activities) so your ideas address the real tension.' Use simple, direct language — no academic tone."
                         },
                         relevantFindings: {
                             type: "array" as const,
-                            description: "Key research findings from the knowledge base that are relevant or contradictory",
+                            description: "2-3 key findings from the knowledge base, written as short plain-language bullet points",
                             items: {
                                 type: "string" as const
                             }
                         },
                         evidence: {
                             type: "array" as const,
-                            description: "2-3 specific pieces of evidence from the research documents. Each should cite a specific source document and include a near-verbatim quote or specific data point.",
+                            description: "2-3 specific evidence pieces from the knowledge base documents (both Research and Other docs). Keep quotes short. The 'connection' must clearly state what this means for the HMW — not just describe the finding.",
                             items: {
                                 type: "object" as const,
                                 additionalProperties: false,
                                 properties: {
                                     source: {
                                         type: "string" as const,
-                                        description: "Name of the source document from the knowledge base (use the exact document title)"
+                                        description: "Exact document title from the knowledge base"
                                     },
                                     quote: {
                                         type: "string" as const,
-                                        description: "A near-verbatim quote or specific data point from the source. Keep it short (1-2 sentences max)."
+                                        description: "A short near-verbatim quote (1 sentence max). Pick the most impactful line, not a long passage."
                                     },
                                     connection: {
                                         type: "string" as const,
-                                        description: "One sentence explaining how this evidence supports or contradicts the HMW statement"
+                                        description: "One sentence in plain language explaining what this means for the HMW. Must be actionable — e.g., 'This means your HMW should name sleep sacrifice as the specific pressure, not just say cope with pressure.'"
                                     }
                                 },
                                 required: ["source", "quote", "connection"]
@@ -300,7 +299,7 @@ export async function POST(req: Request) {
                     modelName: DEFAULT_MODEL,
                     latencyMs,
                     hmwStatementLength: hmwStatement.length,
-                    kbDocsUsed: allDocs.length,
+                    kbDocsUsed: allContextParts.length,
                     overallVerdict: parsed.overallVerdict,
                 },
             });
@@ -403,9 +402,13 @@ Break the HMW into 3-5 meaningful phrases and annotate each one with TWO separat
 - Use EXACT substrings from the HMW statement — do not paraphrase.
 
 ## RESEARCH ALIGNMENT
-- Include a punchy "soWhat" sentence that answers "so what?" — the key implication.
-- For "evidence", cite 2-3 SPECIFIC pieces from the research documents. Use exact document titles as source names and include near-verbatim quotes or specific data points. If no research docs are available, return an empty evidence array.
-- The evidence should signpost WHERE in the research this comes from, not just summarize generically.
+You have been given ALL documents from the project knowledge base — both Research documents and Other documents. Use ALL of them.
+- Write the "explanation" in 1-2 sentences of plain, simple language. State clearly what the research says and whether the HMW reflects it. No jargon. No academic tone.
+- The "soWhat" must tell the user exactly what to do about it or what risk they face. It should answer "so what does this mean for my HMW?" — not just restate the problem.
+  - BAD soWhat: "This HMW ignores the core finding that youth avoid help because of self-blame, not lack of access."
+  - GOOD soWhat: "Rewrite the outcome to target self-blame (not access) — otherwise your ideas will solve the wrong barrier."
+- For "evidence", pick 2-3 specific quotes. Prefer documents tagged [OTHER] — only fall back to [RESEARCH] documents if no [OTHER] documents are available. Each quote must come from a different document. Keep each quote to 1 sentence. The "connection" must say what this means for the HMW specifically — make it actionable. Never return empty quotes or "N/A" sources — if you can find relevant evidence in any document, cite it.
+- Use clear, everyday language throughout. Imagine you're explaining to a smart teammate, not writing an academic paper.
 
 ## CRITICAL INSTRUCTIONS
 - For each lens, identify EXACT substrings from the HMW statement that are problematic. Use the EXACT text — do not paraphrase.

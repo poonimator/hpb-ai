@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/**": ["./src/lib/ai/prompts/**"],
   },
+  // Prevent Next.js from bundling native/wasm packages used for PDF parsing
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
 };
 
 export default nextConfig;

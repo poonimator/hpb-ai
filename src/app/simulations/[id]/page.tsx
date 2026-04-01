@@ -752,7 +752,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                                         }
 
                                         // Parse structured JSON or fall back to plain text
-                                        let cross: { agreements?: { point: string; profiles: string[] }[]; tensions?: { point: string; between: string[] }[]; gaps?: string[]; recommendedSteps?: { action: string; why: string }[] } | null = null;
+                                        let cross: { agreements?: { point: string; profiles: string[] }[]; tensions?: { point: string; between: string[] }[]; gaps?: (string | { text: string; source: string })[]; recommendedSteps?: { action: string; why: string }[] } | null = null;
                                         try { cross = JSON.parse(simulation.crossProfileSummary); } catch { cross = null; }
 
                                         if (!cross) {
@@ -818,13 +818,24 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                             <CircleDot className="h-4 w-4 text-slate-500" />
                                                             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">Gaps</h4>
                                                         </div>
-                                                        <CardContent className="p-4 space-y-2">
-                                                            {cross.gaps.map((g, i) => (
-                                                                <p key={i} className="text-[12px] text-foreground leading-relaxed flex items-start gap-2">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 flex-shrink-0" />
-                                                                    {g}
-                                                                </p>
-                                                            ))}
+                                                        <CardContent className="p-4 space-y-2.5">
+                                                            {cross.gaps.map((g, i) => {
+                                                                const gapText = typeof g === "string" ? g : g.text;
+                                                                const gapSource = typeof g === "string" ? null : g.source;
+                                                                return (
+                                                                    <div key={i}>
+                                                                        <p className="text-[12px] text-foreground leading-relaxed flex items-start gap-2">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 flex-shrink-0" />
+                                                                            {gapText}
+                                                                        </p>
+                                                                        {gapSource && (
+                                                                            <span className={`ml-3.5 mt-1 inline-flex items-center text-[9px] font-medium px-1.5 py-0.5 rounded ${gapSource === "AI Analysis" ? "bg-violet-100 text-violet-600" : "bg-slate-100 text-slate-500"}`}>
+                                                                                {gapSource === "AI Analysis" ? "AI Analysis" : `Source: ${gapSource}`}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </CardContent>
                                                     </Card>
                                                 )}

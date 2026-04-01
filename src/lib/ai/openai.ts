@@ -1007,7 +1007,7 @@ export async function generateCrossProfileSummary(params: GenerateCrossProfileSu
                         { point: "Disagreed on whether adults can be trusted with personal information", between: [archetypeNames[0], archetypeNames[1] || archetypeNames[0]] },
                     ],
                     gaps: [
-                        "No profile raised the role of school counsellors",
+                        { text: "No profile raised the role of school counsellors", source: "AI Analysis" },
                     ],
                     recommendedSteps: [
                         { action: "Test trust-building mechanisms before scaling", why: "Trust was the key divide — without it, no intervention lands" },
@@ -1031,7 +1031,7 @@ Analyze the transcript and return ONLY valid JSON with this structure:
     { "point": "One sentence describing the disagreement (max 15 words)", "between": ["profile A", "profile B"] }
   ],
   "gaps": [
-    "One sentence describing a perspective or topic nobody raised (max 15 words)"
+    { "text": "One sentence describing a perspective or topic nobody raised (max 15 words)", "source": "Name of the profile whose known context surfaced this gap, or 'AI Analysis' if you inferred it independently" }
   ],
   "recommendedSteps": [
     { "action": "A specific, actionable next step for the research/design team (max 15 words)", "why": "Brief rationale tied to what emerged in the discussion (max 20 words)" }
@@ -1041,7 +1041,7 @@ Analyze the transcript and return ONLY valid JSON with this structure:
 Rules:
 - 2-3 items per section. Be specific, not generic.
 - agreements/tensions should name the actual profiles involved.
-- gaps should highlight what was MISSING from the conversation.
+- gaps should highlight what was MISSING from the conversation. For each gap, attribute it: if a profile's known background or persona description suggests they should have raised it, name that profile as the source. If you identified the gap through your own analysis, use "AI Analysis".
 - recommendedSteps should be concrete actions the team can take based on what emerged.
 - No markdown. Only valid JSON.
 

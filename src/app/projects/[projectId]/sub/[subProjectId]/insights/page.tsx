@@ -309,16 +309,13 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                     <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
                         Checked at {entry.timestamp.toLocaleTimeString()}
                     </p>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        <VerdictBadge verdict={critique.overallVerdict} />
-                        <button
-                            onClick={() => onDelete(entry.id)}
-                            className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            title="Delete this critique"
-                        >
-                            <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => onDelete(entry.id)}
+                        className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Delete this critique"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                 </div>
 
                 <p className="text-lg font-semibold text-foreground leading-relaxed">

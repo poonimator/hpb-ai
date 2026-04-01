@@ -53,10 +53,24 @@ interface ResearchAlignment {
     evidence?: ResearchEvidence[];
 }
 
+interface LensCritiqueInline {
+    lens: string;
+    verdict: string;
+    explanation: string;
+    suggestion?: string;
+}
+
+interface ResearchPointerInline {
+    explanation: string;
+    source: string;
+}
+
 interface StatementAnnotation {
     text: string;
-    note: string;
+    note?: string;
     rationale?: string;
+    lensCritique?: string | LensCritiqueInline;
+    researchPointer?: string | ResearchPointerInline;
     sentiment: "strength" | "issue" | "neutral";
 }
 
@@ -270,6 +284,97 @@ const ANNOTATION_PALETTE = [
     { text: "text-slate-700", mark: "bg-teal-100/70", bg: "bg-teal-50/50", border: "border-teal-200/60" },
 ];
 
+function InlineLensCard({ lensCritique }: { lensCritique: string | LensCritiqueInline }) {
+    const lc = typeof lensCritique === "string" ? null : lensCritique;
+    const [expanded, setExpanded] = useState(() => {
+        if (!lc) return true;
+        return lc.verdict !== "PASS";
+    });
+
+    if (!lc) {
+        return (
+            <div className="flex items-start gap-1.5">
+                <Target className="h-3 w-3 mt-0.5 text-primary/60 flex-shrink-0" />
+                <p className="text-[11px] leading-relaxed">{lensCritique as string}</p>
+            </div>
+        );
+    }
+
+    const vConfig = VERDICT_CONFIG[lc.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
+    const VIcon = vConfig.icon;
+    const isPass = lc.verdict === "PASS";
+
+    return (
+        <div className="rounded-md border border-border/50 bg-white shadow-sm overflow-hidden">
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-muted/30 transition-colors"
+            >
+                <Target className="h-3 w-3 text-primary/60 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-muted-foreground flex-1 text-left">{lc.lens}</span>
+                {!expanded && !isPass && (
+                    <VIcon className={`h-3 w-3 flex-shrink-0 ${vConfig.color}`} />
+                )}
+                {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />}
+            </button>
+            {expanded && (
+                <div className="px-2.5 pb-2 pt-0.5 border-t border-border/30 space-y-1.5">
+                    <p className="text-[11px] leading-relaxed text-foreground/80">{lc.explanation}</p>
+                    {lc.suggestion && (
+                        <p className="text-[11px] leading-relaxed text-primary/80 italic">
+                            Try: &ldquo;{lc.suggestion}&rdquo;
+                        </p>
+                    )}
+                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${vConfig.bg} ${vConfig.color} border ${vConfig.border}`}>
+                        <VIcon className="h-2.5 w-2.5" />
+                        {vConfig.label}
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function InlineResearchCard({ researchPointer }: { researchPointer: string | ResearchPointerInline }) {
+    const rp = typeof researchPointer === "string" ? null : researchPointer;
+    const [expanded, setExpanded] = useState(false);
+
+    if (!rp) {
+        return (
+            <div className="flex items-start gap-1.5">
+                <BookOpen className="h-3 w-3 mt-0.5 text-emerald-500/70 flex-shrink-0" />
+                <p className="text-[11px] leading-relaxed">{researchPointer as string}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="rounded-md border border-border/50 bg-white shadow-sm overflow-hidden">
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-muted/30 transition-colors"
+            >
+                <BookOpen className="h-3 w-3 text-emerald-600/70 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-muted-foreground flex-1 text-left">Research Alignment</span>
+                {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground/50" /> : <ChevronDown className="h-3 w-3 text-muted-foreground/50" />}
+            </button>
+            {expanded && (
+                <div className="px-2.5 pb-2 pt-0.5 border-t border-border/30 space-y-1.5">
+                    <p className="text-[11px] leading-relaxed text-foreground/80">{rp.explanation}</p>
+                    {rp.source && rp.source !== "General Assessment" && (
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                            <FileText className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
+                            <span className="text-[10px] text-muted-foreground leading-snug">
+                                {rp.source}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function AnnotatedHMW({ statement, annotations }: {
     statement: string;
     annotations: StatementAnnotation[];
@@ -280,7 +385,7 @@ function AnnotatedHMW({ statement, annotations }: {
         <div>
             {/* HMW Statement with background highlights */}
             <p className="text-xl md:text-2xl font-bold text-center leading-relaxed px-4 text-foreground mb-6">
-                <span className="text-primary">How might we </span>
+                <span className="text-primary">HMW </span>
                 {parts.map((part, i) => {
                     if (part.annIdx !== null) {
                         const colors = ANNOTATION_PALETTE[part.annIdx % ANNOTATION_PALETTE.length];
@@ -299,6 +404,7 @@ function AnnotatedHMW({ statement, annotations }: {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {annotations.map((ann, i) => {
                     const colors = ANNOTATION_PALETTE[i % ANNOTATION_PALETTE.length];
+                    const hasNewFormat = !!(ann.lensCritique || ann.researchPointer) && !ann.note;
                     return (
                         <div
                             key={i}
@@ -315,12 +421,23 @@ function AnnotatedHMW({ statement, annotations }: {
                                     </div>
                                 </div>
                             )}
-                            {/* Bottom section: quoted text + critique */}
+                            {/* Bottom section: quoted text + lens critique + research pointer */}
                             <div className="px-3 py-2.5">
                                 <p className={`font-semibold mb-1.5 ${colors.mark} rounded-sm inline`}>
                                     &ldquo;{ann.text}&rdquo;
                                 </p>
-                                <p className="mt-1.5">{ann.note}</p>
+                                {hasNewFormat ? (
+                                    <div className="mt-2 space-y-2">
+                                        {ann.lensCritique && (
+                                            <InlineLensCard lensCritique={ann.lensCritique} />
+                                        )}
+                                        {ann.researchPointer && (
+                                            <InlineResearchCard researchPointer={ann.researchPointer} />
+                                        )}
+                                    </div>
+                                ) : (
+                                    ann.note && <p className="mt-1.5">{ann.note}</p>
+                                )}
                             </div>
                         </div>
                     );
@@ -400,6 +517,7 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
     const { critique, hmwStatement } = entry;
     const allHighlights = critique.lenses.flatMap(l => l.highlightedParts);
     const hasBreakdown = critique.statementBreakdown && critique.statementBreakdown.length > 0;
+    const hasNewFormat = hasBreakdown && critique.statementBreakdown!.some(a => a.lensCritique || a.researchPointer);
     const hasEvidence = critique.researchAlignment.evidence && critique.researchAlignment.evidence.length > 0;
     const ra = critique.researchAlignment;
 
@@ -411,23 +529,20 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                     <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
                         Checked at {entry.timestamp.toLocaleTimeString()}
                     </p>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        <VerdictBadge verdict={critique.overallVerdict} />
-                        <button
-                            onClick={() => onDelete(entry.id)}
-                            className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            title="Delete this critique"
-                        >
-                            <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => onDelete(entry.id)}
+                        className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Delete this critique"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                 </div>
 
                 {hasBreakdown ? (
                     <AnnotatedHMW statement={hmwStatement} annotations={critique.statementBreakdown!} />
                 ) : (
                     <p className="text-lg text-foreground leading-relaxed">
-                        <span className="font-bold text-primary">How might we </span>
+                        <span className="font-bold text-primary">HMW </span>
                         <HighlightedHMW statement={hmwStatement} highlights={allHighlights} activeLens={null} />
                     </p>
                 )}
@@ -437,82 +552,66 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                 </p>
             </div>
 
-            {/* 5 Lenses — compact single card */}
-            <div className="bg-white rounded-xl border border-border p-4 mb-3 shadow-sm">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">5-Lens Assessment</p>
-                <div className="divide-y divide-border/60">
-                    {critique.lenses.map((lens, i) => (
-                        <LensRow key={i} lens={lens} />
-                    ))}
-                </div>
-            </div>
-
-            {/* Research Alignment — concise redesign */}
-            <div className={`rounded-xl border p-4 mb-3 ${ra.isAligned ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30'}`}>
-                {/* Header */}
-                <div className="flex items-center gap-2 mb-3">
-                    <BookOpen className={`h-3.5 w-3.5 ${ra.isAligned ? 'text-emerald-600' : 'text-amber-600'}`} />
-                    <span className="text-[13px] font-semibold text-foreground">Research Alignment</span>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ra.isAligned
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}>
-                        {ra.isAligned ? "Aligned" : "Gaps Found"}
-                    </span>
-                </div>
-
-                {/* Explanation */}
-                <p className="text-[13px] text-foreground leading-relaxed mb-2">
-                    {ra.explanation}
-                </p>
-
-                {/* So What — actionable callout */}
-                {ra.soWhat && (
-                    <div className={`rounded-lg px-3 py-2 mb-3 ${ra.isAligned ? 'bg-emerald-100/50 border border-emerald-200/60' : 'bg-amber-100/50 border border-amber-200/60'}`}>
-                        <p className={`text-[12px] font-medium leading-relaxed ${ra.isAligned ? 'text-emerald-800' : 'text-amber-800'}`}>
-                            <ArrowRight className="h-3 w-3 inline mr-1 -mt-0.5" />
-                            {ra.soWhat}
-                        </p>
+            {/* Old-format critiques: show separate 5-lens and research sections */}
+            {!hasNewFormat && (
+                <>
+                    {/* 5 Lenses — compact single card */}
+                    <div className="bg-white rounded-xl border border-border p-4 mb-3 shadow-sm">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">5-Lens Assessment</p>
+                        <div className="divide-y divide-border/60">
+                            {critique.lenses.map((lens, i) => (
+                                <LensRow key={i} lens={lens} />
+                            ))}
+                        </div>
                     </div>
-                )}
 
-                {/* Evidence — compact */}
-                {hasEvidence && (
-                    <div className="space-y-1.5">
-                        {ra.evidence!.map((ev, i) => (
-                            <div key={i} className="bg-white/70 rounded-lg border border-border/40 px-3 py-2">
-                                <p className="text-[12px] text-foreground leading-relaxed italic mb-1">
-                                    &ldquo;{ev.quote}&rdquo;
-                                    <span className="not-italic text-[10px] font-semibold text-muted-foreground ml-1.5 uppercase tracking-wide">
-                                        — {ev.source}
-                                    </span>
-                                </p>
-                                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                    {ev.connection}
+                    {/* Research Alignment */}
+                    <div className={`rounded-xl border p-4 mb-3 ${ra.isAligned ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30'}`}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <BookOpen className={`h-3.5 w-3.5 ${ra.isAligned ? 'text-emerald-600' : 'text-amber-600'}`} />
+                            <span className="text-[13px] font-semibold text-foreground">Research Alignment</span>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ra.isAligned
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-700'
+                            }`}>
+                                {ra.isAligned ? "Aligned" : "Gaps Found"}
+                            </span>
+                        </div>
+                        <p className="text-[13px] text-foreground leading-relaxed mb-2">{ra.explanation}</p>
+                        {ra.soWhat && (
+                            <div className={`rounded-lg px-3 py-2 mb-3 ${ra.isAligned ? 'bg-emerald-100/50 border border-emerald-200/60' : 'bg-amber-100/50 border border-amber-200/60'}`}>
+                                <p className={`text-[12px] font-medium leading-relaxed ${ra.isAligned ? 'text-emerald-800' : 'text-amber-800'}`}>
+                                    <ArrowRight className="h-3 w-3 inline mr-1 -mt-0.5" />
+                                    {ra.soWhat}
                                 </p>
                             </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Fallback for old critiques without evidence */}
-                {!hasEvidence && ra.relevantFindings.length > 0 && (
-                    <div className="space-y-1 mt-1">
-                        {ra.relevantFindings.map((finding, i) => (
-                            <div key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-                                <span className="text-primary mt-0.5">•</span>
-                                <span>{finding}</span>
+                        )}
+                        {hasEvidence && (
+                            <div className="space-y-1.5">
+                                {ra.evidence!.map((ev, i) => (
+                                    <div key={i} className="bg-white/70 rounded-lg border border-border/40 px-3 py-2">
+                                        <p className="text-[12px] text-foreground leading-relaxed italic mb-1">
+                                            &ldquo;{ev.quote}&rdquo;
+                                            <span className="not-italic text-[10px] font-semibold text-muted-foreground ml-1.5 uppercase tracking-wide">— {ev.source}</span>
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground leading-relaxed">{ev.connection}</p>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        )}
+                        {!hasEvidence && ra.relevantFindings.length > 0 && (
+                            <div className="space-y-1 mt-1">
+                                {ra.relevantFindings.map((finding, i) => (
+                                    <div key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                                        <span className="text-primary mt-0.5">•</span>
+                                        <span>{finding}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
-
-                {/* Fallback for old critiques without soWhat */}
-                {!ra.soWhat && !ra.explanation && (
-                    <p className="text-xs text-muted-foreground leading-relaxed">{ra.explanation}</p>
-                )}
-            </div>
-
+                </>
+            )}
         </div>
     );
 }
@@ -710,7 +809,7 @@ export default function HMWPage({ params }: PageProps) {
                     <div className="bg-white rounded-2xl border border-border shadow-sm p-6 mb-6 transition-shadow hover:shadow-md">
                         <div className="flex items-start gap-3">
                             <span className="text-xl font-bold text-primary mt-1 flex-shrink-0 select-none">
-                                How Might We
+                                HMW
                             </span>
                             <textarea
                                 ref={inputRef}

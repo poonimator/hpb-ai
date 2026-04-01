@@ -995,15 +995,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             </Link>
 
                             {/* HMW Critique Cards */}
-                            {subProject.hmwCritiques?.map((critique) => {
-                                const verdictStyles: Record<string, { bg: string; text: string; border: string; label: string }> = {
-                                    PASS: { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", label: "Pass" },
-                                    NEEDS_WORK: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200", label: "Needs Work" },
-                                    FAIL: { bg: "bg-red-50", text: "text-red-600", border: "border-red-200", label: "Fail" },
-                                };
-                                const v = verdictStyles[critique.overallVerdict] || verdictStyles.NEEDS_WORK;
-
-                                return (
+                            {subProject.hmwCritiques?.map((critique) => (
                                     <div
                                         key={critique.id}
                                         onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/hmw?scrollTo=${critique.id}`}
@@ -1026,16 +1018,9 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
 
-                                        {/* Verdict badge */}
-                                        <div className="mb-auto">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${v.bg} ${v.text} ${v.border} border`}>
-                                                {v.label}
-                                            </span>
-                                        </div>
-
-                                        {/* Content at bottom */}
-                                        <div className="mt-3">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                        {/* Content */}
+                                        <div className="mt-auto">
+                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
                                                 <span className="text-primary">HMW </span>
                                                 {critique.hmwStatement}
                                             </h4>
@@ -1044,8 +1029,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             </p>
                                         </div>
                                     </div>
-                                );
-                            })}
+                            ))}
                         </div>
                     )}
 
@@ -1072,15 +1056,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             </Link>
 
                             {/* Insight Critique Cards */}
-                            {subProject.insightCritiques?.map((critique) => {
-                                const verdictStyles: Record<string, { bg: string; text: string; border: string; label: string }> = {
-                                    PASS: { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", label: "Pass" },
-                                    NEEDS_WORK: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200", label: "Needs Work" },
-                                    FAIL: { bg: "bg-red-50", text: "text-red-600", border: "border-red-200", label: "Fail" },
-                                };
-                                const v = verdictStyles[critique.overallVerdict] || verdictStyles.NEEDS_WORK;
-
-                                return (
+                            {subProject.insightCritiques?.map((critique) => (
                                     <div
                                         key={critique.id}
                                         onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/insights?scrollTo=${critique.id}`}
@@ -1103,16 +1079,9 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
 
-                                        {/* Verdict badge */}
-                                        <div className="mb-auto">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${v.bg} ${v.text} ${v.border} border`}>
-                                                {v.label}
-                                            </span>
-                                        </div>
-
-                                        {/* Content at bottom */}
-                                        <div className="mt-3">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                        {/* Content */}
+                                        <div className="mt-auto">
+                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
                                                 {critique.insightStatement}
                                             </h4>
                                             <p className="text-[11px] text-muted-foreground leading-snug">
@@ -1120,8 +1089,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             </p>
                                         </div>
                                     </div>
-                                );
-                            })}
+                            ))}
                         </div>
                     )}
                 </div>

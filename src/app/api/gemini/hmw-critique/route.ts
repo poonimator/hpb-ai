@@ -73,8 +73,49 @@ export async function POST(req: Request) {
             kbContext = allContextParts.join("\n");
         }
 
-        // 2. Build the critique prompt
-        const prompt = buildHMWCritiquePrompt(hmwStatement, kbContext, researchStatement);
+        // 2. Fetch past critiques for this sub-project to track improvement
+        const pastCritiques = await prisma.hmwCritique.findMany({
+            where: { subProjectId },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+            select: { hmwStatement: true, overallVerdict: true, critiqueJson: true, createdAt: true },
+        });
+
+        let pastContext = "";
+        if (pastCritiques.length > 0) {
+            pastContext = pastCritiques.map((c, i) => {
+                let summary = "";
+                let suggestions: string[] = [];
+                try {
+                    const parsed = JSON.parse(c.critiqueJson);
+                    summary = parsed.overallSummary || "";
+                    // Extract suggestions from statement breakdown
+                    if (parsed.statementBreakdown) {
+                        for (const ann of parsed.statementBreakdown) {
+                            const lc = ann.lensCritique;
+                            if (lc && typeof lc === "object" && lc.suggestion) {
+                                suggestions.push(`"${ann.text}" → Try: "${lc.suggestion}"`);
+                            }
+                        }
+                    }
+                    // Also extract from lenses
+                    if (parsed.lenses) {
+                        for (const lens of parsed.lenses) {
+                            if (lens.suggestedImprovement) {
+                                suggestions.push(`${lens.lensName}: ${lens.suggestedImprovement}`);
+                            }
+                        }
+                    }
+                } catch { /* ignore */ }
+                let entry = `${i + 1}. "${c.hmwStatement}" → ${c.overallVerdict}`;
+                if (summary) entry += `\n   Summary: ${summary}`;
+                if (suggestions.length > 0) entry += `\n   Suggestions given: ${suggestions.join("; ")}`;
+                return entry;
+            }).join("\n\n");
+        }
+
+        // 3. Build the critique prompt
+        const prompt = buildHMWCritiquePrompt(hmwStatement, kbContext, researchStatement, pastContext);
 
         // 3. Call OpenAI
         if (!isOpenAIConfigured()) {
@@ -213,7 +254,7 @@ export async function POST(req: Request) {
                 },
                 statementBreakdown: {
                     type: "array" as const,
-                    description: "Break the HMW statement into 3-5 meaningful phrases and annotate each. Each annotation has TWO parts: a short actionable critique ('note') and a positive rationale ('rationale') explaining why this phrase exists and what design value it contributes.",
+                    description: "Break the HMW statement into 3-5 meaningful phrases and annotate each with a rationale, a lens-based critique, and a research pointer.",
                     items: {
                         type: "object" as const,
                         additionalProperties: false,
@@ -222,20 +263,38 @@ export async function POST(req: Request) {
                                 type: "string" as const,
                                 description: "The exact substring from the HMW statement (use EXACT text, not paraphrased)"
                             },
-                            note: {
-                                type: "string" as const,
-                                description: "A short, punchy, actionable critique (1 sentence max). For issues: state the specific problem and what to do about it — no vague observations. For strengths: state why it works in one sharp line. Must never make the reader go 'so what?'."
-                            },
                             rationale: {
                                 type: "string" as const,
-                                description: "A positive explanation of what this phrase DOES and why it matters. Write in third person about the phrase itself — e.g. 'It grounds the scope to a specific life stage without being too narrow' or 'It shifts support from fixing to steadying.' NEVER start with 'You're trying to' or 'The author is trying to' — instead describe the effect of the phrasing itself. Even for problematic parts, acknowledge what the phrase achieves."
+                                description: "A positive explanation of what this phrase DOES and why it matters. Write in third person about the phrase itself — e.g. 'It grounds the scope to a specific life stage without being too narrow'. Even for problematic parts, acknowledge what the phrase achieves."
+                            },
+                            lensCritique: {
+                                type: "object" as const,
+                                additionalProperties: false,
+                                description: "Assessment of this phrase against the single most relevant lens",
+                                properties: {
+                                    lens: { type: "string" as const, description: "Short lens name, e.g. 'Grounded in a Real Problem', 'Solution-Agnostic', 'Appropriately Broad', 'Focused on Desired Outcome', 'Positively Framed'" },
+                                    verdict: { type: "string" as const, description: "PASS, PARTIAL, or FAIL" },
+                                    explanation: { type: "string" as const, description: "One sentence with two halves: first half states a specific fact from the research documents (quote a finding, name a statistic, or describe a concrete behaviour), second half says what that means for this phrase. Never use words like 'specific', 'concrete', 'various' as substitutes for actually naming things." },
+                                    suggestion: { type: "string" as const, description: "If verdict is PARTIAL or FAIL, provide a short replacement phrase the user could swap in. Write just the phrase itself. CRITICAL: before writing this, verify it would pass ALL 5 lenses — not just this one. Do not suggest something that is too narrow, too broad, solution-embedded, or negatively framed. The user will use your suggestion verbatim, so it must work. Empty string if verdict is PASS." }
+                                },
+                                required: ["lens", "verdict", "explanation", "suggestion"]
+                            },
+                            researchPointer: {
+                                type: "object" as const,
+                                additionalProperties: false,
+                                description: "Research connection for this phrase",
+                                properties: {
+                                    explanation: { type: "string" as const, description: "One plain-language sentence connecting this phrase to a research finding, or noting a gap." },
+                                    source: { type: "string" as const, description: "Exact document title from the KB that this finding comes from, or 'General Assessment' if no specific document applies." }
+                                },
+                                required: ["explanation", "source"]
                             },
                             sentiment: {
                                 type: "string" as const,
                                 description: "strength (this part works well), issue (this part is problematic), or neutral (acceptable but unremarkable)"
                             }
                         },
-                        required: ["text", "note", "rationale", "sentiment"]
+                        required: ["text", "rationale", "lensCritique", "researchPointer", "sentiment"]
                     }
                 }
             },
@@ -247,7 +306,7 @@ export async function POST(req: Request) {
             messages: [
                 {
                     role: "system",
-                    content: "You are an expert design thinking facilitator and ruthless critic. You assess 'How Might We' statements with surgical precision. You never sugarcoat. You are direct, honest, and constructive. When you highlight parts of the HMW statement, you use EXACT substrings from the original text."
+                    content: "You are an expert design thinking facilitator and constructive coach. You assess 'How Might We' statements with precision. You are direct, honest, and helpful — you acknowledge what works and focus improvements on what matters most. When you highlight parts of the HMW statement, you use EXACT substrings from the original text."
                 },
                 { role: "user", content: prompt }
             ],
@@ -322,99 +381,103 @@ export async function POST(req: Request) {
     }
 }
 
-function buildHMWCritiquePrompt(hmwStatement: string, kbContext: string, researchStatement?: string): string {
+function buildHMWCritiquePrompt(hmwStatement: string, kbContext: string, researchStatement?: string, pastContext?: string): string {
     const researchSection = kbContext.trim()
         ? `
 ## COMPLETED RESEARCH CONTEXT
-The following documents represent research that has already been completed for this project. Use this to assess whether the HMW is actually grounded in real findings, and whether it even makes sense given what the research has uncovered.
+The following documents represent research that has already been completed for this project. Use this to assess whether the HMW is actually grounded in real findings.
 
 ${kbContext.substring(0, 80000)}
 `
         : `
 ## COMPLETED RESEARCH CONTEXT
-No research documents are available in the knowledge base. Assess the HMW purely on framework quality but note that without research grounding, it is impossible to verify whether this HMW stems from real findings.
+No research documents are available in the knowledge base. Assess the HMW purely on framework quality.
 `;
 
-    const projectContext = researchStatement
+    const projectContextSection = researchStatement
         ? `\n## PROJECT RESEARCH STATEMENT\n${researchStatement}\n`
         : "";
 
-    return `
-Critique the following "How Might We" (HMW) statement using the 5-lens framework from Nielsen Norman Group. Be brutally honest. Do not sugarcoat. Do not pad with praise unless genuinely warranted.
+    const pastSection = pastContext
+        ? `
+## PAST HMW CRITIQUES (for context)
+The user has submitted and revised HMW statements before. Here are their recent attempts and the suggestions YOU gave them:
+${pastContext}
 
-## THE HMW STATEMENT TO CRITIQUE
+CRITICAL CONSISTENCY RULES:
+1. If the user adopted or closely followed a suggestion you gave in a previous critique, that part MUST receive PASS. You suggested it — you cannot then reject it.
+2. If the user's new HMW is clearly improved from the previous version, the overall verdict MUST improve too. More passes, not fewer.
+3. Do NOT raise new objections on parts that were fine before. Only critique parts that are genuinely new or unchanged problems.
+4. Do NOT contradict your own previous advice. If you said "narrow to X" and they narrowed to X, that phrase passes.
+5. Your suggestions must be things you would actually score as PASS. Before writing a suggestion, mentally verify you would not then critique it for a different reason.
+`
+        : "";
+
+    return `
+Assess the following "How Might We" (HMW) statement using the 5-lens framework from Nielsen Norman Group. Be honest and constructive. Acknowledge what works, flag what doesn't, and suggest concrete improvements.
+
+## THE HMW STATEMENT TO ASSESS
 "How might we ${hmwStatement}"
 
-${projectContext}
+${projectContextSection}
+${pastSection}
 ${researchSection}
 
 ## THE 5 LENSES (evaluate each one)
 
 ### 1. Grounded in a Real Problem or Insight
 The HMW must stem from actual research or discovery findings — not be a generic improvement question.
-- ❌ wrong: "How might we improve the user experience?" (not grounded)
-- ✅ right: "How might we increase awareness of the full product offerings?" (tied to a specific finding)
 
 ### 2. Solution-Agnostic
 The HMW must not suggest or embed a specific solution. It should leave the solution space wide open.
-- ❌ wrong: "How might we *tell* users which form to complete?" (implies a communication solution)
-- ✅ right: "How might we make users feel confident they are filing taxes correctly?" (open to many solutions)
 
 ### 3. Appropriately Broad (but not too broad)
 The HMW should be wide enough to generate many creative ideas, but still tethered to the problem.
-- ❌ wrong: Too narrow: "How might we add a spell-checker to the submission form?"
-- ❌ wrong: Too broad: "How might we redesign the submission-drafting process?"
-- ✅ right: "How might we support users to efficiently draft submissions they're happy with?"
 
 ### 4. Focused on the Desired Outcome
 The HMW should target the root problem and the user's desired outcome — not a symptom or a business metric.
-- ❌ wrong: "How might we stop users from calling us?" (addresses a symptom, not the root cause)
-- ✅ right: "How might we make users feel confident they have all the information they need?" (targets root outcome)
 
 ### 5. Positively Framed
 The HMW should use positive action verbs (increase, create, enhance, promote) rather than negative ones (reduce, remove, prevent, stop).
-- ❌ wrong: "How might we make the return process *less difficult*?"
-- ✅ right: "How might we make the return process *quick and intuitive*?"
 
 ## STATEMENT BREAKDOWN
-Break the HMW into 3-5 meaningful phrases and annotate each one with TWO separate fields:
-
-### "note" — the actionable critique (1 sentence max)
-- For issues: name the specific problem and suggest what to change. Never leave the reader thinking "so what?".
-- For strengths: say exactly why it works in one sharp line.
-- For neutral parts: note what's acceptable but what could be sharper.
-- BAD note: "This is filler. It doesn't point to a moment, context, or friction, so it won't drive sharp concepts or prioritisation." (too long, not actionable)
-- GOOD note: "Too vague — specify a moment or context (e.g. 'during exam weeks') to drive sharper ideation."
+Break the HMW into 3-5 meaningful phrases. For each phrase, provide:
 
 ### "rationale" — why this phrase exists (1-2 sentences)
-- Describe what the phrase DOES and why it matters. Write about the phrase itself in third person.
-- NEVER use "You're trying to…" or "The author is trying to…" — instead state the effect directly.
-- BAD rationale: "You're trying to narrow the target user to a specific age group." 
-- GOOD rationale: "It grounds the scope to a specific life stage without being too narrow."
-- More examples:
-  - "It doesn't demand a deep talk: 'get your bearings' can be small, private, and quick, which makes it doable in the moment."
-  - "It meets the common failure point we saw: when they can't tell what is next, stress can turn inward fast and become self-blame."
-  - "It fits how reaching out actually happens: it allows a small start with no pressure to share more."
-  - "It supports prevention: small resets and small steps during the day reduce the build-up that later drives heavy switching off."
+- Describe what the phrase DOES and why it matters. Write in third person about the phrase itself.
+- GOOD: "It grounds the scope to a specific life stage without being too narrow."
+
+### "lensCritique" — structured 5-lens check (object with lens, verdict, explanation)
+- Pick the single most relevant lens for this phrase.
+- Give a verdict: PASS if it satisfies the lens, PARTIAL if close but could improve, FAIL only if it clearly violates the lens.
+- Write one plain-language sentence explaining why. Be SPECIFIC — never say "your research points to X" without naming what X actually is. Name the concrete finding, tension, or barrier from the research documents. Do not use generic placeholders — cite the actual data you found in the documents provided.
+- Default to PASS when the phrase reasonably satisfies the lens. Only use PARTIAL when there's a specific, concrete improvement to make. Only use FAIL for clear, unambiguous violations (e.g., embedding a specific solution, using negative framing).
+
+### "researchPointer" — structured research connection (object with explanation and source)
+- Connect this phrase to a specific research finding, or note if the research doesn't support it.
+- Include the document title as the source. If no specific document applies, use "General Assessment".
+- GOOD: { explanation: "Your research shows sleep sacrifice is the main coping trade-off — this captures that tension.", source: "Report on Understanding Opportunities..." }
+- GOOD: { explanation: "No specific research finding supports this framing.", source: "General Assessment" }
 
 ### General rules:
-- Use "strength" for parts that are well-crafted, "issue" for problematic parts, "neutral" for acceptable but unremarkable parts.
+- Use "strength" for well-crafted parts, "issue" for problematic parts, "neutral" for acceptable but unremarkable parts.
 - Use EXACT substrings from the HMW statement — do not paraphrase.
 
 ## RESEARCH ALIGNMENT
-You have been given ALL documents from the project knowledge base — both Research documents and Other documents. Use ALL of them.
-- Write the "explanation" in 1-2 sentences of plain, simple language. State clearly what the research says and whether the HMW reflects it. No jargon. No academic tone.
-- The "soWhat" must tell the user exactly what to do about it or what risk they face. It should answer "so what does this mean for my HMW?" — not just restate the problem.
-  - BAD soWhat: "This HMW ignores the core finding that youth avoid help because of self-blame, not lack of access."
-  - GOOD soWhat: "Rewrite the outcome to target self-blame (not access) — otherwise your ideas will solve the wrong barrier."
-- For "evidence", pick 2-3 specific quotes. Prefer documents tagged [OTHER] — only fall back to [RESEARCH] documents if no [OTHER] documents are available. Each quote must come from a different document. Keep each quote to 1 sentence. The "connection" must say what this means for the HMW specifically — make it actionable. Never return empty quotes or "N/A" sources — if you can find relevant evidence in any document, cite it.
-- Use clear, everyday language throughout. Imagine you're explaining to a smart teammate, not writing an academic paper.
+You have been given ALL documents from the project knowledge base — both Research and Other documents. Use ALL of them.
+- Write the "explanation" in 1-2 sentences of plain, simple language.
+- The "soWhat" must tell the user exactly what to do or what risk they face.
+- For "evidence", pick 2-3 specific quotes. Prefer documents tagged [OTHER] — only fall back to [RESEARCH] if no [OTHER] documents are available. Each quote from a different document. Keep each quote to 1 sentence.
+- Use clear, everyday language. Imagine you're explaining to a smart teammate.
 
-## CRITICAL INSTRUCTIONS
-- For each lens, identify EXACT substrings from the HMW statement that are problematic. Use the EXACT text — do not paraphrase.
-- Cross-reference the HMW against the research context. Does this HMW actually relate to real findings? Or is it made up / too generic?
-- If the HMW doesn't make sense given the research, say so bluntly.
-- Be direct. No fluff. No "Great start!" unless it genuinely is one.
+## TONE AND SCORING GUIDELINES
+- Be direct and honest, but constructive — not harsh. You are coaching, not grading.
+- Acknowledge genuine strengths first. If a phrase works well, say so clearly.
+- A well-crafted HMW should be able to achieve mostly PASS verdicts. PASS is the default for phrases that reasonably satisfy a lens.
+- Use PARTIAL only when there is a specific, concrete improvement that would make the phrase stronger. PARTIAL means "good direction, one tweak needed."
+- Reserve FAIL strictly for clear, unambiguous violations — e.g., embedding a specific solution ("tell users..."), using purely negative framing ("reduce..."), or being completely ungrounded. Most real HMW statements should not receive FAIL on most lenses.
+- For overallVerdict: use PASS if 4+ lenses pass, NEEDS_WORK if 2-3 have issues, FAIL only if the HMW fundamentally misses the mark.
+- Write in plain, simple language throughout.
 `;
 }
 

@@ -79,10 +79,22 @@ export async function POST(req: Request) {
                         additionalProperties: false,
                         properties: {
                             text: { type: "string" as const, description: "Exact substring from the insight statement" },
-                            note: { type: "string" as const, description: "1-2 sentence annotation on why this part works or doesn't" },
+                            rationale: { type: "string" as const, description: "1-2 sentences describing what this phrase DOES and why it matters. Write in third person about the phrase itself." },
+                            criteriaCritique: {
+                                type: "object" as const,
+                                additionalProperties: false,
+                                description: "Assessment of this phrase against the single most relevant criterion",
+                                properties: {
+                                    criterion: { type: "string" as const, description: "Criterion name: 'Well-Informed', 'More Than an Observation', 'So What?', 'Sticky', 'Actionable'" },
+                                    verdict: { type: "string" as const, description: "PASS, PARTIAL, or FAIL" },
+                                    explanation: { type: "string" as const, description: "One sentence with two halves: first half states a specific fact from the research documents (quote a finding, name a statistic, or describe a concrete behaviour), second half says what that means for this phrase. Never use words like 'specific', 'concrete', 'various' as substitutes for actually naming things." },
+                                    suggestion: { type: "string" as const, description: "If verdict is PARTIAL or FAIL, provide a short replacement phrase the user could swap in that would pass this criterion. Write just the phrase itself. Must be something you would score as PASS. Empty string if verdict is PASS." }
+                                },
+                                required: ["criterion", "verdict", "explanation", "suggestion"]
+                            },
                             sentiment: { type: "string" as const, description: "strength, issue, or neutral" }
                         },
-                        required: ["text", "note", "sentiment"]
+                        required: ["text", "rationale", "criteriaCritique", "sentiment"]
                     }
                 },
                 researchAlignment: {
@@ -235,7 +247,23 @@ Does it inspire novel solutions and open up generative design opportunities?
 - PASS: You can immediately imagine 3+ different interventions it could inspire
 
 ## STATEMENT BREAKDOWN
-Break the insight statement into 3-5 meaningful phrases. For each, explain WHY it works or what's wrong. Use EXACT substrings.
+Break the insight statement into 3-5 meaningful phrases. For each phrase, provide:
+
+### "rationale" — why this phrase exists (1-2 sentences)
+- Describe what the phrase DOES and why it matters. Write in third person about the phrase itself.
+
+### "criteriaCritique" — structured criteria check (object with criterion, verdict, explanation, suggestion)
+- Pick the single most relevant criterion for this phrase.
+- Give a verdict: PASS if it satisfies the criterion, PARTIAL if close but could improve, FAIL only if it clearly violates the criterion.
+- Write one plain-language sentence explaining why. Be SPECIFIC — never say "your research points to X" without naming what X actually is. Name the concrete finding, tension, or barrier from the research documents. Do not use generic placeholders — cite the actual data you found in the documents provided.
+- Default to PASS when the phrase reasonably satisfies the criterion. Only use PARTIAL when there's a specific, concrete improvement to make. Only use FAIL for clear, unambiguous violations.
+- If verdict is not PASS, provide a replacement phrase the user could swap in that you would score as PASS.
+
+### General rules:
+- Use "strength" for well-crafted parts, "issue" for problematic parts, "neutral" for acceptable but unremarkable parts.
+- Every phrase MUST have exactly one "criteriaCritique" object — no exceptions.
+- Use EXACT substrings from the original insight statement.
+- Across all phrases, try to cover different criteria rather than repeating the same one.
 
 ## RESEARCH ALIGNMENT
 - Include a "soWhat" sentence answering "so what?" — the key implication.

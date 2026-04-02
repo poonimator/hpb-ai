@@ -51,9 +51,18 @@ interface ResearchAlignment {
     evidence?: ResearchEvidence[];
 }
 
+interface CriteriaCritiqueInline {
+    criterion: string;
+    verdict: "PASS" | "PARTIAL" | "FAIL";
+    explanation: string;
+    suggestion?: string;
+}
+
 interface StatementAnnotation {
     text: string;
-    note: string;
+    note?: string;
+    rationale?: string;
+    criteriaCritique?: string | CriteriaCritiqueInline;
     sentiment: "strength" | "issue" | "neutral";
 }
 
@@ -241,6 +250,58 @@ const ANNOTATION_PALETTE = [
     { text: "text-rose-700", mark: "bg-rose-200/60", bg: "bg-rose-50", border: "border-rose-200" },
 ];
 
+function InlineCriteriaCard({ criteriaCritique }: { criteriaCritique: string | CriteriaCritiqueInline }) {
+    const cc = typeof criteriaCritique === "string" ? null : criteriaCritique;
+    const [expanded, setExpanded] = useState(() => {
+        if (!cc) return true;
+        return cc.verdict !== "PASS";
+    });
+
+    if (!cc) {
+        return (
+            <div className="flex items-start gap-1.5">
+                <Target className="h-3 w-3 mt-0.5 text-primary/60 flex-shrink-0" />
+                <p className="text-[11px] leading-relaxed">{criteriaCritique as string}</p>
+            </div>
+        );
+    }
+
+    const CIcon = CRITERIA_ICONS[cc.criterion] || Target;
+    const vConfig = VERDICT_CONFIG[cc.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
+    const VIcon = vConfig.icon;
+    const isPass = cc.verdict === "PASS";
+
+    return (
+        <div className="rounded-md border border-border/50 bg-white shadow-sm overflow-hidden">
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-muted/30 transition-colors"
+            >
+                <CIcon className="h-3 w-3 text-primary/60 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-muted-foreground flex-1 text-left">{cc.criterion}</span>
+                {!expanded && !isPass && (
+                    <VIcon className={`h-3 w-3 flex-shrink-0 ${vConfig.color}`} />
+                )}
+                {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />}
+            </button>
+            {expanded && (
+                <div className="px-2.5 pb-2 pt-0.5 border-t border-border/30 space-y-1.5">
+                    <p className="text-[11px] leading-relaxed text-foreground/80">{cc.explanation}</p>
+                    {cc.suggestion && (
+                        <p className="text-[11px] leading-relaxed text-primary/80 italic">
+                            Try: &ldquo;{cc.suggestion}&rdquo;
+                        </p>
+                    )}
+                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${vConfig.bg} ${vConfig.color} border ${vConfig.border}`}>
+                        <VIcon className="h-2.5 w-2.5" />
+                        {vConfig.label}
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function AnnotatedInsight({ statement, annotations }: {
     statement: string;
     annotations: StatementAnnotation[];
@@ -268,17 +329,38 @@ function AnnotatedInsight({ statement, annotations }: {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {annotations.map((ann, i) => {
                     const colors = ANNOTATION_PALETTE[i % ANNOTATION_PALETTE.length];
-                    const tagLabel = ann.sentiment === "strength" ? "Strength" : ann.sentiment === "issue" ? "Issue" : "Neutral";
+                    const hasNewFormat = !!(ann.criteriaCritique || ann.rationale);
                     return (
                         <div
                             key={i}
-                            className={`text-[11px] leading-relaxed px-3 py-2.5 rounded-lg border ${colors.bg} ${colors.border} ${colors.text}`}
+                            className={`text-[11px] leading-relaxed rounded-lg border ${colors.bg} ${colors.border} ${colors.text} overflow-hidden`}
                         >
-                            <div className="mb-2"><span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/80 text-foreground/70 border border-border/40">{tagLabel}</span></div>
-                            <p className={`font-semibold mb-1 ${colors.mark} rounded-sm inline`}>
-                                &ldquo;{ann.text}&rdquo;
-                            </p>
-                            <p className="mt-1">{ann.note}</p>
+                            {/* Top sub-card: positive rationale */}
+                            {ann.rationale && (
+                                <div className="bg-white border-b border-border/30 px-3 py-2.5">
+                                    <div className="flex items-start gap-1.5">
+                                        <Lightbulb className="h-3 w-3 mt-0.5 text-amber-500 flex-shrink-0" />
+                                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                            {ann.rationale}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Bottom section: quoted text + criteria critique */}
+                            <div className="px-3 py-2.5">
+                                <p className={`font-semibold mb-1.5 ${colors.mark} rounded-sm inline`}>
+                                    &ldquo;{ann.text}&rdquo;
+                                </p>
+                                {hasNewFormat ? (
+                                    <div className="mt-2 space-y-2">
+                                        {ann.criteriaCritique && (
+                                            <InlineCriteriaCard criteriaCritique={ann.criteriaCritique} />
+                                        )}
+                                    </div>
+                                ) : (
+                                    ann.note && <p className="mt-1.5">{ann.note}</p>
+                                )}
+                            </div>
                         </div>
                     );
                 })}
@@ -300,10 +382,12 @@ function VerdictBadge({ verdict }: { verdict: string }) {
 
 function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (id: string) => void }) {
     const { critique, insightStatement } = entry;
+    const hasAnnotatedBreakdown = critique.statementBreakdown && critique.statementBreakdown.length > 0
+        && critique.statementBreakdown.some((a: any) => a.criteriaCritique || a.rationale);
 
     return (
         <div id={`insight-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500">
-            {/* Insight Statement + verdict */}
+            {/* Insight Statement + annotations */}
             <div className="bg-white rounded-2xl border border-border p-6 mb-3 shadow-sm">
                 <div className="flex items-center justify-between gap-4 mb-4">
                     <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
@@ -318,49 +402,55 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                     </button>
                 </div>
 
-                <p className="text-lg font-semibold text-foreground leading-relaxed">
-                    {insightStatement}
-                </p>
+                {hasAnnotatedBreakdown ? (
+                    <AnnotatedInsight statement={insightStatement} annotations={critique.statementBreakdown!} />
+                ) : (
+                    <p className="text-lg font-semibold text-foreground leading-relaxed">
+                        {insightStatement}
+                    </p>
+                )}
 
                 <p className="text-sm text-muted-foreground leading-relaxed border-t border-border/60 pt-3 mt-4">
                     {critique.overallSummary}
                 </p>
             </div>
 
-            {/* 5 Criteria — single card with divided rows, all expanded */}
-            <div className="bg-white rounded-xl border border-border p-4 mb-3 shadow-sm">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">5-Criteria Assessment</p>
-                <div className="divide-y divide-border/60">
-                    {[...critique.criteria].sort((a, b) => {
-                        const order: Record<string, number> = { PASS: 0, PARTIAL: 1, NEEDS_WORK: 1, FAIL: 2 };
-                        return (order[a.verdict] ?? 1) - (order[b.verdict] ?? 1);
-                    }).map((c, i) => {
-                        const Icon = CRITERIA_ICONS[c.name] || Target;
-                        const config = VERDICT_CONFIG[c.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
-                        const VIcon = config.icon;
+            {/* Fallback: show old-style 5-Criteria section only for legacy critiques without inline annotations */}
+            {!hasAnnotatedBreakdown && critique.criteria && critique.criteria.length > 0 && (
+                <div className="bg-white rounded-xl border border-border p-4 mb-3 shadow-sm">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">5-Criteria Assessment</p>
+                    <div className="divide-y divide-border/60">
+                        {[...critique.criteria].sort((a, b) => {
+                            const order: Record<string, number> = { PASS: 0, PARTIAL: 1, NEEDS_WORK: 1, FAIL: 2 };
+                            return (order[a.verdict] ?? 1) - (order[b.verdict] ?? 1);
+                        }).map((c, i) => {
+                            const Icon = CRITERIA_ICONS[c.name] || Target;
+                            const config = VERDICT_CONFIG[c.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
+                            const VIcon = config.icon;
 
-                        return (
-                            <div key={i} className="py-2.5">
-                                <div className="flex items-center gap-3 px-2">
-                                    <VIcon className={`h-4 w-4 flex-shrink-0 ${config.color}`} />
-                                    <span className="text-[13px] font-medium text-foreground flex-1 min-w-0">{c.name}</span>
-                                    <span className={`text-[11px] font-bold uppercase tracking-wide ${config.color}`}>{config.label}</span>
+                            return (
+                                <div key={i} className="py-2.5">
+                                    <div className="flex items-center gap-3 px-2">
+                                        <VIcon className={`h-4 w-4 flex-shrink-0 ${config.color}`} />
+                                        <span className="text-[13px] font-medium text-foreground flex-1 min-w-0">{c.name}</span>
+                                        <span className={`text-[11px] font-bold uppercase tracking-wide ${config.color}`}>{config.label}</span>
+                                    </div>
+                                    <div className="pl-9 pr-2 pt-1.5">
+                                        <p className="text-xs text-muted-foreground leading-relaxed">{c.explanation}</p>
+                                        {c.suggestedImprovement && (
+                                            <div className="bg-muted/30 rounded-md p-2 border border-border/60 mt-2">
+                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                                    <span className="font-semibold text-foreground">Tip: </span>{c.suggestedImprovement}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="pl-9 pr-2 pt-1.5">
-                                    <p className="text-xs text-muted-foreground leading-relaxed">{c.explanation}</p>
-                                    {c.suggestedImprovement && (
-                                        <div className="bg-muted/30 rounded-md p-2 border border-border/60 mt-2">
-                                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                <span className="font-semibold text-foreground">Tip: </span>{c.suggestedImprovement}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            )}
 
         </div>
     );

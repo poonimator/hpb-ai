@@ -20,13 +20,14 @@
    - [Operational Requirements](#operational-requirements)
 3. [How to Use the Platform](#how-to-use-the-platform)
    - [Getting Started: Dashboard and Project Setup](#1-getting-started-dashboard-and-project-setup)
-   - [Interview Practice (Interview Simulation)](#2-interview-practice-interview-simulation)
-   - [Affinity Mapping](#3-affinity-mapping)
-   - [Profile Builder](#4-profile-builder)
-   - [How Might We (HMW) Analyser](#5-hmw-how-might-we-analyser)
-   - [Insight Statement Analyser](#6-insight-statement-analyser)
-   - [Focus Group Simulation](#7-focus-group-simulation)
-   - [End-to-End Research Journey](#8-putting-it-all-together-the-end-to-end-research-journey)
+   - [Moderator Guide](#2-moderator-guide)
+   - [Interview Practice (Interview Simulation)](#3-interview-practice-interview-simulation)
+   - [Affinity Mapping](#4-affinity-mapping)
+   - [Profile Builder](#5-profile-builder)
+   - [How Might We (HMW) Analyser](#6-hmw-how-might-we-analyser)
+   - [Insight Statement Analyser](#7-insight-statement-analyser)
+   - [Focus Group Simulation](#8-focus-group-simulation)
+   - [End-to-End Research Journey](#9-putting-it-all-together-the-end-to-end-research-journey)
 4. [AI Agent Prompt Parameters](#ai-agent-prompt-parameters)
    - [Global System Guardrails](#global-system-guardrails)
    - [Agent 1A: Question Validation Agent](#agent-1a-question-validation-agent)
@@ -275,9 +276,9 @@ A **Workspace** represents a specific research track or study within your projec
 
 ---
 
-#### 1.7 Setting Up the Moderator Guide
+### 2. Moderator Guide
 
-Every workspace needs a **Moderator Guide** -- the structured set of questions and probes that guide your interview simulation. The platform lets you either paste an existing guide or build one from scratch, and the AI will validate it for you.
+The Moderator Guide Coach helps researchers refine their approach to designing and structuring interview questions. Every workspace needs a **Moderator Guide** -- the structured set of questions and probes that guide your interview simulation. The platform lets you either paste an existing guide or build one from scratch, and the AI will validate it for you.
 
 1. From your workspace, navigate to **Moderator Guide Setup**.
 2. Choose one of the following:
@@ -298,11 +299,11 @@ Every workspace needs a **Moderator Guide** -- the structured set of questions a
 
 ---
 
-### 2. Interview Practice (Interview Simulation)
+### 3. Interview Practice (Interview Simulation)
 
 The Interview Simulation environment lets you practise your qualitative interviewing skills by conducting realistic conversations with AI-generated synthetic personas, while an AI coach observes and provides real-time guidance.
 
-#### 2.1 Configuring the Simulation
+#### 3.1 Configuring the Simulation
 
 1. From your workspace, navigate to the **Interview Simulation** or click **Start Simulation**.
 2. You will land on the **Simulation Settings** page. Here you can configure:
@@ -316,7 +317,7 @@ The Interview Simulation environment lets you practise your qualitative intervie
 
 ---
 
-#### 2.2 Selecting a Synthetic Persona and Adjusting Persona Parameters
+#### 3.2 Selecting a Synthetic Persona and Adjusting Persona Parameters
 
 Before the interview begins, you select who you will be talking to and fine-tune their personality characteristics.
 
@@ -339,7 +340,7 @@ Before the interview begins, you select who you will be talking to and fine-tune
 
 ---
 
-#### 2.3 The Live Interview Simulation
+#### 3.3 The Live Interview Simulation
 
 This is the core experience. Your screen is divided into several key areas:
 
@@ -381,7 +382,7 @@ The coach also identifies:
 
 ---
 
-#### 2.4 Post-Simulation Review
+#### 3.4 Post-Simulation Review
 
 After ending the interview, you are taken to the **Post-Simulation Review** screen. This is where the AI coach provides a comprehensive analysis of your performance.
 
@@ -420,11 +421,11 @@ The review includes:
 
 ---
 
-### 3. Affinity Mapping
+### 4. Affinity Mapping
 
 Affinity Mapping helps you synthesise qualitative data from real interviews (not simulations) into thematic clusters. The AI assists with initial clustering, but you retain full control to reorganise and refine.
 
-#### 3.1 Setting Up an Affinity Mapping Session
+#### 4.1 Setting Up an Affinity Mapping Session
 
 1. From your workspace, navigate to the **Affinity Mapping** section.
 2. Click **Create New Mapping Session**.
@@ -438,7 +439,7 @@ Affinity Mapping helps you synthesise qualitative data from real interviews (not
 
 ---
 
-#### 3.2 The Affinity Mapping Board
+#### 4.2 The Affinity Mapping Board
 
 Once processing is complete, you are taken to the **Affinity Mapping Board** -- a visual, interactive workspace for organising your qualitative data.
 
@@ -468,7 +469,7 @@ The board displays:
 
 ---
 
-#### 3.3 Affinity Insights View
+#### 4.3 Affinity Insights View
 
 Once you are satisfied with your thematic clustering, toggle from the **Mapping** view to the **Insights View** for a structured synthesis of what the data is telling you.
 
@@ -495,11 +496,11 @@ The Insights View presents a **three-column decision framework**:
 
 ---
 
-### 4. Profile Builder
+### 5. Profile Builder
 
 The Profile Builder transforms unstructured qualitative data (from completed affinity mapping sessions and interview transcripts) into sharp, actionable, and honest behavioural profiles. Rather than producing aspirational or generic marketing personas, the AI generates realistic archetypes grounded strictly in verbatim evidence.
 
-#### 4.1 Creating a Profile Building Session
+#### 5.1 Creating a Profile Building Session
 
 1. From your workspace, navigate to the **Profile Builder**.
 2. Click **Create New Session**.
@@ -511,7 +512,7 @@ The Profile Builder transforms unstructured qualitative data (from completed aff
 
 ---
 
-#### 4.2 Reviewing Generated Profiles
+#### 5.2 Reviewing Generated Profiles
 
 The AI produces a set of **behavioural archetypes** -- typically 3 to 5 distinct profiles, depending on the diversity and volume of your source data.
 
@@ -537,11 +538,11 @@ Click on any archetype card to view its **Profile Details** page, which contains
 
 ---
 
-### 5. HMW (How Might We) Analyser
+### 6. HMW (How Might We) Analyser
 
 The HMW Analyser helps researchers sharpen their "How Might We" statements -- a critical design thinking tool for framing actionable research and design challenges -- before moving into ideation.
 
-#### 5.1 Entering and Analysing an HMW Statement
+#### 6.1 Entering and Analysing an HMW Statement
 
 1. From your workspace, navigate to the **HMW Analyser**.
 2. Type or paste your HMW statement into the input field (e.g., "How might we help young Singaporeans find enjoyable ways to be physically active despite their busy schedules?").
@@ -565,7 +566,7 @@ The HMW Analyser helps researchers sharpen their "How Might We" statements -- a 
 
 **<span style="color:red">[IMAGE: Screenshot of the HMW analysis results showing the 5-lens critique with visual indicators (Pass / Needs Work / Fail badges) for each lens, the statement breakdown with colour-coded phrases (green for strength, red for issue, grey for neutral), and research evidence cards with document sources and quotes]</span>**
 
-#### 5.2 Iterating on Your Statement
+#### 6.2 Iterating on Your Statement
 
 The analyser is designed for **iterative refinement**:
 
@@ -581,11 +582,11 @@ The analyser is designed for **iterative refinement**:
 
 ---
 
-### 6. Insight Statement Analyser
+### 7. Insight Statement Analyser
 
 The Insight Statement Analyser evaluates whether insight statements meet the bar required for actionable, design-directive insights -- rather than surface-level observations or motivational slogans.
 
-#### 6.1 Entering and Analysing an Insight Statement
+#### 7.1 Entering and Analysing an Insight Statement
 
 1. From your workspace, navigate to the **Insight Statement Analyser**.
 2. Type or paste your insight statement into the input field (e.g., "Young working adults in Singapore skip meals not because they lack nutrition knowledge, but because eating healthily feels incompatible with their identity as busy, high-performing professionals.").
@@ -607,7 +608,7 @@ The Insight Statement Analyser evaluates whether insight statements meet the bar
 
 **<span style="color:red">[IMAGE: Screenshot of the Insight Statement analysis results showing the 5-criteria assessment with visual scoring (Pass / Needs Work / Fail) for each criterion, grouped by verdict status for quick scanning, along with detailed feedback text]</span>**
 
-#### 6.2 Iterating on Your Insight Statement
+#### 7.2 Iterating on Your Insight Statement
 
 1. Review the assessment for each criterion.
 2. Revise your insight statement to address the weaknesses identified.
@@ -621,11 +622,11 @@ The Insight Statement Analyser evaluates whether insight statements meet the bar
 
 ---
 
-### 7. Focus Group Simulation
+### 8. Focus Group Simulation
 
 The Focus Group Simulation extends the one-on-one interview format into a **multi-persona group setting**, allowing you to practise moderating a discussion with 2 to 4 AI-generated archetypes simultaneously.
 
-#### 7.1 Setting Up a Focus Group
+#### 8.1 Setting Up a Focus Group
 
 1. From your workspace, navigate to the **Focus Group Simulation**.
 2. **Select 2 to 4 archetypes** from your generated profiles to participate in the group. Choose archetypes with contrasting perspectives to create realistic group dynamics.
@@ -636,7 +637,7 @@ The Focus Group Simulation extends the one-on-one interview format into a **mult
 
 ---
 
-#### 7.2 Conducting the Focus Group
+#### 8.2 Conducting the Focus Group
 
 The focus group interface is similar to the interview simulation but adapted for multiple participants:
 
@@ -657,7 +658,7 @@ The focus group interface is similar to the interview simulation but adapted for
 
 ---
 
-#### 7.3 Focus Group Summary and Cross-Profile Comparison
+#### 8.3 Focus Group Summary and Cross-Profile Comparison
 
 After the focus group ends, the system generates two types of analysis:
 
@@ -679,18 +680,19 @@ Every finding links back to the **specific moment in the transcript** and the ev
 
 ---
 
-### 8. Putting It All Together: The End-to-End Research Journey
+### 9. Putting It All Together: The End-to-End Research Journey
 
 The platform is designed so that each feature feeds into the next, creating a continuous research and learning loop:
 
-1. **Set up** your project, knowledge bases, workspace, and moderator guide (Section 1).
-2. **Practise** your interviewing skills in the Interview Simulation until you feel confident with your guide and technique (Section 2).
-3. **Conduct real interviews** in the field (outside the platform).
-4. **Upload transcripts** and run Affinity Mapping to synthesise your findings (Section 3).
-5. **Generate profiles** from your affinity data to create evidence-based behavioural archetypes (Section 4).
-6. **Refine your HMW statements** and insight statements using the analysers (Sections 5 and 6).
-7. **Run focus group simulations** using your generated archetypes to explore group dynamics and test concepts (Section 7).
-8. **Iterate** -- use insights from each phase to improve your knowledge bases, refine personas, and sharpen your research approach for subsequent rounds.
+1. **Set up** your project, knowledge bases, and workspace (Section 1).
+2. **Prepare your moderator guide** with AI-powered validation and research consistency checks (Section 2).
+3. **Practise** your interviewing skills in the Interview Simulation until you feel confident with your guide and technique (Section 3).
+4. **Conduct real interviews** in the field (outside the platform).
+5. **Upload transcripts** and run Affinity Mapping to synthesise your findings (Section 4).
+6. **Generate profiles** from your affinity data to create evidence-based behavioural archetypes (Section 5).
+7. **Refine your HMW statements** and insight statements using the analysers (Sections 6 and 7).
+8. **Run focus group simulations** using your generated archetypes to explore group dynamics and test concepts (Section 8).
+9. **Iterate** -- use insights from each phase to improve your knowledge bases, refine personas, and sharpen your research approach for subsequent rounds.
 
 **<span style="color:red">[IMAGE: Diagram or flowchart showing the end-to-end journey across the platform -- from project setup through interview practice, real-world interviews, affinity mapping, profile building, HMW and insight analysis, and focus group simulation, with arrows showing how outputs from one phase feed into the next]</span>**
 
@@ -1243,7 +1245,7 @@ Each generated archetype contains the following sections:
 
 #### Focus Group Extension
 
-Generated profiles can be used directly in Focus Group Simulations (see Section 7 of How to Use). In focus groups:
+Generated profiles can be used directly in Focus Group Simulations (see Section 8 of How to Use). In focus groups:
 - Each archetype follows rules for short responses (1--3 sentences, not speeches)
 - Archetypes stay silent when a topic does not relate to their experience
 - Cross-talk is minimal and only when directly related to their lived experience

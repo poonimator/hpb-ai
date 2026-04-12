@@ -729,7 +729,7 @@ export default function MappingSessionPage({ params }: PageProps) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-xl">
                 <div className="flex flex-col items-center gap-6">
-                    {/* Minimal Prism Loader */}
+                    {/* Loader */}
                     <div className="relative h-12 w-12 transform rotate-45">
                         <div className="absolute inset-0 border-2 border-violet-200 rounded-lg animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
                         <div className="absolute inset-0 border-2 border-violet-500 rounded-lg animate-[spin_3s_linear_infinite]" />
@@ -737,7 +737,7 @@ export default function MappingSessionPage({ params }: PageProps) {
                     </div>
 
                     <div className="flex flex-col items-center gap-1">
-                        <span className="text-sm font-medium text-foreground tracking-wide">HPB DOJO</span>
+                        <span className="text-sm font-medium text-foreground tracking-wide">Loading</span>
                         <span className="text-[10px] text-muted-foreground tracking-widest uppercase">Initializing Workspace</span>
                     </div>
                 </div>
@@ -750,7 +750,7 @@ export default function MappingSessionPage({ params }: PageProps) {
     return (
         <div className="min-h-screen flex flex-col relative">
             {/* Sticky Header */}
-            <div className="sticky top-[64px] z-30 bg-white/80 backdrop-blur-md transition-all duration-200 border-b border-transparent">
+            <div className="sticky top-[64px] z-30 bg-background/95 backdrop-blur-md transition-all duration-200 border-b border-border/40">
                 <div className="w-full px-8 py-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">

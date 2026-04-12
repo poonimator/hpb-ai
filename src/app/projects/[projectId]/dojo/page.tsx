@@ -643,7 +643,7 @@ export default function DojoPage({ params }: PageProps) {
 
                             <div>
                                 <h1 className="text-lg font-bold text-foreground tracking-tight leading-none">
-                                    Dojo Rehearsal
+                                    Interview Rehearsal
                                 </h1>
                                 {/* Context Info */}
                                 <div className="flex items-center gap-2 mt-1 truncate max-w-[200px] md:max-w-md">

@@ -1122,12 +1122,12 @@ function SimulationPageContent({ params }: PageProps) {
                     )}
 
                     {/* Scrollable Chat Area - Two column layout: Chat on left, Opportunities on right */}
-                    <div className="pt-6 pb-24 px-4 md:px-6 lg:pl-[340px]">
+                    <div className="pt-16 pb-24 px-4 md:px-6 lg:pl-[340px]">
                         <div className="max-w-5xl mx-auto">
                             {/* Persona Header - Compact inline version */}
                             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_minmax(0,280px)] gap-6">
                                 {isFocusGroup ? (
-                                    <div className="flex items-center gap-3 mb-4 pt-6">
+                                    <div className="flex items-center gap-3 mb-4">
                                         <div className="flex items-center -space-x-1.5">
                                             {focusGroupArchetypes.map((arch) => {
                                                 const color = getArchetypeColor(arch.id);
@@ -1146,7 +1146,7 @@ function SimulationPageContent({ params }: PageProps) {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-3 mb-4 pt-6">
+                                    <div className="flex items-center gap-3 mb-4">
                                         <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm shadow-md shadow-sm shrink-0">
                                             {(selectedPersonaDetails?.name || "P").charAt(0).toUpperCase()}
                                         </div>

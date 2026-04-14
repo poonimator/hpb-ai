@@ -1063,7 +1063,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             {session.name}
                                         </h4>
                                         <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
-                                            {new Date(session.createdAt).toLocaleDateString()} &middot; 8 concepts
+                                            {new Date(session.createdAt).toLocaleDateString()}{session.status === "COMPLETE" ? " · 8 concepts" : ""}
                                             {session.status !== "COMPLETE" && (
                                                 <span className="inline-flex items-center gap-1 ml-1">
                                                     &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> {session.status}

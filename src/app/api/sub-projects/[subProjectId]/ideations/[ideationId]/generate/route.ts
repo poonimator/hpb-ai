@@ -5,6 +5,8 @@ import { successResponse, errorResponse } from "@/lib/validations";
 import { generateIdeation, generateConceptImage } from "@/lib/ai/openai";
 import { buildIdeationPrompt, IdeationGenerationContext } from "@/lib/ai/prompts/ideation_generation";
 
+export const maxDuration = 180;
+
 interface RouteParams {
     params: Promise<{ subProjectId: string; ideationId: string }>;
 }
@@ -30,8 +32,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return errorResponse("Ideation session not found", 404);
         }
 
-        if (session.status === "COMPLETE") {
-            return errorResponse("Ideation session already complete", 400);
+        if (session.status === "COMPLETE" || session.status === "PROCESSING") {
+            return errorResponse("Ideation session already in progress or complete", 400);
         }
 
         // 2. Update status to PROCESSING

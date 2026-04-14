@@ -7,6 +7,26 @@ interface RouteParams {
     params: Promise<{ subProjectId: string; ideationId: string }>;
 }
 
+// GET /api/sub-projects/[subProjectId]/ideations/[ideationId]
+export async function GET(request: NextRequest, { params }: RouteParams) {
+    try {
+        const { subProjectId, ideationId } = await params;
+
+        const session = await prisma.ideationSession.findFirst({
+            where: { id: ideationId, subProjectId },
+        });
+
+        if (!session) {
+            return errorResponse("Ideation session not found", 404);
+        }
+
+        return successResponse(session);
+    } catch (error) {
+        console.error("[API] GET ideation session error:", error);
+        return errorResponse("Failed to fetch ideation session", 500);
+    }
+}
+
 // DELETE /api/sub-projects/[subProjectId]/ideations/[ideationId]
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {

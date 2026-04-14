@@ -1068,4 +1068,91 @@ ${conversationTranscript}`;
         return { summary: "", success: false, error: String(error) };
     }
 }
+/**
+ * Generate 8 Crazy 8s ideation concepts from mapping data + profiles
+ */
+export async function generateIdeation(prompt: string): Promise<{
+    concepts: Array<Record<string, unknown>>;
+    modelName: string;
+    latencyMs: number;
+}> {
+    const client = getOpenAIClient();
+    const startTime = Date.now();
+
+    const response = await client.chat.completions.create({
+        model: DEFAULT_MODEL,
+        messages: [
+            { role: "system", content: SYSTEM_GUARDRAILS },
+            { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7, // Higher creativity for ideation
+    });
+
+    const content = response.choices[0]?.message?.content;
+    const latencyMs = Date.now() - startTime;
+
+    if (!content) {
+        throw new Error("No response from AI for ideation generation");
+    }
+
+    const parsed = JSON.parse(content);
+    if (!parsed.concepts || !Array.isArray(parsed.concepts) || parsed.concepts.length !== 8) {
+        throw new Error(`Expected 8 concepts, got ${parsed.concepts?.length || 0}`);
+    }
+
+    return {
+        concepts: parsed.concepts,
+        modelName: DEFAULT_MODEL,
+        latencyMs,
+    };
+}
+
+/**
+ * Generate a concept illustration using gpt-image-1.5
+ */
+export async function generateConceptImage(
+    conceptName: string,
+    description: string,
+    imageTextLabels: string[] = [],
+): Promise<string | null> {
+    try {
+        const client = getOpenAIClient();
+
+        const textInstruction = imageTextLabels.length > 0
+            ? `Include only these exact words in the image: ${imageTextLabels.map(l => `"${l}"`).join(", ")}.`
+            : "Do not include any text, words, letters, or numbers in the image.";
+
+        const prompt = `Create a clean, professional concept illustration for: ${conceptName}.
+
+${description}
+
+Style: Modern design thinking concept sketch, clean lines, muted professional color palette, slightly abstract and conceptual. The illustration should clearly communicate the concept at a glance.
+${textInstruction}`;
+
+        const response = await client.images.generate({
+            model: "gpt-image-1.5",
+            prompt,
+            n: 1,
+            size: "1024x1024",
+            quality: "medium",
+        });
+
+        // gpt-image-1.5 returns b64_json by default
+        const imageData = response.data[0];
+        if (imageData.b64_json) {
+            return imageData.b64_json;
+        }
+        if (imageData.url) {
+            // Fetch and convert to base64 if URL returned
+            const imgRes = await fetch(imageData.url);
+            const buffer = await imgRes.arrayBuffer();
+            return Buffer.from(buffer).toString("base64");
+        }
+        return null;
+    } catch (error) {
+        console.error(`[OpenAI] Failed to generate image for concept "${conceptName}":`, error);
+        return null;
+    }
+}
 // Created by Swapnil Bapat © 2026

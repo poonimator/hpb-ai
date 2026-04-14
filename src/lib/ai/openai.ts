@@ -1139,7 +1139,8 @@ ${textInstruction}`;
         });
 
         // gpt-image-1.5 returns b64_json by default
-        const imageData = response.data[0];
+        const imageData = response.data?.[0];
+        if (!imageData) return null;
         if (imageData.b64_json) {
             return imageData.b64_json;
         }

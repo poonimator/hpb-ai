@@ -522,7 +522,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("guides")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5
                                 ${activeContentTab === "guides"
                                     ? "bg-white text-foreground shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -541,7 +541,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("simulations")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "simulations"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -561,7 +561,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("mapping")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "mapping"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -581,7 +581,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("archetypes")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "archetypes"
                                     ? "bg-white text-foreground shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -603,7 +603,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("ideation")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "ideation"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -623,7 +623,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("hmw")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "hmw"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -643,7 +643,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("insights")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "insights"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"

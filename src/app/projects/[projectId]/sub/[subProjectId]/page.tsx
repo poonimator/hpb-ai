@@ -517,8 +517,8 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex items-center justify-between mb-4">
-                    <div className="inline-flex items-center p-1 bg-muted/50 backdrop-blur-sm rounded-full border border-border/60 shadow-inner">
+                <div className="flex items-center justify-between mb-4 overflow-x-auto">
+                    <div className="inline-flex items-center p-1 bg-muted/50 backdrop-blur-sm rounded-full border border-border/60 shadow-inner whitespace-nowrap">
                         <button
                             onClick={() => switchTab("guides")}
                             className={`
@@ -1027,23 +1027,30 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
                             {/* Ideation Session Cards */}
                             {subProject.ideationSessions?.map((session) => (
-                                <Link
+                                <div
                                     key={session.id}
-                                    href={`/projects/${projectId}/sub/${subProjectId}/ideation/${session.id}`}
+                                    onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/ideation/${session.id}`}
                                     className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
                                 >
                                     {/* Delete on hover */}
                                     <button
-                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                        className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
                                         onClick={async (e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             if (!confirm("Delete this ideation session?")) return;
                                             try {
                                                 const res = await fetch(`/api/sub-projects/${subProjectId}/ideations/${session.id}`, { method: "DELETE" });
-                                                if (res.ok) await fetchSubProject();
-                                                else alert("Failed to delete");
-                                            } catch { alert("Failed to delete"); }
+                                                if (res.ok) {
+                                                    await fetchSubProject();
+                                                } else {
+                                                    const data = await res.json().catch(() => ({}));
+                                                    alert(data.error || "Failed to delete");
+                                                }
+                                            } catch (err) {
+                                                console.error("Delete failed:", err);
+                                                alert("Failed to delete");
+                                            }
                                         }}
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />
@@ -1071,7 +1078,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             )}
                                         </p>
                                     </div>
-                                </Link>
+                                </div>
                             ))}
                         </div>
                     )}

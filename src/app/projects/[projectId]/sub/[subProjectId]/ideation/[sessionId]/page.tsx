@@ -123,55 +123,52 @@ export default function IdeationResultsPage({ params }: PageProps) {
     }
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/95 backdrop-blur-sm flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <Link
-                        href={`/projects/${projectId}/sub/${subProjectId}?tab=ideation`}
-                        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                    </Link>
-                    <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--color-interact-subtle)' }}>
-                        <Zap className="h-4 w-4" style={{ color: 'var(--color-interact)' }} />
+        <div className="flex flex-col">
+            {/* Header — breaks out of max-w-7xl container to go edge-to-edge */}
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={`/projects/${projectId}/sub/${subProjectId}?tab=ideation`}
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                        </Link>
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--color-interact-subtle)' }}>
+                            <Zap className="h-4 w-4" style={{ color: 'var(--color-interact)' }} />
+                        </div>
+                        <div>
+                            <h1 className="text-base font-bold text-foreground">{session.name}</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                {new Date(session.createdAt).toLocaleDateString()} &middot; 8 concepts
+                                <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
+                                <span className="text-muted-foreground/60">Regeneration creates a separate batch</span>
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-base font-bold text-foreground">{session.name}</h1>
-                        <p className="text-[11px] text-muted-foreground">
-                            {new Date(session.createdAt).toLocaleDateString()} &middot; 8 concepts
-                        </p>
-                    </div>
+                    <Button variant="outline" size="sm" onClick={handleRegenerate} className="gap-2">
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Regenerate
+                    </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleRegenerate} className="gap-2">
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    Regenerate
-                </Button>
             </div>
 
-            {/* Regeneration Note */}
-            <div className="px-6 py-2 bg-muted/30 border-b border-border flex-shrink-0">
-                <p className="text-[11px] text-muted-foreground text-center">
-                    Regeneration will create a separate ideation batch. Your current batch will remain accessible.
-                </p>
-            </div>
-
-            {/* 8-Card Grid — 4x2, fits screen */}
-            <div className="flex-1 p-6 overflow-hidden">
-                <div className="grid grid-cols-4 grid-rows-2 gap-4 h-full">
+            {/* 8-Card Grid — 4x2, vertically centred */}
+            <div className="flex-1 flex items-center py-5">
+                <div className="grid grid-cols-4 gap-4 w-full">
                     {concepts.map((concept, index) => (
                         <button
                             key={index}
                             onClick={() => setSelectedConcept(concept)}
-                            className="group rounded-xl border border-border bg-card hover:shadow-md hover:border-primary/30 transition-all duration-200 p-4 flex flex-col cursor-pointer overflow-hidden text-left"
+                            className="group rounded-xl border border-border bg-card hover:shadow-md hover:border-primary/30 transition-all duration-200 p-4 flex flex-col gap-3 cursor-pointer overflow-hidden text-left"
                         >
                             {/* Concept Name */}
-                            <h3 className="text-sm font-bold text-foreground line-clamp-1 mb-2 flex-shrink-0">
+                            <h3 className="text-sm font-bold text-foreground line-clamp-1">
                                 {concept.name}
                             </h3>
 
                             {/* Generated Image */}
-                            <div className="flex-1 min-h-0 rounded-lg overflow-hidden bg-muted/50 mb-2">
+                            <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-muted/50">
                                 {concept.howItWorks.imageBase64 ? (
                                     <img
                                         src={`data:image/png;base64,${concept.howItWorks.imageBase64}`}
@@ -186,7 +183,7 @@ export default function IdeationResultsPage({ params }: PageProps) {
                             </div>
 
                             {/* Tagline */}
-                            <p className="text-[11px] text-muted-foreground line-clamp-2 flex-shrink-0">
+                            <p className="text-xs text-muted-foreground line-clamp-2">
                                 {concept.tagline}
                             </p>
                         </button>
@@ -310,11 +307,11 @@ function DetailCard({ icon, title, text, source, reason }: {
             </h4>
             <p className="text-sm text-foreground leading-relaxed">{text}</p>
             <div className="pt-2 border-t border-border">
-                <p className="text-[10px] text-muted-foreground">
-                    <span className="font-semibold">Source:</span> {source}
+                <p className="text-[11px] text-muted-foreground">
+                    <span className="font-semibold text-emerald-700">Source:</span> {source}
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                    <span className="font-semibold">Why:</span> {reason}
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <span className="font-semibold text-emerald-700">Why:</span> {reason}
                 </p>
             </div>
         </div>

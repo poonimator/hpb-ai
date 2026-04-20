@@ -39,7 +39,8 @@ import {
     Trash2,
     Network,
     Sparkles,
-    Lightbulb
+    Lightbulb,
+    Zap
 } from "lucide-react";
 
 const LIFE_STAGE_OPTIONS = [
@@ -117,6 +118,14 @@ interface InsightCritiqueInfo {
     createdAt: string;
 }
 
+interface IdeationSessionInfo {
+    id: string;
+    name: string;
+    status: string;
+    sourceMappingId: string;
+    createdAt: string;
+}
+
 interface SubProject {
     id: string;
     name: string;
@@ -134,6 +143,7 @@ interface SubProject {
     archetypeSessions: ArchetypeSessionData[];
     hmwCritiques: HmwCritiqueInfo[];
     insightCritiques: InsightCritiqueInfo[];
+    ideationSessions: IdeationSessionInfo[];
     _count: {
         guideVersions: number;
         simulations: number;
@@ -141,6 +151,7 @@ interface SubProject {
         archetypeSessions: number;
         hmwCritiques: number;
         insightCritiques: number;
+        ideationSessions: number;
     };
 }
 
@@ -177,10 +188,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
     // Tab state for content section — initialise from URL search param
     const searchParams = useSearchParams();
-    const initialTab = (searchParams.get("tab") as "guides" | "simulations" | "mapping" | "archetypes" | "hmw" | "insights") || "guides";
-    const [activeContentTab, setActiveContentTab] = useState<"guides" | "simulations" | "mapping" | "archetypes" | "hmw" | "insights">(initialTab);
+    const initialTab = (searchParams.get("tab") as "guides" | "simulations" | "mapping" | "archetypes" | "ideation" | "hmw" | "insights") || "guides";
+    const [activeContentTab, setActiveContentTab] = useState<"guides" | "simulations" | "mapping" | "archetypes" | "ideation" | "hmw" | "insights">(initialTab);
 
-    const switchTab = useCallback((tab: "guides" | "simulations" | "mapping" | "archetypes" | "hmw" | "insights") => {
+    const switchTab = useCallback((tab: "guides" | "simulations" | "mapping" | "archetypes" | "ideation" | "hmw" | "insights") => {
         setActiveContentTab(tab);
         const url = new URL(window.location.href);
         url.searchParams.set("tab", tab);
@@ -506,12 +517,12 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex items-center justify-between mb-4">
-                    <div className="inline-flex items-center p-1 bg-muted/50 backdrop-blur-sm rounded-full border border-border/60 shadow-inner">
+                <div className="flex items-center justify-between mb-4 overflow-x-auto">
+                    <div className="inline-flex items-center p-1 bg-muted/50 backdrop-blur-sm rounded-full border border-border/60 shadow-inner whitespace-nowrap">
                         <button
                             onClick={() => switchTab("guides")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5
                                 ${activeContentTab === "guides"
                                     ? "bg-white text-foreground shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -530,7 +541,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("simulations")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "simulations"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -550,7 +561,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("mapping")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "mapping"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -570,7 +581,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("archetypes")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "archetypes"
                                     ? "bg-white text-foreground shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -590,9 +601,29 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         </button>
 
                         <button
+                            onClick={() => switchTab("ideation")}
+                            className={`
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
+                                ${activeContentTab === "ideation"
+                                    ? "bg-white shadow-sm ring-1 ring-black/5"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                }
+                            `}
+                            style={activeContentTab === "ideation" ? { color: 'var(--color-interact)' } : undefined}
+                        >
+                            <Zap className={`h-3.5 w-3.5 ${activeContentTab === "ideation" ? "" : "text-muted-foreground"}`} style={activeContentTab === "ideation" ? { color: 'var(--color-interact)' } : undefined} />
+                            Ideation
+                            {(subProject.ideationSessions?.length || 0) > 0 && (
+                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "ideation" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "ideation" ? { backgroundColor: 'var(--color-interact-subtle)', color: 'var(--color-interact)' } : undefined}>
+                                    {subProject.ideationSessions.length}
+                                </span>
+                            )}
+                        </button>
+
+                        <button
                             onClick={() => switchTab("hmw")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "hmw"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -612,7 +643,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <button
                             onClick={() => switchTab("insights")}
                             className={`
-                                relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-2 ml-1
+                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
                                 ${activeContentTab === "insights"
                                     ? "bg-white shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -971,6 +1002,86 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             </div>
                         );
                     })()}
+
+                    {/* Ideation */}
+                    {activeContentTab === "ideation" && (
+                        <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+                            {/* Create New Ideation Card */}
+                            <Link
+                                href={`/projects/${projectId}/sub/${subProjectId}/ideation/new`}
+                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                            >
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                        <Zap className="h-5 w-5" style={{ color: 'var(--color-interact)' }} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-foreground mb-0.5">New Ideation</h3>
+                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                            Generate concepts using the Crazy 8s framework
+                                        </p>
+                                    </div>
+                                </div>
+                            </Link>
+
+                            {/* Ideation Session Cards */}
+                            {subProject.ideationSessions?.map((session) => (
+                                <div
+                                    key={session.id}
+                                    onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/ideation/${session.id}`}
+                                    className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                >
+                                    {/* Delete on hover */}
+                                    <button
+                                        className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (!confirm("Delete this ideation session?")) return;
+                                            try {
+                                                const res = await fetch(`/api/sub-projects/${subProjectId}/ideations/${session.id}`, { method: "DELETE" });
+                                                if (res.ok) {
+                                                    await fetchSubProject();
+                                                } else {
+                                                    const data = await res.json().catch(() => ({}));
+                                                    alert(data.error || "Failed to delete");
+                                                }
+                                            } catch (err) {
+                                                console.error("Delete failed:", err);
+                                                alert("Failed to delete");
+                                            }
+                                        }}
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+
+                                    {/* Icon */}
+                                    <div
+                                        className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto"
+                                        style={{ backgroundColor: 'var(--color-interact-subtle)', color: 'var(--color-interact)' }}
+                                    >
+                                        <Zap className="h-4.5 w-4.5" />
+                                    </div>
+
+                                    {/* Content at bottom */}
+                                    <div className="mt-3">
+                                        <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                            {session.name}
+                                        </h4>
+                                        <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                            {new Date(session.createdAt).toLocaleDateString()}{session.status === "COMPLETE" ? " · 8 concepts" : ""}
+                                            {session.status !== "COMPLETE" && (
+                                                <span className="inline-flex items-center gap-1 ml-1">
+                                                    &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> {session.status}
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* How Might We */}
                     {activeContentTab === "hmw" && (

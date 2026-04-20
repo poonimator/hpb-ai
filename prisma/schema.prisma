@@ -65,6 +65,7 @@ model SubProject {
   archetypeSessions ArchetypeSession[]
   hmwCritiques      HmwCritique[]
   insightCritiques  InsightCritique[]
+  ideationSessions  IdeationSession[]
 }
 
 // Guide Version: A moderator guide version belonging to a sub-project
@@ -521,4 +522,27 @@ model AuditLog {
   metaJson   String?  // Additional context as JSON (model name, latency, promptHash, responseHash, KB doc IDs, etc.)
   createdAt  DateTime @default(now())
 }
+// ============================================
+// Ideation Sessions (Crazy 8s AI Concepts)
+// ============================================
+
+model IdeationSession {
+  id                   String     @id @default(cuid())
+  subProjectId         String
+  subProject           SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+  name                 String
+  status               String     @default("SETUP") // "SETUP" | "PROCESSING" | "COMPLETE" | "ERROR"
+  sourceMappingId      String     // ID of the MappingSession used
+  sourceProfileIdsJson String?    // JSON array of archetype IDs + KB persona doc IDs
+  focusAreasJson       String?    // JSON array of selected creative matrix enabler keys
+  resultJson           String?    // JSON array of 8 concept objects
+  modelName            String?
+  imageModelName       String?    // "gpt-image-1.5"
+  latencyMs            Int?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  @@index([subProjectId, createdAt])
+}
+
 // Created by Swapnil Bapat © 2026

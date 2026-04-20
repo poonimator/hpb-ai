@@ -26,8 +26,9 @@
    - [Profile Builder](#5-profile-builder)
    - [How Might We (HMW) Analyser](#6-hmw-how-might-we-analyser)
    - [Insight Statement Analyser](#7-insight-statement-analyser)
-   - [Focus Group Simulation](#8-focus-group-simulation)
-   - [End-to-End Research Journey](#9-putting-it-all-together-the-end-to-end-research-journey)
+   - [Ideation (Crazy 8s Concept Generator)](#8-ideation-crazy-8s-concept-generator)
+   - [Focus Group Simulation](#9-focus-group-simulation)
+   - [End-to-End Research Journey](#10-putting-it-all-together-the-end-to-end-research-journey)
 4. [AI Agent Prompt Parameters](#ai-agent-prompt-parameters)
    - [Global System Guardrails](#global-system-guardrails)
    - [Agent 1A: Question Validation Agent](#agent-1a-question-validation-agent)
@@ -40,6 +41,7 @@
    - [Agent 4: Profile Builder Agent](#agent-4-profile-builder-agent)
    - [Agent 5: HMW Analysis Agent](#agent-5-hmw-analysis-agent)
    - [Agent 6: Insight Statement Analysis Agent](#agent-6-insight-statement-analysis-agent)
+   - [Agent 7: Ideation Concept Generator](#agent-7-ideation-concept-generator)
    - [Agent Architecture Summary](#agent-architecture-summary)
 5. [Governance & Security](#governance--security)
 6. [Measures of Success](#measures-of-success)
@@ -91,7 +93,7 @@ This is the **"Player and Coach" model**: the AI coaches the researcher, challen
 
 ### Platform Capabilities Overview
 
-The platform is organised around six core use cases that mirror the research workflow:
+The platform is organised around seven core use cases that mirror the research workflow:
 
 1. **Moderator Guide Coach** -- Reviews and strengthens interview guides before fieldwork, identifying leading questions, assumptions, and gaps.
 2. **Interview Simulation** -- Combines a Synthetic Persona for realistic interview practice, a Live Coach that provides real-time guidance during the session, and a Post-Simulation Review that evaluates performance.
@@ -99,8 +101,9 @@ The platform is organised around six core use cases that mirror the research wor
 4. **Profile Builder** -- Generates research-grounded behavioural archetypes from uploaded evidence and knowledge base documents.
 5. **How Might We (HMW) Analyser** -- Critically evaluates HMW statements for clarity, scope, and actionability.
 6. **Insight Statement Analyser** -- Assesses insight statements for grounding, specificity, and research rigour.
+7. **Ideation (Crazy 8s Concept Generator)** -- Generates eight diverse, evidence-grounded design concepts from mapping data and profiles, each with an AI-generated concept illustration.
 
-**<span style="color:red">[IMAGE: Overview diagram of the six core use cases showing the research workflow from Moderator Guide through Interview Simulation, Affinity Mapping, Profile Builder, HMW Analyser, and Insight Statement Analyser]</span>**
+**<span style="color:red">[IMAGE: Overview diagram of the seven core use cases showing the research workflow from Moderator Guide through Interview Simulation, Affinity Mapping, Profile Builder, HMW Analyser, Insight Statement Analyser, and Ideation]</span>**
 
 ---
 
@@ -622,11 +625,91 @@ The Insight Statement Analyser evaluates whether insight statements meet the bar
 
 ---
 
-### 8. Focus Group Simulation
+### 8. Ideation (Crazy 8s Concept Generator)
+
+The Ideation feature uses the **Crazy 8s** design thinking framework to rapidly generate eight diverse, evidence-grounded concepts from your research data. Each concept is accompanied by an AI-generated illustration, allowing the team to see the idea at a glance rather than relying on abstract descriptions. This bridges the gap between research synthesis and design response -- turning clusters, insights, and profiles into concrete directions that can be discussed, prototyped, and tested.
+
+#### 8.1 Creating a New Ideation Session
+
+1. From your workspace, navigate to the **Ideation** tab (located between Profiles and How Might We).
+2. Click **New Ideation** to open the setup page.
+3. **Select a completed Mapping session** -- the cluster data and any generated insights will be used as the evidence base for ideation. Only mappings with status `Complete` are available for selection.
+4. **Select one or more Profiles (optional)** -- choose from your workspace's generated archetypes and any persona documents from the global or project Knowledge Base. Selected profiles anchor the concepts to specific user groups. If none are selected, the AI relies solely on mapping data and project context.
+5. **Select Creative Focus Areas (optional)** -- tick any of the 16 creative matrix enablers to nudge the AI toward specific lenses. Examples include *Technology & Digital Media*, *Events & Programmes*, *Public Policies & Laws*, *Games & Competitions*, *Hotspots & Hangouts*, *Surprise & Provocation*, and others. If no focus areas are chosen, the AI considers all 16 and picks only those genuinely relevant to the project.
+6. Click **Ideate -- Generate 8 Concepts** to trigger the generation pipeline.
+
+**<span style="color:red">[IMAGE: Screenshot of the Ideation setup page showing the mapping selection (with one mapping picked), the profile multi-select (with several archetypes and KB personas visible), the 16-cell creative focus area grid (with a few cells ticked), and the Ideate button at the bottom]</span>**
+
+#### 8.2 The Generation Pipeline
+
+Generation runs in two phases behind a unified loading screen:
+
+1. **Text Generation** -- GPT-5.2 produces eight distinct concepts as structured JSON. The prompt carries the full project context (name, description, research statement, age range, life stage), the mapping clusters grouped by theme, any generated insights, all selected profiles (with demographics, goals, motivations, ground truth, and spiral patterns), and the selected creative focus areas.
+2. **Image Generation** -- Once the eight concepts are produced, the platform calls `gpt-image-1.5` eight times in parallel, one for each concept. Each illustration is generated from the concept's "how does it work" description and rendered as a clean, professional design-thinking sketch.
+
+The total round trip typically takes 60--120 seconds. The screen cycles through status messages such as *"Reading mapping data & profiles..."*, *"Applying creative matrix lenses..."*, *"Generating 8 concepts..."*, and *"Generating concept images..."*
+
+**<span style="color:red">[IMAGE: Screenshot of the Ideation generation loading screen showing the pulsing Zap icon, the phase status text, and the note about the 2-minute generation time]</span>**
+
+#### 8.3 Reviewing the 8 Concepts
+
+Once generation completes, you are taken to the Ideation results page. Eight concept cards are arranged in a 4-column by 2-row grid, each showing:
+
+- The **concept name** (2--5 word, memorable title)
+- The **generated illustration** (square visual preview)
+- A **one-sentence tagline** describing what it does
+
+**<span style="color:red">[IMAGE: Screenshot of the Ideation results page showing the full 4x2 grid of 8 concept cards, each with a name, illustration, and tagline. Above the grid, a full-width header shows the session name, date, concept count, and a Regenerate button]</span>**
+
+#### 8.4 Opening a Concept in Detail
+
+Click any concept card to open it in a full-screen detail overlay. Each concept is structured across four rows:
+
+**Row 1 -- Concept Name:** The concept title as a large heading.
+
+**Row 2 -- Who / What / Big Idea (three columns):**
+
+| Field | Description |
+|---|---|
+| **Who is it for?** | The specific target user segment, named in plain language (e.g., "teenagers in secondary school who juggle CCAs and family pressure"). |
+| **What problem does it solve?** | The specific problem or tension the concept addresses, tied to a source in the mapping data, insights, or profiles. |
+| **What is the big idea?** | The core concept and what makes it distinctive -- the creative leap from data to idea. |
+
+**Row 3 -- How does it work?:** The AI-generated illustration alongside a vivid 50--100 word description of the concept in action (what the user sees, touches, or experiences).
+
+**Row 4 -- Fail / Prototype / Measure (three columns):**
+
+| Field | Description |
+|---|---|
+| **Why might it fail?** | The biggest risk or assumption underlying the concept. |
+| **What should we prototype and test?** | The minimum viable prototype that would validate the core assumption. |
+| **How might we measure success?** | One or two concrete success metrics appropriate for the audience and concept. |
+
+Every field (except the concept name and the "how does it work" image) is accompanied by a **Source** (the specific mapping theme, profile, or insight it draws from) and a **Why** (a one-sentence explanation of how the source justifies the decision). This traceability ensures each concept is grounded in the evidence rather than invented.
+
+**<span style="color:red">[IMAGE: Screenshot of the concept detail overlay showing the 4-row structure: the concept name at the top, three cards for Who/What/Big Idea with Source and Why citations in dark green, the How Does It Work image and description, and three cards for Fail/Prototype/Measure with their citations]</span>**
+
+#### 8.5 Diversity of Concept Types
+
+A deliberate constraint of the Ideation agent is that the eight concepts must span a **genuine mix of categories** -- not eight variations of the same app. Depending on the research data, an ideation session might produce a digital tool, a physical product, an event or programme, a policy intervention, a gamified mechanic, a partnership approach, an environmental design, or a hybrid concept that blends multiple categories. The AI is explicitly instructed to only propose digital solutions where the evidence supports them and to resist defaulting to a single solution type.
+
+#### 8.6 Regenerating for a Separate Batch
+
+If you want to explore additional directions with the same or modified inputs, click the **Regenerate** button in the results header. A short note clarifies that *"Regeneration creates a separate batch. Your current batch will remain accessible."*
+
+Regenerating takes you back to the setup page with your original mapping, profiles, and focus areas pre-filled. You can adjust any selection before re-running. Each regeneration is saved as a **separate ideation card** in the workspace's Ideation tab, so the original batch and every subsequent batch remain available for comparison.
+
+**<span style="color:red">[IMAGE: Screenshot of the Ideation tab showing the "New Ideation" card on the left and multiple saved ideation batch cards (each with a lightning-bolt icon, session name, date, and "8 concepts" metadata) stacked alongside it]</span>**
+
+> **Remember:** The eight concepts are a starting point for team conversation, not a final answer. Use them to open up the solution space, spark debate, select the most promising directions, and decide what to take forward into more rigorous prototyping.
+
+---
+
+### 9. Focus Group Simulation
 
 The Focus Group Simulation extends the one-on-one interview format into a **multi-persona group setting**, allowing you to practise moderating a discussion with 2 to 4 AI-generated archetypes simultaneously.
 
-#### 8.1 Setting Up a Focus Group
+#### 9.1 Setting Up a Focus Group
 
 1. From your workspace, navigate to the **Focus Group Simulation**.
 2. **Select 2 to 4 archetypes** from your generated profiles to participate in the group. Choose archetypes with contrasting perspectives to create realistic group dynamics.
@@ -637,7 +720,7 @@ The Focus Group Simulation extends the one-on-one interview format into a **mult
 
 ---
 
-#### 8.2 Conducting the Focus Group
+#### 9.2 Conducting the Focus Group
 
 The focus group interface is similar to the interview simulation but adapted for multiple participants:
 
@@ -658,7 +741,7 @@ The focus group interface is similar to the interview simulation but adapted for
 
 ---
 
-#### 8.3 Focus Group Summary and Cross-Profile Comparison
+#### 9.3 Focus Group Summary and Cross-Profile Comparison
 
 After the focus group ends, the system generates two types of analysis:
 
@@ -680,7 +763,7 @@ Every finding links back to the **specific moment in the transcript** and the ev
 
 ---
 
-### 9. Putting It All Together: The End-to-End Research Journey
+### 10. Putting It All Together: The End-to-End Research Journey
 
 The platform is designed so that each feature feeds into the next, creating a continuous research and learning loop:
 
@@ -691,10 +774,11 @@ The platform is designed so that each feature feeds into the next, creating a co
 5. **Upload transcripts** and run Affinity Mapping to synthesise your findings (Section 4).
 6. **Generate profiles** from your affinity data to create evidence-based behavioural archetypes (Section 5).
 7. **Refine your HMW statements** and insight statements using the analysers (Sections 6 and 7).
-8. **Run focus group simulations** using your generated archetypes to explore group dynamics and test concepts (Section 8).
-9. **Iterate** -- use insights from each phase to improve your knowledge bases, refine personas, and sharpen your research approach for subsequent rounds.
+8. **Generate eight concept directions** using the Ideation (Crazy 8s) feature, grounded in your mapping data and profiles, to translate synthesis into concrete design opportunities (Section 8).
+9. **Run focus group simulations** using your generated archetypes to explore group dynamics and test concepts (Section 9).
+10. **Iterate** -- use insights from each phase to improve your knowledge bases, refine personas, and sharpen your research approach for subsequent rounds.
 
-**<span style="color:red">[IMAGE: Diagram or flowchart showing the end-to-end journey across the platform -- from project setup through interview practice, real-world interviews, affinity mapping, profile building, HMW and insight analysis, and focus group simulation, with arrows showing how outputs from one phase feed into the next]</span>**
+**<span style="color:red">[IMAGE: Diagram or flowchart showing the end-to-end journey across the platform -- from project setup through interview practice, real-world interviews, affinity mapping, profile building, HMW and insight analysis, ideation, and focus group simulation, with arrows showing how outputs from one phase feed into the next]</span>**
 
 > **The Player & Coach philosophy** runs through every feature: the AI accelerates your work and sharpens your skills, but you -- the researcher -- are always the one making the decisions, interpreting the data, and owning the insights. The platform is your training ground and synthesis partner, never a replacement for human judgment.
 
@@ -1371,6 +1455,137 @@ This agent enforces strict word limits:
 
 ---
 
+### Agent 7: Ideation Concept Generator
+
+**Use Case:** Ideation -- Crazy 8s Concept Generation
+
+#### Role
+
+Senior Design Strategist running a Crazy 8s ideation session. Generates exactly eight distinct, creative, evidence-grounded design concepts from research data, each with an AI-generated illustration.
+
+#### Two-Phase Pipeline
+
+The Ideation agent runs as a two-phase pipeline within a single API call:
+
+| Phase | Model | Purpose |
+|---|---|---|
+| **Phase 1 -- Text Generation** | GPT-5.2 | Produces all eight concepts as a single structured JSON response |
+| **Phase 2 -- Image Generation** | gpt-image-1.5 | Generates eight concept illustrations in parallel, one per concept |
+
+The eight image calls run concurrently via `Promise.all` to keep total latency to 60--120 seconds.
+
+#### Context Assembly
+
+Before the text call, the route assembles a rich context block:
+
+- **Project context:** project name, description, research statement, target age range, life stage, workspace name
+- **Mapping data:** all clusters from the selected mapping session, grouped by theme, with the source transcript name alongside each quote
+- **Insights (if generated):** the *Found Out*, *Look Further*, and *New Areas* insight columns, with their citations and transcript tags
+- **Profiles (optional, multi-select):** selected archetypes and Knowledge Base persona documents, each with name, description, demographics, goals, motivations, ground truth, and spiral patterns
+- **Creative Matrix Enablers:** the 16 creative lenses are always included. If the user ticked specific lenses, the prompt instructs the agent to prioritise them. If none are ticked, the agent is told to consider all and pick only those genuinely relevant.
+
+#### The 16 Creative Matrix Enablers
+
+Each enabler ships with a label and a set of sub-categories the agent is encouraged to think about:
+
+| Enabler | Sub-categories |
+|---|---|
+| Technology & Digital Media | Mobile Devices & Wearable Tech, Social Media, Gaming & Simulations, IoT |
+| Events & Programmes | Meet-ups, Conferences, Workshops, Peer-to-Peer Forums |
+| Internal Policies & Procedures | Diagnostics, Incentives, Training, Company Guidelines |
+| Public Policies & Laws | Policy Positions, Prospective Legislation, Customs, Institutional Roles |
+| Games & Competitions | Motivations, Rewards, Teamwork, Scoring & Leaderboards |
+| Mobile & Wearable Tech | Phones, Tablets, Watches, Embedded Sensors |
+| Social Media | Video & Pictures, Posts & Messages, Likes & Swipes, Friends & Networks |
+| Surprise & Provocation | Transforming Spaces, Unexpected Experiences, Pop-up Entertainment, Guest Appearances |
+| Health & Wellness | Nutrition, Physical Activity, Sleep Quality, Quantified Self |
+| Accessories | Thematic Accessories, Cases, Connectors, Fashion |
+| Physical Variation | Sizes, Forms & Shapes, Unusual Materials, Textures |
+| People & Partnerships | Company Leaders, Strategic Partnerships, Spokespeople, Evangelists |
+| Hotspots & Hangouts | Daily Activity Locations, High-Traffic Areas, Gathering Places, Online Sites |
+| Engage Senses | Sight, Sound, Touch, Smell, Taste |
+| Shows & Videos | Live Performances, TV & Radio, Public Service Ads, Viral Videos |
+| Celebrities & Superstars | Entertainers, Athletes, Historical Figures, Hometown Heroes |
+
+#### Output Structure (Per Concept)
+
+Every concept returned by the agent contains exactly these fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | string | Memorable 2--5 word concept title |
+| `tagline` | string | Single sentence (max 15 words) summarising what the concept does |
+| `whoIsItFor` | object | `{ text, source, reason }` -- plain-language target user segment plus its evidence source |
+| `whatProblem` | object | `{ text, source, reason }` -- specific problem solved, tied to evidence |
+| `bigIdea` | object | `{ text, source, reason }` -- core concept (2--3 sentences) and the creative leap from data to idea |
+| `howItWorks` | object | `{ description, imageBase64, imageTextLabels }` -- vivid 50--100 word visual scene, the generated base64 PNG, and optional exact text labels to render in the image |
+| `whyMightItFail` | object | `{ text, source, reason }` -- biggest risk or assumption |
+| `whatToPrototype` | object | `{ text, source, reason }` -- minimum viable prototype to validate the concept |
+| `howToMeasure` | object | `{ text, source, reason }` -- one or two concrete success metrics |
+
+Every `source` references a specific mapping theme, profile, or insight. Every `reason` is a one-sentence explanation of how that source justifies the field.
+
+#### Critical Rules
+
+The agent is bound by strict rules at the prompt level:
+
+1. **Exactly 8 concepts** -- no more, no less. The route validates the count before persisting.
+2. **Diversity of concept types** -- the eight concepts must span a genuine mix of categories (digital, physical, event, policy, gamified, partnership, environmental, hybrid). Defaulting to "8 apps" is forbidden.
+3. **Evidence grounding** -- every field except `name` and `howItWorks` must cite its source and reason.
+4. **Singapore context** -- all concepts must be culturally appropriate and locally feasible.
+5. **Visual descriptions matter** -- the `howItWorks.description` is written as a concrete, visual scene because it doubles as the image generation prompt.
+6. **Plain, simple language** -- every field is written so that a reader with no design, research, or academic background understands it on first read. Jargon, buzzwords ("operationalise", "empowers", "seamlessly", "leap", "friction"), and profile labels in user-facing body text are explicitly forbidden.
+7. **Text in images** -- the agent only requests text inside an illustration when essential (e.g., app screen mockups). Otherwise it returns an empty `imageTextLabels` array and the image is rendered without any text, letters, or numbers.
+
+#### Image Generation Prompt Template
+
+Each of the eight parallel image calls uses the following template:
+
+```
+Create a clean, professional concept illustration for: {conceptName}.
+
+{howItWorks.description}
+
+Style: Modern design thinking concept sketch, clean lines, muted professional
+colour palette, slightly abstract and conceptual. The illustration should clearly
+communicate the concept at a glance.
+{textInstruction}
+```
+
+Where `{textInstruction}` is either *"Do not include any text, words, letters, or numbers in the image."* or *"Include only these exact words in the image: {labels}"* depending on whether `imageTextLabels` is empty.
+
+#### Input Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `subProjectId` | string | Yes | Workspace ID (used for persistence and audit) |
+| `ideationId` | string | Yes | The `IdeationSession` record to populate |
+| `mappingId` | string | Yes | The completed `MappingSession` to draw clusters and insights from |
+| `profileIds` | string[] | No | Mixed list of archetype IDs and Knowledge Base persona document IDs |
+| `focusAreas` | string[] | No | Keys of selected creative matrix enablers |
+
+#### Output
+
+| Field | Type | Description |
+|---|---|---|
+| `concepts` | array | The eight concept objects, saved to `IdeationSession.resultJson` as a JSON string |
+| `modelName` | string | Text generation model used (gpt-5.2) |
+| `imageModelName` | string | Image generation model used (gpt-image-1.5) |
+| `latencyMs` | integer | Combined text + image generation latency |
+
+Status transitions: `SETUP` → `PROCESSING` → `COMPLETE` (or `ERROR` on failure). The route guards against duplicate generation by rejecting calls when the status is already `PROCESSING` or `COMPLETE`.
+
+#### Behavioural Rules
+
+- Every generation is persisted as a new `IdeationSession` row, so previous batches remain available even after regeneration.
+- If any of the eight image calls fail, the route stores `null` for that concept's `imageBase64` and continues; the UI falls back to a placeholder icon for failed images.
+- The generation route exports `maxDuration = 180` to accommodate the longer round-trip on serverless runtimes.
+- An audit entry is written with `action = GENERATE_IDEATION`, including the source mapping ID, profile count, focus area count, models used, and total latency.
+
+**<span style="color:red">[IMAGE: Screenshot of the Ideation results page showing the 4x2 grid of 8 concepts, and adjacent to it a zoomed-in view of the concept detail overlay with the four-row structure including the generated illustration and the Source/Why citations in dark green]</span>**
+
+---
+
 ### Agent Architecture Summary
 
 | Agent | Use Case | Role Summary | Temperature | Output Format |
@@ -1387,6 +1602,8 @@ This agent enforces strict word limits:
 | **4+** Focus Group | Focus Group Simulation | Real person in a research focus group | Default | Natural language |
 | **5** HMW Analysis | HMW Analyser | Expert design thinking facilitator (NN/g framework) | 0.3 | Structured JSON |
 | **6** Insight Statement | Insight Statement Analyser | Expert design researcher and insight analyst | 0.3 | Structured JSON |
+| **7** Ideation (Text) | Ideation | Senior Design Strategist running Crazy 8s | 0.7 | Structured JSON (8 concepts) |
+| **7+** Ideation (Image) | Ideation | Concept illustration generator (gpt-image-1.5) | -- | Base64 PNG (1024x1024) |
 
 ### Data Flow and Audit Trail
 
@@ -1479,7 +1696,6 @@ The following items remain in the active backlog, requested by the HPB team and 
 
 | Item | Description | Date Requested |
 |------|-------------|----------------|
-| Ideation AI | Contextualise and ideate solutions based on HMW problem statements or opportunity areas, supporting the transition from research insight to design response. | 16 Jan 2026 |
 | Preview PDF Separately for KB | Provide a dedicated PDF previewer separate from the main AI Knowledge Base interface. Ensures the AI learns from clean, extracted text only, while users can still reference the original formatted document. | 27 Feb 2026 |
 
 ### Completed Backlog
@@ -1493,6 +1709,7 @@ The following items have been delivered and are live in the current platform bui
 | Profile Builder AI | 4 Mar 2026 | Completed |
 | Parent Profile Generation | 4 Mar 2026 | Completed |
 | Simulation Summary from Concept Validation | 4 Mar 2026 | Completed |
+| Ideation AI (Crazy 8s Concept Generator) | 14 Apr 2026 | Completed |
 
 ### Deployment Evolution
 

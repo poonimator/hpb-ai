@@ -638,7 +638,7 @@ export default function InsightsPage({ params }: PageProps) {
                             Insight Statement Analyser
                         </h1>
                         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-                            Critique your insight statements against 5 quality criteria and your project&apos;s research.
+                            Critique your insight statements against 5 quality criteria, enriched with LUMA&apos;s human-centred design principles, and your project&apos;s research.
                         </p>
                     </div>
 

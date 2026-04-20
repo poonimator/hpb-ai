@@ -798,7 +798,7 @@ export default function HMWPage({ params }: PageProps) {
                             How Might We
                         </h1>
                         <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-                            Critique your HMW statements against the NN/g 5-lens framework and your project&apos;s research.
+                            Critique your HMW statements against the NN/g 5-lens framework, enriched with LUMA&apos;s human-centred design principles, and your project&apos;s research.
                         </p>
                     </div>
 

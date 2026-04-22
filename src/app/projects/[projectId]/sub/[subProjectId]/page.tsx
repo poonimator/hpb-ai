@@ -496,7 +496,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <Card className="max-w-md">
                     <CardHeader>
-                        <CardTitle className="text-red-600">Error</CardTitle>
+                        <CardTitle className="text-[color:var(--danger)]">Error</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground">{error || "Workspace not found"}</p>
@@ -735,7 +735,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
                                     <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                                        <PlayCircle className="h-5 w-5" style={{ color: 'var(--color-info)' }} />
+                                        <PlayCircle className="h-5 w-5 text-[color:var(--info)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Simulation</h3>
@@ -823,7 +823,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
                                     <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                                        <Network className="h-5 w-5" style={{ color: 'var(--color-knowledge)' }} />
+                                        <Network className="h-5 w-5 text-[color:var(--knowledge)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Mapping</h3>
@@ -853,10 +853,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         </button>
 
                                         {/* Icon */}
-                                        <div
-                                            className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto"
-                                            style={{ backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' }}
-                                        >
+                                        <div className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]">
                                             <Network className="h-4.5 w-4.5" />
                                         </div>
 
@@ -869,7 +866,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                 {new Date(session.createdAt).toLocaleDateString()} &middot; {session._count?.transcripts || 0} files
                                                 {!isComplete && (
                                                     <span className="inline-flex items-center gap-1 ml-1">
-                                                        &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> {session.status}
+                                                        &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-[color:var(--warning)] animate-pulse" /> {session.status}
                                                     </span>
                                                 )}
                                             </p>
@@ -889,7 +886,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 "bg-cyan-50 text-cyan-500",
                                 "bg-muted text-primary",
                                 "bg-sky-50 text-sky-500",
-                                "bg-violet-50 text-violet-400",
+                                "bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]",
                                 "bg-stone-50 text-stone-500",
                                 "bg-muted text-primary",
                             ];
@@ -970,7 +967,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
                                     <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                                        <Zap className="h-5 w-5" style={{ color: 'var(--color-interact)' }} />
+                                        <Zap className="h-5 w-5 text-[color:var(--primary)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Ideation</h3>
@@ -1001,10 +998,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     </button>
 
                                     {/* Icon */}
-                                    <div
-                                        className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto"
-                                        style={{ backgroundColor: 'var(--color-interact-subtle)', color: 'var(--color-interact)' }}
-                                    >
+                                    <div className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto bg-[color:var(--primary-soft)] text-[color:var(--primary)]">
                                         <Zap className="h-4.5 w-4.5" />
                                     </div>
 
@@ -1017,7 +1011,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             {new Date(session.createdAt).toLocaleDateString()}{session.status === "COMPLETE" ? " · 8 concepts" : ""}
                                             {session.status !== "COMPLETE" && (
                                                 <span className="inline-flex items-center gap-1 ml-1">
-                                                    &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> {session.status}
+                                                    &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-[color:var(--warning)] animate-pulse" /> {session.status}
                                                 </span>
                                             )}
                                         </p>
@@ -1143,7 +1137,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
             {/* Edit Workspace Dialog */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm border-border shadow-lg rounded-md p-8 ring-1 ring-black/5 overflow-y-auto max-h-[90vh]">
+                <DialogContent className="sm:max-w-2xl overflow-y-auto max-h-[90vh]">
                     <DialogHeader className="mb-6">
                         <DialogTitle className="text-2xl font-bold text-foreground">Edit Workspace</DialogTitle>
                         <DialogDescription className="text-muted-foreground">
@@ -1159,7 +1153,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 id="edit-name"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
-                                className="bg-white border-border focus:border-input rounded-xl h-11 transition-all"
+                                className="bg-[color:var(--surface)] border-border focus:border-input rounded-xl h-11 transition-all"
                             />
                         </div>
 
@@ -1171,7 +1165,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 value={editStatement}
                                 onChange={(e) => setEditStatement(e.target.value)}
                                 rows={4}
-                                className="bg-white border-border focus:border-input rounded-xl resize-none transition-all"
+                                className="bg-[color:var(--surface)] border-border focus:border-input rounded-xl resize-none transition-all"
                             />
                         </div>
 
@@ -1179,18 +1173,18 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-foreground uppercase tracking-wider">Age Range</Label>
-                                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-border">
+                                <div className="flex items-center gap-3 bg-[color:var(--surface)] p-3 rounded-xl border border-border">
                                     <Input
                                         value={editAgeMin}
                                         onChange={(e) => setEditAgeMin(e.target.value)}
-                                        className="h-9 bg-white border-border focus:border-input text-center"
+                                        className="h-9 bg-[color:var(--surface)] border-border focus:border-input text-center"
                                         placeholder="Min"
                                     />
                                     <span className="text-muted-foreground">-</span>
                                     <Input
                                         value={editAgeMax}
                                         onChange={(e) => setEditAgeMax(e.target.value)}
-                                        className="h-9 bg-white border-border focus:border-input text-center"
+                                        className="h-9 bg-[color:var(--surface)] border-border focus:border-input text-center"
                                         placeholder="Max"
                                     />
                                 </div>
@@ -1207,7 +1201,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                 cursor-pointer flex items-center justify-center p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-center transition-all border
                                                 ${editLifeStages.includes(option.value)
                                                     ? 'bg-primary text-primary-foreground border-primary'
-                                                    : 'bg-white text-muted-foreground border-border hover:border-input hover:text-primary'
+                                                    : 'bg-[color:var(--surface)] text-muted-foreground border-border hover:border-input hover:text-primary'
                                                 }
                                             `}
                                         >
@@ -1233,7 +1227,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
             {/* Read More Dialog */}
             <Dialog open={isResearchDescriptionOpen} onOpenChange={setIsResearchDescriptionOpen}>
-                <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm border-border shadow-lg rounded-md p-8 ring-1 ring-black/5">
+                <DialogContent className="sm:max-w-2xl">
                     <DialogHeader className="mb-4">
                         <DialogTitle className="text-2xl font-bold text-foreground">{subProject.name}</DialogTitle>
                     </DialogHeader>

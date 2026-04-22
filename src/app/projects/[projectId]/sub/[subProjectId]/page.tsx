@@ -235,12 +235,12 @@ export default function SubProjectHomePage({ params }: PageProps) {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || "Failed to fetch sub-project");
+                throw new Error(data.error || "Failed to fetch workspace");
             }
 
             setSubProject(data.data);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load sub-project");
+            setError(err instanceof Error ? err.message : "Failed to load workspace");
         } finally {
             setLoading(false);
         }

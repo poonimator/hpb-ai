@@ -224,6 +224,8 @@ export default function SubProjectHomePage({ params }: PageProps) {
     const [deleteIdeationId, setDeleteIdeationId] = useState<string | null>(null);
     const [deleteHmwId, setDeleteHmwId] = useState<string | null>(null);
     const [deleteInsightId, setDeleteInsightId] = useState<string | null>(null);
+    // Research-statement expansion dialog (triggered from rail 'Read more')
+    const [researchOpen, setResearchOpen] = useState(false);
 
     useEffect(() => {
         fetchSubProject();
@@ -549,9 +551,18 @@ export default function SubProjectHomePage({ params }: PageProps) {
                     {subProject.name}
                 </h2>
                 {subProject.researchStatement && (
-                    <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-4">
-                        {subProject.researchStatement}
-                    </p>
+                    <div className="flex flex-col gap-1.5">
+                        <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                            {subProject.researchStatement}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setResearchOpen(true)}
+                            className="self-start text-ui-sm text-[color:var(--primary)] hover:underline outline-none focus-visible:shadow-focus rounded-[2px]"
+                        >
+                            Read more
+                        </button>
+                    </div>
                 )}
             </RailHeader>
 
@@ -588,17 +599,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
             />
 
             <WorkspaceFrame variant="platform" leftRail={leftRail}>
-                {/* Main column hero */}
-                <div className="flex flex-col gap-1 mb-8 max-w-[820px]">
-                    <h1 className="text-display-1 text-foreground">
-                        {subProject.name}
-                    </h1>
-                    {subProject.researchStatement && (
-                        <p className="text-body text-muted-foreground">
-                            {subProject.researchStatement}
-                        </p>
-                    )}
-                </div>
+                {/* Workspace identity lives in the left rail; main column is tool-focused. */}
 
                 {/* Tab Navigation + Content */}
                 <Tabs value={activeContentTab} onValueChange={(v) => switchTab(v as "guides" | "simulations" | "mapping" | "archetypes" | "ideation" | "hmw" | "insights")}>
@@ -1428,6 +1429,19 @@ export default function SubProjectHomePage({ params }: PageProps) {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Research-statement expansion dialog (triggered by rail 'Read more') */}
+            <Dialog open={researchOpen} onOpenChange={setResearchOpen}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{subProject.name}</DialogTitle>
+                        <DialogDescription>Research statement</DialogDescription>
+                    </DialogHeader>
+                    <div className="text-body text-foreground whitespace-pre-line leading-relaxed max-h-[60vh] overflow-y-auto">
+                        {subProject.researchStatement}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

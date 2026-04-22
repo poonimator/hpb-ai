@@ -30,6 +30,13 @@ import {
 import { toast } from "sonner";
 import { CenteredSpinner } from "@/components/ui/centered-spinner";
 import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { JumpItem } from "@/components/layout/jump-item";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Mono } from "@/components/ui/mono";
 import {
     Dialog,
     DialogContent,
@@ -147,6 +154,41 @@ function GuideSetupPageContent() {
     const [expandedSuggestionId, setExpandedSuggestionId] = useState<string | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [hasSavedGuide, setHasSavedGuide] = useState(false); // Track if guide has been saved
+
+    // Rail jump-to navigation
+    const [activeSetId, setActiveSetId] = useState<string | null>(null);
+
+    const handleJumpToSet = useCallback((setId: string) => {
+        const el = document.getElementById(`guideset-${setId}`)
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+    }, []);
+
+    useEffect(() => {
+        if (guideSets.length === 0) return
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const visible = entries.filter((e) => e.isIntersecting)
+                if (visible.length > 0) {
+                    const top = visible.sort(
+                        (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
+                    )[0]
+                    const id = top.target.getAttribute("data-guideset-id")
+                    if (id) setActiveSetId(id)
+                }
+            },
+            { rootMargin: "-80px 0px -60% 0px", threshold: [0, 0.25] }
+        )
+
+        guideSets.forEach((set) => {
+            const el = document.getElementById(`guideset-${set.id}`)
+            if (el) observer.observe(el)
+        })
+
+        return () => observer.disconnect()
+    }, [guideSets]);
 
     // Import Guide Dialog State
     const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -939,6 +981,76 @@ function GuideSetupPageContent() {
         );
     }
 
+    const totalQuestions = guideSets.reduce((sum, s) => sum + s.questions.length, 0)
+    const setsWithQuestions = guideSets.filter((s) => s.questions.length > 0).length
+    const setsWithTitles = guideSets.filter((s) => s.title.trim().length > 0).length
+
+    const statusLabel = hasUnsavedChanges
+        ? "Unsaved"
+        : hasSavedGuide
+        ? "Saved"
+        : "Draft"
+    const statusBadgeVariant: "default" | "warning" | "success" =
+        hasUnsavedChanges ? "warning" : hasSavedGuide ? "success" : "default"
+
+    const leftRail = (
+        <>
+            <RailHeader>
+                <div className="flex items-center gap-2">
+                    <Badge variant={statusBadgeVariant}>{statusLabel}</Badge>
+                    {saving && <span className="text-caption text-muted-foreground">Saving…</span>}
+                </div>
+                <h2 className="text-display-5 text-foreground leading-tight">
+                    {guideName || "Moderator Guide"}
+                </h2>
+                {project?.name && (
+                    <p className="text-body-sm text-muted-foreground">
+                        For <span className="text-foreground">{project.name}</span>
+                    </p>
+                )}
+            </RailHeader>
+
+            <RailSection title="Guide Info">
+                <MetaRow k="Question sets" v={<Mono>{guideSets.length}</Mono>} />
+                <MetaRow k="Total questions" v={<Mono>{totalQuestions}</Mono>} />
+                <MetaRow k="With titles" v={<Mono>{setsWithTitles}/{guideSets.length}</Mono>} />
+                <MetaRow k="Has questions" v={<Mono>{setsWithQuestions}/{guideSets.length}</Mono>} />
+            </RailSection>
+
+            <RailSection title="Question sets">
+                {guideSets.length === 0 ? (
+                    <p className="text-body-sm text-muted-foreground">No question sets yet.</p>
+                ) : (
+                    <div className="flex flex-col gap-0.5">
+                        {guideSets.map((set, idx) => (
+                            <JumpItem
+                                key={set.id}
+                                label={set.title.trim() || `Untitled set ${idx + 1}`}
+                                count={set.questions.length}
+                                active={activeSetId === set.id}
+                                onClick={() => handleJumpToSet(set.id)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </RailSection>
+
+            <RailSection title="Readiness" last>
+                <div className="flex flex-col gap-2">
+                    <ReadinessRow
+                        done={setsWithTitles === guideSets.length && guideSets.length > 0}
+                        label="Every set has a title"
+                    />
+                    <ReadinessRow
+                        done={setsWithQuestions === guideSets.length && guideSets.length > 0}
+                        label="Every set has a question"
+                    />
+                    <ReadinessRow done={hasSavedGuide} label="Guide saved" />
+                </div>
+            </RailSection>
+        </>
+    )
+
     return (
         <div className="flex flex-col">
             <PageBar
@@ -1546,6 +1658,28 @@ What we want to uncover: Understanding how participants structure their day
             </div>
         </div >
     );
+}
+
+function ReadinessRow({ done, label }: { done: boolean; label: string }) {
+    return (
+        <div className="flex items-center gap-2 text-body-sm">
+            <span
+                aria-hidden
+                className={
+                    done
+                        ? "inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[color:var(--primary)] text-[color:var(--primary-fg)]"
+                        : "inline-flex h-3.5 w-3.5 rounded-full shadow-inset-edge bg-[color:var(--surface-muted)]"
+                }
+            >
+                {done && (
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M1.5 4.2L3.2 5.8L6.5 2.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                )}
+            </span>
+            <span className={done ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+        </div>
+    )
 }
 
 // Loading fallback for Suspense

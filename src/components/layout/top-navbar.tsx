@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { FolderKanban, BookOpenText, Plus } from "lucide-react";
+import { FolderKanban, BookOpenText } from "lucide-react";
 
 const navItems = [
   { title: "Projects", href: "/dashboard", icon: FolderKanban },
@@ -53,15 +52,6 @@ export function TopNavbar() {
             );
           })}
         </nav>
-
-        <div className="ml-auto flex items-center gap-2">
-          <Button asChild size="default">
-            <Link href="/projects/new">
-              <Plus className="h-4 w-4" />
-              New Project
-            </Link>
-          </Button>
-        </div>
       </div>
     </header>
   );

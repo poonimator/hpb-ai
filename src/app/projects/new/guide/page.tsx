@@ -1183,8 +1183,8 @@ function GuideSetupPageContent() {
     const rightRail = (
         <>
             {/* Rail header — matches interview simulation.jsx:510-532 */}
-            {/* px-[22px] pt-[22px] pb-[14px] — padding:'20px 20px 14px' */}
-            <div className="px-[22px] pt-[22px] pb-[14px] flex items-center justify-between border-b border-[color:var(--border-subtle)]">
+            {/* Header — matches left-rail RailHeader padding (px-6 pt-6 pb-5) for consistency */}
+            <div className="px-6 pt-6 pb-5 flex items-center justify-between border-b border-[color:var(--border-subtle)]">
                 {/* text-display-4 — matches display fontSize:18 */}
                 <div className="text-display-4 text-foreground">AI Feedback</div>
                 {/* "N found" pill — matches interview simulation.jsx:516-517 Badge color="amber" */}
@@ -1195,8 +1195,8 @@ function GuideSetupPageContent() {
             </div>
 
             {/* Filter tabs — matches interview simulation.jsx:518-531 */}
-            {/* gap-1 px-[22px] py-2.5 — gap:6, marginTop:14 on filter wrap */}
-            <div className="flex gap-1 px-[22px] py-2.5 border-b border-[color:var(--border-subtle)]">
+            {/* Filter tabs — px-6 matches rail-section padding for consistency */}
+            <div className="flex gap-1 px-6 py-3 border-b border-[color:var(--border-subtle)]">
                 {(['All', 'Feedback', 'Research'] as const).map((tab) => {
                     const active = railFilter === tab;
                     return (
@@ -1217,7 +1217,7 @@ function GuideSetupPageContent() {
 
             {/* Scrollable card list — matches interview simulation.jsx:535-545 */}
             {/* flex-1 overflow-y-auto padding:14, gap:10 */}
-            <div className="flex-1 overflow-y-auto px-4 py-3.5 flex flex-col gap-2.5">
+            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-2.5">
                 {filteredItems.length === 0 ? (
                     <p className="text-body-sm text-muted-foreground text-center mt-8">
                         {allFeedbackItems.length === 0

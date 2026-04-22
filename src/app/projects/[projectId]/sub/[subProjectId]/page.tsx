@@ -48,6 +48,7 @@ import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
 import { Mono } from "@/components/ui/mono";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const LIFE_STAGE_OPTIONS = [
     { value: "Primary", label: "Primary School" },
@@ -529,156 +530,41 @@ export default function SubProjectHomePage({ params }: PageProps) {
                     )}
                 </div>
 
-                {/* Tab Navigation */}
-                <div className="flex items-center justify-between mb-4 overflow-x-auto">
-                    <div className="inline-flex items-center p-1 bg-muted/50 backdrop-blur-sm rounded-full border border-border/60 shadow-inner whitespace-nowrap">
-                        <button
-                            onClick={() => switchTab("guides")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5
-                                ${activeContentTab === "guides"
-                                    ? "bg-white text-foreground shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                        >
-                            <BookOpen className={`h-3.5 w-3.5 ${activeContentTab === "guides" ? "text-primary" : "text-muted-foreground"}`} />
-                            Moderator Guides
-                            {subProject.guideVersions.length > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "guides" ? "bg-accent text-primary" : "bg-muted text-muted-foreground"}`}>
-                                    {subProject.guideVersions.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("simulations")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "simulations"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "simulations" ? { color: 'var(--color-info)' } : undefined}
-                        >
-                            <PlayCircle className={`h-3.5 w-3.5 ${activeContentTab === "simulations" ? "" : "text-muted-foreground"}`} style={activeContentTab === "simulations" ? { color: 'var(--color-info)' } : undefined} />
+                {/* Tab Navigation + Content */}
+                <Tabs value={activeContentTab} onValueChange={(v) => switchTab(v as "guides" | "simulations" | "mapping" | "archetypes" | "ideation" | "hmw" | "insights")}>
+                    <TabsList>
+                        <TabsTrigger value="guides">
+                            Moderator guides
+                            {guideCount > 0 && <Mono className="ml-1.5">{guideCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger value="simulations">
                             Simulations
-                            {subProject.simulations.length > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "simulations" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "simulations" ? { backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)' } : undefined}>
-                                    {subProject.simulations.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("mapping")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "mapping"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "mapping" ? { color: 'var(--color-knowledge)' } : undefined}
-                        >
-                            <Network className={`h-3.5 w-3.5 ${activeContentTab === "mapping" ? "" : "text-muted-foreground"}`} style={activeContentTab === "mapping" ? { color: 'var(--color-knowledge)' } : undefined} />
+                            {simulationCount > 0 && <Mono className="ml-1.5">{simulationCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger value="mapping">
                             Mapping
-                            {subProject.mappingSessions && subProject.mappingSessions.length > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "mapping" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "mapping" ? { backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' } : undefined}>
-                                    {subProject.mappingSessions.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("archetypes")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "archetypes"
-                                    ? "bg-white text-foreground shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                        >
-                            <Users className={`h-3.5 w-3.5 ${activeContentTab === "archetypes" ? "text-primary" : "text-muted-foreground"}`} />
-                            Profiles
-                            {(() => {
-                                const totalArchetypes = subProject.archetypeSessions?.reduce((sum, s) => sum + s.archetypes.length, 0) || 0;
-                                return totalArchetypes > 0 ? (
-                                    <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "archetypes" ? "bg-accent text-primary" : "bg-muted text-muted-foreground"}`}>
-                                        {totalArchetypes}
-                                    </span>
-                                ) : null;
-                            })()}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("ideation")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "ideation"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "ideation" ? { color: 'var(--color-interact)' } : undefined}
-                        >
-                            <Zap className={`h-3.5 w-3.5 ${activeContentTab === "ideation" ? "" : "text-muted-foreground"}`} style={activeContentTab === "ideation" ? { color: 'var(--color-interact)' } : undefined} />
+                            {mappingCount > 0 && <Mono className="ml-1.5">{mappingCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger value="archetypes">
+                            Archetypes
+                            {archetypeCount > 0 && <Mono className="ml-1.5">{archetypeCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger value="ideation">
                             Ideation
-                            {(subProject.ideationSessions?.length || 0) > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "ideation" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "ideation" ? { backgroundColor: 'var(--color-interact-subtle)', color: 'var(--color-interact)' } : undefined}>
-                                    {subProject.ideationSessions.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("hmw")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "hmw"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "hmw" ? { color: 'var(--color-knowledge)' } : undefined}
-                        >
-                            <Lightbulb className={`h-3.5 w-3.5 ${activeContentTab === "hmw" ? "" : "text-muted-foreground"}`} style={activeContentTab === "hmw" ? { color: 'var(--color-knowledge)' } : undefined} />
-                            How Might We
-                            {(subProject.hmwCritiques?.length || 0) > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "hmw" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "hmw" ? { backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' } : undefined}>
-                                    {subProject.hmwCritiques.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("insights")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "insights"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "insights" ? { color: 'var(--color-info)' } : undefined}
-                        >
-                            <FileText className={`h-3.5 w-3.5 ${activeContentTab === "insights" ? "" : "text-muted-foreground"}`} style={activeContentTab === "insights" ? { color: 'var(--color-info)' } : undefined} />
+                            {ideationCount > 0 && <Mono className="ml-1.5">{ideationCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger value="hmw">
+                            HMW
+                            {hmwCount > 0 && <Mono className="ml-1.5">{hmwCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger value="insights">
                             Insights
-                            {(subProject.insightCritiques?.length || 0) > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "insights" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "insights" ? { backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)' } : undefined}>
-                                    {subProject.insightCritiques.length}
-                                </span>
-                            )}
-                        </button>
-                    </div>
-                </div>
+                            {insightCount > 0 && <Mono className="ml-1.5">{insightCount}</Mono>}
+                        </TabsTrigger>
+                    </TabsList>
 
-                {/* Content Area */}
-                <div className="min-h-[400px]">
                     {/* Moderator Guides */}
-                    {activeContentTab === "guides" && (
+                    <TabsContent value="guides">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Guide Card */}
@@ -776,10 +662,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 );
                             })}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* Simulations */}
-                    {activeContentTab === "simulations" && (
+                    <TabsContent value="simulations">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Simulation Card */}
@@ -864,10 +750,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 );
                             })}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* Mapping */}
-                    {activeContentTab === "mapping" && (
+                    <TabsContent value="mapping">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Mapping Card */}
@@ -932,92 +818,94 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 );
                             })}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* Archetypes */}
-                    {activeContentTab === "archetypes" && (() => {
-                        const CARD_ICON_BG = [
-                            "bg-muted text-primary",
-                            "bg-slate-50 text-slate-500",
-                            "bg-cyan-50 text-cyan-500",
-                            "bg-muted text-primary",
-                            "bg-sky-50 text-sky-500",
-                            "bg-violet-50 text-violet-400",
-                            "bg-stone-50 text-stone-500",
-                            "bg-muted text-primary",
-                        ];
+                    <TabsContent value="archetypes">
+                        {(() => {
+                            const CARD_ICON_BG = [
+                                "bg-muted text-primary",
+                                "bg-slate-50 text-slate-500",
+                                "bg-cyan-50 text-cyan-500",
+                                "bg-muted text-primary",
+                                "bg-sky-50 text-sky-500",
+                                "bg-violet-50 text-violet-400",
+                                "bg-stone-50 text-stone-500",
+                                "bg-muted text-primary",
+                            ];
 
-                        const allArchetypes = subProject.archetypeSessions?.flatMap(s => s.archetypes) || [];
+                            const allArchetypes = subProject.archetypeSessions?.flatMap(s => s.archetypes) || [];
 
-                        return (
-                            <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            return (
+                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
-                                {/* Generate Card */}
-                                <Link
-                                    href={`/projects/${projectId}/sub/${subProjectId}/archetypes/new`}
-                                    className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
-                                >
-                                    <div className="flex flex-col items-center gap-3 text-center">
-                                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                                            <Sparkles className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate Profiles</h3>
-                                            <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
-                                                Create new persona profiles with AI
-                                            </p>
-                                        </div>
-                                    </div>
-                                </Link>
-
-                                {/* Archetype Cards */}
-                                {allArchetypes.map((archetype, index) => (
-                                    <div
-                                        key={archetype.id}
-                                        onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/archetypes/${archetype.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                    {/* Generate Card */}
+                                    <Link
+                                        href={`/projects/${projectId}/sub/${subProjectId}/archetypes/new`}
+                                        className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
                                     >
-                                        {/* Delete button on hover */}
-                                        <button
-                                            onClick={async (e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                if (!confirm("Delete this archetype?")) return;
-                                                try {
-                                                    const res = await fetch(`/api/archetypes/single/${archetype.id}`, { method: "DELETE" });
-                                                    if (res.ok) await fetchSubProject();
-                                                    else alert("Failed to delete");
-                                                } catch { alert("Failed to delete"); }
-                                            }}
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-
-                                        {/* Icon */}
-                                        <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-auto ${CARD_ICON_BG[index % CARD_ICON_BG.length]}`}>
-                                            <Users className="h-4.5 w-4.5" />
-                                        </div>
-
-                                        {/* Content at bottom */}
-                                        <div className="mt-3">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
-                                                {archetype.name}
-                                            </h4>
-                                            {archetype.kicker && (
-                                                <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
-                                                    {archetype.kicker}
+                                        <div className="flex flex-col items-center gap-3 text-center">
+                                            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                                <Sparkles className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate Profiles</h3>
+                                                <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                                    Create new persona profiles with AI
                                                 </p>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        );
-                    })()}
+                                    </Link>
+
+                                    {/* Archetype Cards */}
+                                    {allArchetypes.map((archetype, index) => (
+                                        <div
+                                            key={archetype.id}
+                                            onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/archetypes/${archetype.id}`}
+                                            className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                        >
+                                            {/* Delete button on hover */}
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    if (!confirm("Delete this archetype?")) return;
+                                                    try {
+                                                        const res = await fetch(`/api/archetypes/single/${archetype.id}`, { method: "DELETE" });
+                                                        if (res.ok) await fetchSubProject();
+                                                        else alert("Failed to delete");
+                                                    } catch { alert("Failed to delete"); }
+                                                }}
+                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+
+                                            {/* Icon */}
+                                            <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-auto ${CARD_ICON_BG[index % CARD_ICON_BG.length]}`}>
+                                                <Users className="h-4.5 w-4.5" />
+                                            </div>
+
+                                            {/* Content at bottom */}
+                                            <div className="mt-3">
+                                                <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                                    {archetype.name}
+                                                </h4>
+                                                {archetype.kicker && (
+                                                    <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                                        {archetype.kicker}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })()}
+                    </TabsContent>
 
                     {/* Ideation */}
-                    {activeContentTab === "ideation" && (
+                    <TabsContent value="ideation">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Ideation Card */}
@@ -1094,10 +982,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 </div>
                             ))}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* How Might We */}
-                    {activeContentTab === "hmw" && (
+                    <TabsContent value="hmw">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New HMW Card */}
@@ -1120,45 +1008,45 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
                             {/* HMW Critique Cards */}
                             {subProject.hmwCritiques?.map((critique) => (
-                                    <div
-                                        key={critique.id}
-                                        onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/hmw?scrollTo=${critique.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                <div
+                                    key={critique.id}
+                                    onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/hmw?scrollTo=${critique.id}`}
+                                    className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                >
+                                    {/* Delete button on hover */}
+                                    <button
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (!confirm("Delete this HMW critique?")) return;
+                                            try {
+                                                const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques/${critique.id}`, { method: "DELETE" });
+                                                if (res.ok) await fetchSubProject();
+                                                else alert("Failed to delete");
+                                            } catch { alert("Failed to delete"); }
+                                        }}
+                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
                                     >
-                                        {/* Delete button on hover */}
-                                        <button
-                                            onClick={async (e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                if (!confirm("Delete this HMW critique?")) return;
-                                                try {
-                                                    const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques/${critique.id}`, { method: "DELETE" });
-                                                    if (res.ok) await fetchSubProject();
-                                                    else alert("Failed to delete");
-                                                } catch { alert("Failed to delete"); }
-                                            }}
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
 
-                                        {/* Content */}
-                                        <div className="mt-auto">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
-                                                <span className="text-primary">HMW </span>
-                                                {critique.hmwStatement}
-                                            </h4>
-                                            <p className="text-[11px] text-muted-foreground leading-snug">
-                                                {new Date(critique.createdAt).toLocaleDateString()}
-                                            </p>
-                                        </div>
+                                    {/* Content */}
+                                    <div className="mt-auto">
+                                        <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
+                                            <span className="text-primary">HMW </span>
+                                            {critique.hmwStatement}
+                                        </h4>
+                                        <p className="text-[11px] text-muted-foreground leading-snug">
+                                            {new Date(critique.createdAt).toLocaleDateString()}
+                                        </p>
                                     </div>
+                                </div>
                             ))}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* Insight Statements */}
-                    {activeContentTab === "insights" && (
+                    <TabsContent value="insights">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Insight Card */}
@@ -1181,42 +1069,42 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
                             {/* Insight Critique Cards */}
                             {subProject.insightCritiques?.map((critique) => (
-                                    <div
-                                        key={critique.id}
-                                        onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/insights?scrollTo=${critique.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                <div
+                                    key={critique.id}
+                                    onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/insights?scrollTo=${critique.id}`}
+                                    className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                >
+                                    {/* Delete button on hover */}
+                                    <button
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (!confirm("Delete this insight critique?")) return;
+                                            try {
+                                                const res = await fetch(`/api/sub-projects/${subProjectId}/insight-critiques/${critique.id}`, { method: "DELETE" });
+                                                if (res.ok) await fetchSubProject();
+                                                else alert("Failed to delete");
+                                            } catch { alert("Failed to delete"); }
+                                        }}
+                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
                                     >
-                                        {/* Delete button on hover */}
-                                        <button
-                                            onClick={async (e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                if (!confirm("Delete this insight critique?")) return;
-                                                try {
-                                                    const res = await fetch(`/api/sub-projects/${subProjectId}/insight-critiques/${critique.id}`, { method: "DELETE" });
-                                                    if (res.ok) await fetchSubProject();
-                                                    else alert("Failed to delete");
-                                                } catch { alert("Failed to delete"); }
-                                            }}
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
 
-                                        {/* Content */}
-                                        <div className="mt-auto">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
-                                                {critique.insightStatement}
-                                            </h4>
-                                            <p className="text-[11px] text-muted-foreground leading-snug">
-                                                {new Date(critique.createdAt).toLocaleDateString()}
-                                            </p>
-                                        </div>
+                                    {/* Content */}
+                                    <div className="mt-auto">
+                                        <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
+                                            {critique.insightStatement}
+                                        </h4>
+                                        <p className="text-[11px] text-muted-foreground leading-snug">
+                                            {new Date(critique.createdAt).toLocaleDateString()}
+                                        </p>
                                     </div>
+                                </div>
                             ))}
                         </div>
-                    )}
-                </div>
+                    </TabsContent>
+                </Tabs>
 
             </WorkspaceFrame>
 

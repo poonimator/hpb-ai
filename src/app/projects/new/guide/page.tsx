@@ -14,6 +14,7 @@ import {
     Plus,
     Trash2,
     AlertTriangle,
+    Check,
     CheckCircle2,
     RefreshCw,
     Sparkles,
@@ -29,6 +30,7 @@ import {
     MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { CenteredSpinner } from "@/components/ui/centered-spinner";
 import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
@@ -976,11 +978,18 @@ function GuideSetupPageContent() {
         URL.revokeObjectURL(url);
     };
 
-    // Quality indicator
-    // Only show Good badge - hide Needs Work and Issues badges as per user request
+    // Quality indicator — just a small green dot (no text) so all question textareas align to the same right edge
     const getQualityBadge = (quality?: string) => {
         if (quality === 'GOOD') {
-            return <Badge className="bg-accent text-foreground border-border"><CheckCircle2 className="h-3 w-3 mr-1" /> Good</Badge>;
+            return (
+                <span
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center"
+                    aria-label="Question quality: good"
+                    title="Question quality: good"
+                >
+                    <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--success)] shadow-inset-edge" />
+                </span>
+            );
         }
         return null;
     };
@@ -1010,21 +1019,12 @@ function GuideSetupPageContent() {
     const setsWithQuestions = guideSets.filter((s) => s.questions.length > 0).length
     const setsWithTitles = guideSets.filter((s) => s.title.trim().length > 0).length
 
-    const statusLabel = hasUnsavedChanges
-        ? "Unsaved"
-        : hasSavedGuide
-        ? "Saved"
-        : "Draft"
-    const statusBadgeVariant: "default" | "warning" | "success" =
-        hasUnsavedChanges ? "warning" : hasSavedGuide ? "success" : "default"
+    // Save-state flag drives the PageBar Save button (no rail badge)
+    const isFullySaved = hasSavedGuide && !hasUnsavedChanges
 
     const leftRail = (
         <>
             <RailHeader>
-                <div className="flex items-center gap-2">
-                    <Badge variant={statusBadgeVariant}>{statusLabel}</Badge>
-                    {saving && <span className="text-caption text-muted-foreground">Saving…</span>}
-                </div>
                 <h2 className="text-display-5 text-foreground leading-tight">
                     {guideName || "Moderator Guide"}
                 </h2>
@@ -1414,14 +1414,31 @@ function GuideSetupPageContent() {
                                 </>
                             )}
                         </button>
-                        {/* Primary pill — h-8 px-[14px] bg-foreground text-white rounded-full text-[12.5px] font-medium shadow-card */}
+                        {/* Primary pill — 'Save' when dirty, 'Saved' (locked) when up to date, 'Saving…' mid-request */}
                         <button
                             onClick={saveGuideSets}
-                            disabled={saving || finishing}
-                            className="inline-flex items-center gap-1.5 h-8 px-[14px] rounded-full bg-[color:var(--ink)] text-white text-[12.5px] font-medium shadow-card transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={saving || finishing || isFullySaved}
+                            aria-label={isFullySaved ? "Guide is saved" : "Save guide"}
+                            className={cn(
+                                "inline-flex items-center gap-1.5 h-8 px-[14px] rounded-full text-[12.5px] font-medium shadow-card transition-colors",
+                                isFullySaved
+                                    ? "bg-[color:var(--success-soft)] text-[color:var(--success)] cursor-default"
+                                    : "bg-[color:var(--ink)] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                            )}
                         >
-                            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                            Save
+                            {saving ? (
+                                <>
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    Saving…
+                                </>
+                            ) : isFullySaved ? (
+                                <>
+                                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                                    Saved
+                                </>
+                            ) : (
+                                'Save'
+                            )}
                         </button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -1455,21 +1472,25 @@ function GuideSetupPageContent() {
                     </p>
                 </div>
                 <div className="relative min-h-[600px]">
-                    {/* Legend */}
+                    {/* Legend — bold-chip variant, mirrors the question-row indicator style */}
                     <div className="flex justify-end mb-8">
-                        <div className="inline-flex items-center gap-4 text-xs text-muted-foreground px-4 py-2.5 bg-muted rounded-md border border-border">
+                        <div className="inline-flex items-center gap-4 text-xs text-muted-foreground px-4 py-2.5 bg-[color:var(--surface-muted)] rounded-md shadow-inset-edge">
                             <span className="font-medium text-foreground">Legend:</span>
                             <div className="flex items-center gap-2">
-                                <div className="h-5 w-5 rounded-md bg-muted flex items-center justify-center text-muted-foreground border border-border">
-                                    <MessageSquareWarning className="h-3 w-3" />
-                                </div>
-                                <span>Feedback / Issues</span>
+                                <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--success)] shadow-inset-edge" />
+                                <span>Good question</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="h-5 w-5 rounded-md bg-[color:var(--knowledge-soft)] flex items-center justify-center text-[color:var(--knowledge)] border border-[color:var(--knowledge)]/25">
-                                    <FileText className="h-3 w-3" />
+                                <div className="h-5 w-5 rounded-md bg-[color:var(--primary)] text-white flex items-center justify-center shadow-inset-edge">
+                                    <MessageSquareWarning className="h-3 w-3" strokeWidth={2} />
                                 </div>
-                                <span>Research Insight</span>
+                                <span>Feedback</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="h-5 w-5 rounded-md bg-[color:var(--knowledge)] text-white flex items-center justify-center shadow-inset-edge">
+                                    <FileText className="h-3 w-3" strokeWidth={2} />
+                                </div>
+                                <span>Research</span>
                             </div>
                         </div>
                     </div>
@@ -1673,8 +1694,8 @@ What we want to uncover: Understanding how participants structure their day
                                                     id={`q-${question.id}`}
                                                     className={`space-y-4 rounded-lg transition-all duration-300 ${flashQuestionId === question.id ? 'ring-2 ring-[color:var(--primary)]/25 ring-offset-2' : ''}`}
                                                 >
-                                                    {/* Main Question Row */}
-                                                    <div className="grid grid-cols-[1fr_auto] gap-3 items-start group">
+                                                    {/* Main Question Row — fixed 96px right column so all textareas align to same right edge */}
+                                                    <div className="grid grid-cols-[1fr_96px] gap-3 items-start group">
                                                         {/* Main Input */}
                                                         <div className="flex items-start gap-3">
                                                             <span className="text-sm text-muted-foreground font-mono pt-2.5 w-6 text-right font-semibold shrink-0">
@@ -1710,27 +1731,45 @@ What we want to uncover: Understanding how participants structure their day
                                                             </div>
                                                         </div>
 
-                                                        {/* Feedback & Research indicator icons */}
-                                                        <div className="flex items-center gap-1.5 pt-1 shrink-0">
+                                                        {/* Feedback & Research indicator column — bold filled chips with light glyph; amber ring when expanded in rail */}
+                                                        <div className="flex items-center justify-end gap-1.5 pt-1 shrink-0">
                                                             {getQualityBadge(question.overallQuality)}
-                                                            {question.overallQuality !== 'GOOD' && question.issues && question.issues.length > 0 && (
-                                                                <button
-                                                                    onClick={() => focusFeedback(`${question.id}-main-0`, question.id)}
-                                                                    className="h-8 w-8 rounded-lg bg-[color:var(--surface-muted)] text-muted-foreground flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
-                                                                    title="View Feedback in rail"
-                                                                >
-                                                                    <MessageSquareWarning className="h-4 w-4" />
-                                                                </button>
-                                                            )}
-                                                            {question.researchInsight && (
-                                                                <button
-                                                                    onClick={() => focusFeedback(`${question.id}-research`, question.id)}
-                                                                    className="h-8 w-8 rounded-lg bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
-                                                                    title="View Research Insight in rail"
-                                                                >
-                                                                    <FileText className="h-4 w-4" />
-                                                                </button>
-                                                            )}
+                                                            {question.overallQuality !== 'GOOD' && question.issues && question.issues.length > 0 && (() => {
+                                                                const fid = `${question.id}-main-0`;
+                                                                const isActive = expandedSuggestionId === fid;
+                                                                return (
+                                                                    <button
+                                                                        onClick={() => focusFeedback(fid, question.id)}
+                                                                        aria-label="Open feedback in right rail"
+                                                                        aria-pressed={isActive}
+                                                                        title="View Feedback in rail"
+                                                                        className={cn(
+                                                                            "h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
+                                                                            isActive && "ring-2 ring-[color:var(--primary)]/45 ring-offset-2 ring-offset-card"
+                                                                        )}
+                                                                    >
+                                                                        <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
+                                                                    </button>
+                                                                );
+                                                            })()}
+                                                            {question.researchInsight && (() => {
+                                                                const rid = `${question.id}-research`;
+                                                                const isActive = expandedSuggestionId === rid;
+                                                                return (
+                                                                    <button
+                                                                        onClick={() => focusFeedback(rid, question.id)}
+                                                                        aria-label="Open research insight in right rail"
+                                                                        aria-pressed={isActive}
+                                                                        title="View Research Insight in rail"
+                                                                        className={cn(
+                                                                            "h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
+                                                                            isActive && "ring-2 ring-[color:var(--knowledge)]/45 ring-offset-2 ring-offset-card"
+                                                                        )}
+                                                                    >
+                                                                        <FileText className="h-4 w-4" strokeWidth={2} />
+                                                                    </button>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
 
@@ -1739,7 +1778,7 @@ What we want to uncover: Understanding how participants structure their day
                                                         <div
                                                             key={subQ.id}
                                                             id={`q-${subQ.id}`}
-                                                            className={`grid grid-cols-[1fr_auto] gap-3 items-start group/sub rounded-lg transition-all duration-300 ${flashQuestionId === subQ.id ? 'ring-2 ring-[color:var(--primary)]/25 ring-offset-2' : ''}`}
+                                                            className={`grid grid-cols-[1fr_96px] gap-3 items-start group/sub rounded-lg transition-all duration-300 ${flashQuestionId === subQ.id ? 'ring-2 ring-[color:var(--primary)]/25 ring-offset-2' : ''}`}
                                                         >
                                                             {/* Sub Input */}
                                                             <div className="flex items-start gap-3 pl-10 border-l-2 border-border ml-3">
@@ -1767,27 +1806,45 @@ What we want to uncover: Understanding how participants structure their day
                                                                 </div>
                                                             </div>
 
-                                                            {/* Sub feedback/research icons */}
-                                                            <div className="flex items-center gap-1.5 pt-1 shrink-0">
+                                                            {/* Sub feedback/research icons — bold chips; amber ring when expanded */}
+                                                            <div className="flex items-center justify-end gap-1.5 pt-1 shrink-0">
                                                                 {getQualityBadge(subQ.overallQuality)}
-                                                                {subQ.overallQuality !== 'GOOD' && subQ.issues && subQ.issues.length > 0 && (
-                                                                    <button
-                                                                        onClick={() => focusFeedback(`${question.id}-sub-${subQ.id}-0`, question.id)}
-                                                                        className="h-8 w-8 rounded-lg bg-[color:var(--surface-muted)] text-muted-foreground flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
-                                                                        title="View Feedback in rail"
-                                                                    >
-                                                                        <MessageSquareWarning className="h-4 w-4" />
-                                                                    </button>
-                                                                )}
-                                                                {subQ.researchInsight && (
-                                                                    <button
-                                                                        onClick={() => focusFeedback(`${subQ.id}-research`, question.id)}
-                                                                        className="h-8 w-8 rounded-lg bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
-                                                                        title="View Research Insight in rail"
-                                                                    >
-                                                                        <FileText className="h-4 w-4" />
-                                                                    </button>
-                                                                )}
+                                                                {subQ.overallQuality !== 'GOOD' && subQ.issues && subQ.issues.length > 0 && (() => {
+                                                                    const fid = `${question.id}-sub-${subQ.id}-0`;
+                                                                    const isActive = expandedSuggestionId === fid;
+                                                                    return (
+                                                                        <button
+                                                                            onClick={() => focusFeedback(fid, question.id)}
+                                                                            aria-label="Open feedback in right rail"
+                                                                            aria-pressed={isActive}
+                                                                            title="View Feedback in rail"
+                                                                            className={cn(
+                                                                                "h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
+                                                                                isActive && "ring-2 ring-[color:var(--primary)]/45 ring-offset-2 ring-offset-card"
+                                                                            )}
+                                                                        >
+                                                                            <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
+                                                                        </button>
+                                                                    );
+                                                                })()}
+                                                                {subQ.researchInsight && (() => {
+                                                                    const rid = `${subQ.id}-research`;
+                                                                    const isActive = expandedSuggestionId === rid;
+                                                                    return (
+                                                                        <button
+                                                                            onClick={() => focusFeedback(rid, question.id)}
+                                                                            aria-label="Open research insight in right rail"
+                                                                            aria-pressed={isActive}
+                                                                            title="View Research Insight in rail"
+                                                                            className={cn(
+                                                                                "h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
+                                                                                isActive && "ring-2 ring-[color:var(--knowledge)]/45 ring-offset-2 ring-offset-card"
+                                                                            )}
+                                                                        >
+                                                                            <FileText className="h-4 w-4" strokeWidth={2} />
+                                                                        </button>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     ))}

@@ -262,7 +262,6 @@ export default function KnowledgeBasePage() {
     return (
         <div className="py-8">
             <PageHeader
-                eyebrow="Knowledge Base"
                 title="Global Knowledge Base"
                 description="Shared frameworks, policies, and research accessible across all projects."
             />

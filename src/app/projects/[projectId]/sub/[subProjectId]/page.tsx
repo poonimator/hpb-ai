@@ -42,6 +42,12 @@ import {
     Lightbulb,
     Zap
 } from "lucide-react";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { Mono } from "@/components/ui/mono";
 
 const LIFE_STAGE_OPTIONS = [
     { value: "Primary", label: "Primary School" },
@@ -447,69 +453,80 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
     const hasGuide = subProject.guideVersions.length > 0;
 
+    // Left rail counts
+    const guideCount = subProject.guideVersions?.length ?? 0;
+    const simulationCount = subProject.simulations?.length ?? 0;
+    const mappingCount = subProject.mappingSessions?.length ?? 0;
+    const archetypeCount = subProject.archetypeSessions?.reduce((sum, s) => sum + s.archetypes.length, 0) ?? 0;
+    const ideationCount = subProject.ideationSessions?.length ?? 0;
+    const hmwCount = subProject.hmwCritiques?.length ?? 0;
+    const insightCount = subProject.insightCritiques?.length ?? 0;
+
+    const leftRail = (
+        <>
+            <RailHeader>
+                <h2 className="text-display-5 text-foreground leading-tight">
+                    {subProject.name}
+                </h2>
+                {subProject.project?.name && (
+                    <p className="text-body-sm text-muted-foreground">
+                        In <span className="text-foreground">{subProject.project.name}</span>
+                    </p>
+                )}
+            </RailHeader>
+
+            <RailSection title="Audience">
+                <MetaRow k="Age range" v={<Mono>{subProject.ageRange || "—"}</Mono>} />
+                <MetaRow k="Life stage" v={<span className="text-ui-sm text-foreground">{subProject.lifeStage || "—"}</span>} />
+            </RailSection>
+
+            <RailSection title="Activity" last>
+                <MetaRow k="Moderator guides" v={<Mono>{guideCount}</Mono>} />
+                <MetaRow k="Simulations" v={<Mono>{simulationCount}</Mono>} />
+                <MetaRow k="Mapping sessions" v={<Mono>{mappingCount}</Mono>} />
+                <MetaRow k="Archetypes" v={<Mono>{archetypeCount}</Mono>} />
+                <MetaRow k="Ideation sessions" v={<Mono>{ideationCount}</Mono>} />
+                <MetaRow k="HMW critiques" v={<Mono>{hmwCount}</Mono>} />
+                <MetaRow k="Insight critiques" v={<Mono>{insightCount}</Mono>} />
+            </RailSection>
+
+            <div className="flex-1" />
+        </>
+    );
+
     return (
-        <div className="relative overflow-hidden pb-20">
-            {/* Ambient Background */}
+        <div className="flex flex-col">
+            <PageBar
+                back={{ href: `/projects/${projectId}`, label: "Back" }}
+                crumbs={
+                    subProject.project?.name && subProject.name
+                        ? [
+                            { label: subProject.project.name, href: `/projects/${projectId}` },
+                            { label: subProject.name },
+                        ]
+                        : undefined
+                }
+                action={
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/projects/${projectId}/sub/${subProjectId}/edit`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                        </Link>
+                    </Button>
+                }
+            />
 
-            <div className="py-8 animate-in fade-in zoom-in-95 duration-500">
-
-                {/* Back Link */}
-                <Link
-                    href={`/projects/${projectId}`}
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to {subProject.project.name}
-                </Link>
-
-                {/* Header Section */}
-                <div className="mb-8">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                        <div className="max-w-3xl">
-                            <div className="flex items-center gap-4 mb-4 group">
-                                <h1 className="text-3xl font-semibold tracking-tight" aria-label={`Workspace: ${subProject.name}`}>
-                                    {subProject.name}
-                                </h1>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={openEditDialog}
-                                    className="h-8 w-8 text-border hover:text-primary hover:bg-accent rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                            </div>
-
-                            {/* Research Statement */}
-                            {subProject.researchStatement && (
-                                <div className="mb-6 relative">
-                                    <div className="prose prose-sm max-w-none text-muted-foreground font-normal text-lg leading-relaxed">
-                                        <p className="line-clamp-2">{subProject.researchStatement}</p>
-                                    </div>
-                                    {subProject.researchStatement.length > 150 && (
-                                        <button
-                                            className="text-primary hover:text-primary text-xs font-bold uppercase tracking-wide mt-2 flex items-center gap-1 transition-colors"
-                                            onClick={() => setIsResearchDescriptionOpen(true)}
-                                        >
-                                            Read More <ChevronRight className="h-3 w-3" />
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Badges - Hidden for now */}
-                            {/* <div className="flex flex-wrap items-center gap-3">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-md rounded-full border border-border shadow-sm text-xs font-medium text-foreground">
-                                    <Target className="h-3.5 w-3.5 text-primary" />
-                                    <span className="text-muted-foreground">Age:</span> {subProject.ageRange}
-                                </div>
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-md rounded-full border border-border shadow-sm text-xs font-medium text-foreground">
-                                    <Users className="h-3.5 w-3.5 text-primary" />
-                                    <span className="text-muted-foreground">Stage:</span> {subProject.lifeStage}
-                                </div>
-                            </div> */}
-                        </div>
-                    </div>
+            <WorkspaceFrame variant="platform" leftRail={leftRail}>
+                {/* Main column hero */}
+                <div className="flex flex-col gap-1 mb-8 max-w-[820px]">
+                    <h1 className="text-display-1 text-foreground">
+                        {subProject.name}
+                    </h1>
+                    {subProject.researchStatement && (
+                        <p className="text-body text-muted-foreground">
+                            {subProject.researchStatement}
+                        </p>
+                    )}
                 </div>
 
                 {/* Tab Navigation */}
@@ -1200,7 +1217,9 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         </div>
                     )}
                 </div>
-            </div>
+
+            </WorkspaceFrame>
+
             {/* Edit Workspace Dialog */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                 <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm border-border shadow-lg rounded-md p-8 ring-1 ring-black/5 overflow-y-auto max-h-[90vh]">

@@ -10,6 +10,8 @@ import {
     Key,
     Sparkles
 } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
     const seedDatabase = async () => {
@@ -17,35 +19,25 @@ export default function SettingsPage() {
             const res = await fetch("/api/seed");
             const data = await res.json();
             if (data.success) {
-                alert(`Database seeded successfully! Created ${data.data.personaCount} personas.`);
+                toast.success(`Database seeded successfully! Created ${data.data.personaCount} personas.`);
             } else {
-                alert(data.error || "Failed to seed database");
+                toast.error(data.error || "Failed to seed database");
             }
         } catch (err) {
-            alert("Failed to seed database");
+            toast.error("Failed to seed database");
             console.error(err);
         }
     };
 
     return (
-        <div className="py-8">
-            <div className="max-w-4xl space-y-6">
+        <div className="max-w-4xl mx-auto pt-6 pb-20">
+            <PageHeader
+                eyebrow="Admin"
+                title="Settings"
+                description="Configure your HPB MHE AI instance"
+            />
 
-                {/* Header */}
-                <div className="flex items-center gap-4 mb-2">
-                    <div className="w-10 h-10 bg-foreground rounded-lg flex items-center justify-center">
-                        <SettingsIcon className="h-5 w-5 text-background" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-semibold tracking-tight">
-                            Settings
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Configure your HPB MHE AI instance
-                        </p>
-                    </div>
-                </div>
-
+            <div className="space-y-6">
                 {/* Database Settings */}
                 <Card>
                     <CardHeader>
@@ -63,7 +55,7 @@ export default function SettingsPage() {
                                 <p className="text-sm text-foreground">Database Location</p>
                                 <p className="text-xs text-muted-foreground font-mono">./data/app.db</p>
                             </div>
-                            <Badge variant="secondary" className="text-primary border-primary/20" style={{ backgroundColor: 'var(--color-interact-muted)', color: 'var(--color-interact)' }}>
+                            <Badge variant="secondary" className="bg-[color:var(--color-interact-muted)] text-[color:var(--color-interact)] border-primary/20">
                                 Connected
                             </Badge>
                         </div>
@@ -101,14 +93,11 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between p-3 bg-muted rounded-md border border-border">
                             <div>
                                 <p className="text-sm text-foreground">OpenAI API</p>
-                                <p className="text-xs text-muted-foreground">For AI persona simulation and coaching (gpt-5.2)</p>
+                                <p className="text-xs text-muted-foreground">For AI persona simulation and coaching</p>
                             </div>
-                            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
-                                Using Mock
-                            </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            To enable real OpenAI API, set <code className="text-foreground bg-muted px-1 rounded border border-border">OPENAI_API_KEY</code> in your <code className="text-foreground bg-muted px-1 rounded border border-border">.env.local</code> file.
+                            To enable OpenAI API, set <code className="text-foreground bg-muted px-1 rounded border border-border">OPENAI_API_KEY</code> in your <code className="text-foreground bg-muted px-1 rounded border border-border">.env.local</code> file.
                         </p>
                     </CardContent>
                 </Card>
@@ -128,16 +117,8 @@ export default function SettingsPage() {
                                 <p className="text-foreground font-medium">1.0.0</p>
                             </div>
                             <div>
-                                <p className="text-muted-foreground text-xs uppercase tracking-wide">Environment</p>
-                                <p className="text-foreground font-medium">Development</p>
-                            </div>
-                            <div>
                                 <p className="text-muted-foreground text-xs uppercase tracking-wide">Framework</p>
                                 <p className="text-foreground font-medium">Next.js 16 (App Router)</p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground text-xs uppercase tracking-wide">UI</p>
-                                <p className="text-foreground font-medium">Shadcn + Tailwind</p>
                             </div>
                         </div>
 

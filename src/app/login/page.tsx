@@ -1,19 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const search = useSearchParams();
+  const returnTo = search.get("returnTo") || "/dashboard";
+
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    if (!password) return;
 
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -22,69 +27,60 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
-        router.push("/dashboard");
+        router.push(returnTo);
         router.refresh();
       } else {
-        setError("Incorrect password");
+        toast.error("Incorrect password");
         setPassword("");
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-white"
-    >
-      <div className="w-full max-w-[360px] px-6">
-        <div className="text-center mb-8">
-          <img
-            src="/hpb-logo.png"
-            alt="HPB Logo"
-            className="h-12 object-contain mx-auto mb-6"
-          />
-          <h1 className="text-xl font-semibold tracking-tight text-[#111] mb-1.5">
-            HPB AI Tool
-          </h1>
-          <p className="text-sm text-[#666]">
-            Enter the password to continue
-          </p>
-        </div>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background p-8">
+      <div className="flex flex-col items-center w-full max-w-sm">
+        <img
+          src="/hpb-logo.png"
+          alt="HPB Logo"
+          className="h-12 w-auto object-contain mb-6"
+        />
+        <div className="w-full rounded-[var(--radius-card-lg)] bg-card shadow-outline-ring p-8">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
+              <h1 className="text-display-4 text-foreground">Sign in</h1>
+              <p className="text-body-sm text-muted-foreground">
+                Enter the access password to continue.
+              </p>
+            </div>
 
-        <form onSubmit={handleSubmit}>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            autoFocus
-            required
-            className={`w-full px-3.5 py-2.5 text-sm border rounded-lg outline-none bg-white transition-colors focus:border-[#999] ${
-              error ? "border-red-400" : "border-[#ddd]"
-            }`}
-          />
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                disabled={loading}
+                autoFocus
+                aria-label="Password"
+              />
+              <Button
+                type="submit"
+                disabled={loading || !password}
+                className="w-full"
+              >
+                {loading ? "Signing in..." : "Continue"}
+              </Button>
+            </form>
 
-          {error && (
-            <p className="text-[13px] text-red-400 mt-2">
-              {error}
+            <p className="text-caption text-muted-foreground text-center">
+              Internal HPB tool. Contact your admin if you need access.
             </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !password}
-            className="w-full mt-3 px-3.5 py-2.5 text-sm font-medium text-white bg-[#111] rounded-lg transition-colors disabled:bg-[#999] disabled:cursor-default cursor-pointer"
-          >
-            {loading ? "Signing in..." : "Continue"}
-          </button>
-        </form>
-
-        <p className="text-center text-xs text-[#aaa] mt-8">
-          Aleph Pte Ltd.
-        </p>
+          </div>
+        </div>
       </div>
     </div>
   );

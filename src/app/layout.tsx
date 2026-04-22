@@ -38,10 +38,10 @@ export default function RootLayout({
         {/* App shell — hidden on mobile */}
         <div className="hidden md:flex min-h-screen flex-col bg-background text-foreground">
           <TopNavbar />
-          <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <main className="flex-1 flex flex-col min-h-0 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {children}
           </main>
-          <footer className="w-full mt-16 border-t border-[color:var(--border-subtle)] bg-[color:var(--surface)]">
+          <footer className="w-full border-t border-[color:var(--border-subtle)] bg-[color:var(--surface)]">
             <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between gap-4">
               <p className="text-caption text-muted-foreground">Version 1.0.0. Aleph Pte Ltd.</p>
               <div className="flex items-center gap-5 text-caption">

@@ -537,16 +537,6 @@ export default function SubProjectHomePage({ params }: PageProps) {
     const leftRail = (
         <>
             <RailHeader>
-                {/* Parent project as a subtle eyebrow link — replaces the awkward 'In Project Name' prose */}
-                {subProject.project?.name && (
-                    <Link
-                        href={`/projects/${projectId}`}
-                        className="group inline-flex items-center gap-1.5 text-eyebrow text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        <ArrowLeft className="h-2.5 w-2.5" strokeWidth={2.5} />
-                        <span className="truncate">{subProject.project.name}</span>
-                    </Link>
-                )}
                 <h2 className="text-display-4 text-foreground leading-tight">
                     {subProject.name}
                 </h2>
@@ -566,19 +556,32 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 )}
             </RailHeader>
 
-            <RailSection title="Research" last>
+            <RailSection title="Research">
                 <MetaRow k="Age range" v={subProject.ageRange || "—"} />
                 <MetaRow k="Life stage" v={subProject.lifeStage || "—"} />
                 {createdLabel && <MetaRow k="Created" v={createdLabel} />}
             </RailSection>
+
+            <div className="px-6 py-4">
+                <Button asChild variant="outline" size="sm" className="w-full justify-center">
+                    <Link href={`/projects/${projectId}/sub/${subProjectId}/edit`}>
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit workspace
+                    </Link>
+                </Button>
+            </div>
 
             <div className="flex-1" />
         </>
     );
 
     return (
-        <div className="flex flex-col">
+        // App-shell: flex-1 fills main's computed height exactly, so the rail always
+        // reaches the footer without depending on viewport math. WorkspaceFrame
+        // scrollContained handles internal overflow.
+        <div className="flex flex-col flex-1 min-h-0">
             <PageBar
+                sticky={false}
                 back={{ href: `/projects/${projectId}`, label: "Back" }}
                 crumbs={
                     subProject.project?.name && subProject.name
@@ -588,49 +591,69 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         ]
                         : undefined
                 }
-                action={
-                    <Button asChild variant="outline" size="sm">
-                        <Link href={`/projects/${projectId}/sub/${subProjectId}/edit`}>
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                        </Link>
-                    </Button>
-                }
             />
 
-            <WorkspaceFrame variant="platform" leftRail={leftRail}>
+            <WorkspaceFrame variant="platform" leftRail={leftRail} scrollContained>
                 {/* Workspace identity lives in the left rail; main column is tool-focused. */}
 
-                {/* Tab Navigation + Content */}
+                {/* Tab Navigation + Content — segmented-pill per platform-screens.jsx:182-194 */}
                 <Tabs value={activeContentTab} onValueChange={(v) => switchTab(v as "guides" | "simulations" | "mapping" | "archetypes" | "ideation" | "hmw" | "insights")}>
-                    <TabsList>
-                        <TabsTrigger value="guides">
+                    <TabsList className="inline-flex items-center gap-0.5 w-fit self-start bg-[color:var(--surface-muted)] rounded-full p-1 shadow-inset-edge border-b-0 mb-6">
+                        <TabsTrigger
+                            value="guides"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <BookOpen className="h-3.5 w-3.5" />
                             Moderator guides
-                            {guideCount > 0 && <Mono className="ml-1.5">{guideCount}</Mono>}
+                            {guideCount > 0 && <Mono className="ml-1">{guideCount}</Mono>}
                         </TabsTrigger>
-                        <TabsTrigger value="simulations">
+                        <TabsTrigger
+                            value="simulations"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <PlayCircle className="h-3.5 w-3.5" />
                             Simulations
-                            {simulationCount > 0 && <Mono className="ml-1.5">{simulationCount}</Mono>}
+                            {simulationCount > 0 && <Mono className="ml-1">{simulationCount}</Mono>}
                         </TabsTrigger>
-                        <TabsTrigger value="mapping">
+                        <TabsTrigger
+                            value="mapping"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <Network className="h-3.5 w-3.5" />
                             Mapping
-                            {mappingCount > 0 && <Mono className="ml-1.5">{mappingCount}</Mono>}
+                            {mappingCount > 0 && <Mono className="ml-1">{mappingCount}</Mono>}
                         </TabsTrigger>
-                        <TabsTrigger value="archetypes">
+                        <TabsTrigger
+                            value="archetypes"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <Users className="h-3.5 w-3.5" />
                             Archetypes
-                            {archetypeCount > 0 && <Mono className="ml-1.5">{archetypeCount}</Mono>}
+                            {archetypeCount > 0 && <Mono className="ml-1">{archetypeCount}</Mono>}
                         </TabsTrigger>
-                        <TabsTrigger value="ideation">
+                        <TabsTrigger
+                            value="ideation"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <Zap className="h-3.5 w-3.5" />
                             Ideation
-                            {ideationCount > 0 && <Mono className="ml-1.5">{ideationCount}</Mono>}
+                            {ideationCount > 0 && <Mono className="ml-1">{ideationCount}</Mono>}
                         </TabsTrigger>
-                        <TabsTrigger value="hmw">
+                        <TabsTrigger
+                            value="hmw"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <Lightbulb className="h-3.5 w-3.5" />
                             HMW
-                            {hmwCount > 0 && <Mono className="ml-1.5">{hmwCount}</Mono>}
+                            {hmwCount > 0 && <Mono className="ml-1">{hmwCount}</Mono>}
                         </TabsTrigger>
-                        <TabsTrigger value="insights">
+                        <TabsTrigger
+                            value="insights"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <FileText className="h-3.5 w-3.5" />
                             Insights
-                            {insightCount > 0 && <Mono className="ml-1.5">{insightCount}</Mono>}
+                            {insightCount > 0 && <Mono className="ml-1">{insightCount}</Mono>}
                         </TabsTrigger>
                     </TabsList>
 
@@ -642,10 +665,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             <button
                                 onClick={handleCreateGuide}
                                 disabled={isCreatingGuide}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         {isCreatingGuide ? (
                                             <Loader2 className="h-5 w-5 text-primary animate-spin" />
                                         ) : (
@@ -654,7 +677,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">Create New Guide</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Start a new set of questions and persona configurations
                                         </p>
                                     </div>
@@ -666,20 +689,20 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 return (
                                     <div
                                         key={guide.id}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                        className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                     >
                                         {/* Hover actions */}
                                         {editingGuideId !== guide.id && (
                                             <div className="absolute top-2.5 right-2.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); startEditingGuide(guide); }}
-                                                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-primary transition-all"
+                                                    className="p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-primary transition-colors"
                                                 >
                                                     <Pencil className="h-3.5 w-3.5" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setDeleteGuideId(guide.id); }}
-                                                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                                    className="p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                                 >
                                                     <Trash2 className="h-3.5 w-3.5" />
                                                 </button>
@@ -714,8 +737,8 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 {/* Icon */}
-                                                <div className="h-9 w-9 rounded-lg bg-accent border border-border flex items-center justify-center mb-auto">
-                                                    <FileText className="h-4.5 w-4.5 text-primary/80" />
+                                                <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center mb-auto">
+                                                    <FileText className="h-4.5 w-4.5" />
                                                 </div>
 
                                                 {/* Content at bottom */}
@@ -723,7 +746,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
                                                         {guide.name}
                                                     </h4>
-                                                    <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                                    <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
                                                         Created {new Date(guide.createdAt).toLocaleDateString()}
                                                     </p>
                                                 </div>
@@ -742,15 +765,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             {/* Create New Simulation Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/simulate`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         <PlayCircle className="h-5 w-5 text-[color:var(--info)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Simulation</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Start a new practice session with an AI persona
                                         </p>
                                     </div>
@@ -770,11 +793,11 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     <Link
                                         key={sim.id}
                                         href={isCompleted ? `/simulations/${sim.id}` : `/projects/${projectId}/sub/${subProjectId}/simulate?resume=${sim.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                        className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                     >
                                         {/* Delete on hover */}
                                         <button
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteSimId(sim.id); }}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
@@ -782,7 +805,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
                                         {/* Icon */}
                                         <div
-                                            className={`h-9 w-9 rounded-lg flex items-center justify-center mb-auto ${isCompleted ? 'bg-accent text-muted-foreground' : ''}`}
+                                            className={`h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto ${isCompleted ? 'bg-[color:var(--surface-muted)] text-muted-foreground' : ''}`}
                                             style={!isCompleted ? { backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)' } : undefined}
                                         >
                                             {isCompleted ? (
@@ -808,7 +831,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     ))}
                                                 </div>
                                             )}
-                                            <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                            <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
                                                 {new Date(sim.startedAt).toLocaleDateString()} &middot;{' '}
                                                 <span className="inline-flex items-center gap-1">
                                                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-muted-foreground' : 'animate-pulse'}`} style={!isCompleted ? { backgroundColor: 'var(--color-info)' } : undefined} />
@@ -830,15 +853,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             {/* Create New Mapping Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/map/new`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         <Network className="h-5 w-5 text-[color:var(--knowledge)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Mapping</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Cluster insights from interview transcripts
                                         </p>
                                     </div>
@@ -853,18 +876,18 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     <Link
                                         key={session.id}
                                         href={`/projects/${projectId}/sub/${subProjectId}/map/${session.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                        className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                     >
                                         {/* Delete on hover */}
                                         <button
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteMappingId(session.id); }}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
 
                                         {/* Icon */}
-                                        <div className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]">
+                                        <div className="h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]">
                                             <Network className="h-4.5 w-4.5" />
                                         </div>
 
@@ -873,7 +896,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
                                                 {session.name}
                                             </h4>
-                                            <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                            <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
                                                 {new Date(session.createdAt).toLocaleDateString()} &middot; {session._count?.transcripts || 0} files
                                                 {!isComplete && (
                                                     <span className="inline-flex items-center gap-1 ml-1">
@@ -910,15 +933,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     {/* Generate Card */}
                                     <Link
                                         href={`/projects/${projectId}/sub/${subProjectId}/archetypes/new`}
-                                        className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                        className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                                     >
                                         <div className="flex flex-col items-center gap-3 text-center">
-                                            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                            <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                                 <Sparkles className="h-5 w-5 text-primary" />
                                             </div>
                                             <div>
                                                 <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate Profiles</h3>
-                                                <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                                <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                                     Create new persona profiles with AI
                                                 </p>
                                             </div>
@@ -930,7 +953,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         <div
                                             key={archetype.id}
                                             onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/archetypes/${archetype.id}`}
-                                            className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                            className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                         >
                                             {/* Delete button on hover */}
                                             <button
@@ -939,13 +962,13 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     e.stopPropagation();
                                                     setDeleteArchetypeId(archetype.id);
                                                 }}
-                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                             >
                                                 <Trash2 className="h-3.5 w-3.5" />
                                             </button>
 
                                             {/* Icon */}
-                                            <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-auto ${CARD_ICON_BG[index % CARD_ICON_BG.length]}`}>
+                                            <div className={`h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto ${CARD_ICON_BG[index % CARD_ICON_BG.length]}`}>
                                                 <Users className="h-4.5 w-4.5" />
                                             </div>
 
@@ -955,7 +978,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     {archetype.name}
                                                 </h4>
                                                 {archetype.kicker && (
-                                                    <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                                    <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
                                                         {archetype.kicker}
                                                     </p>
                                                 )}
@@ -974,15 +997,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             {/* Create New Ideation Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/ideation/new`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         <Zap className="h-5 w-5 text-[color:var(--primary)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Ideation</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Generate concepts using the Crazy 8s framework
                                         </p>
                                     </div>
@@ -994,11 +1017,11 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 <div
                                     key={session.id}
                                     onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/ideation/${session.id}`}
-                                    className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                    className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                 >
                                     {/* Delete on hover */}
                                     <button
-                                        className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                        className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
@@ -1009,7 +1032,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     </button>
 
                                     {/* Icon */}
-                                    <div className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto bg-[color:var(--primary-soft)] text-[color:var(--primary)]">
+                                    <div className="h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto bg-[color:var(--primary-soft)] text-[color:var(--primary)]">
                                         <Zap className="h-4.5 w-4.5" />
                                     </div>
 
@@ -1018,7 +1041,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
                                             {session.name}
                                         </h4>
-                                        <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                        <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
                                             {new Date(session.createdAt).toLocaleDateString()}{session.status === "COMPLETE" ? " · 8 concepts" : ""}
                                             {session.status !== "COMPLETE" && (
                                                 <span className="inline-flex items-center gap-1 ml-1">
@@ -1039,15 +1062,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             {/* Create New HMW Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/hmw`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         <Lightbulb className="h-5 w-5 text-primary" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">Analyse HMW</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Critique statements with the 5-lens framework
                                         </p>
                                     </div>
@@ -1059,7 +1082,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 <div
                                     key={critique.id}
                                     onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/hmw?scrollTo=${critique.id}`}
-                                    className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                    className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                 >
                                     {/* Delete button on hover */}
                                     <button
@@ -1068,7 +1091,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             e.stopPropagation();
                                             setDeleteHmwId(critique.id);
                                         }}
-                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </button>
@@ -1079,7 +1102,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             <span className="text-primary">HMW </span>
                                             {critique.hmwStatement}
                                         </h4>
-                                        <p className="text-[11px] text-muted-foreground leading-snug">
+                                        <p className="text-[12px] text-muted-foreground leading-snug">
                                             {new Date(critique.createdAt).toLocaleDateString()}
                                         </p>
                                     </div>
@@ -1095,15 +1118,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             {/* Create New Insight Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/insights`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         <FileText className="h-5 w-5 text-primary" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">Analyse Insight</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Critique statements against 5 insight criteria
                                         </p>
                                     </div>
@@ -1115,7 +1138,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 <div
                                     key={critique.id}
                                     onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/insights?scrollTo=${critique.id}`}
-                                    className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                    className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                 >
                                     {/* Delete button on hover */}
                                     <button
@@ -1124,7 +1147,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             e.stopPropagation();
                                             setDeleteInsightId(critique.id);
                                         }}
-                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </button>
@@ -1134,7 +1157,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
                                             {critique.insightStatement}
                                         </h4>
-                                        <p className="text-[11px] text-muted-foreground leading-snug">
+                                        <p className="text-[12px] text-muted-foreground leading-snug">
                                             {new Date(critique.createdAt).toLocaleDateString()}
                                         </p>
                                     </div>

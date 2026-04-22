@@ -14,6 +14,16 @@ type Props = {
   leftRail?: React.ReactNode
   rightRail?: React.ReactNode
   children: React.ReactNode
+  /**
+   * `scrollContained=true` — app-shell pattern. The frame sizes to its parent (via flex-1)
+   * and rails + main each scroll INTERNALLY; the page itself doesn't grow. Use this on pages
+   * whose outer wrapper already pins a viewport-sized height. The footer stays visible.
+   *
+   * `scrollContained=false` (default) — page-scroll pattern. The frame is viewport-tall
+   * at minimum via min-h-[calc(100vh-120px)] so rail bgs extend to the footer edge; rails
+   * use sticky positioning so they pin under the TopNav+PageBar while the page scrolls.
+   */
+  scrollContained?: boolean
   className?: string
 }
 
@@ -22,6 +32,7 @@ function WorkspaceFrame({
   leftRail,
   rightRail,
   children,
+  scrollContained = false,
   className,
 }: Props) {
   const hasRight = variant !== "review" && rightRail
@@ -31,9 +42,9 @@ function WorkspaceFrame({
     <div
       data-slot="workspace-frame"
       className={cn(
-        // min-h ensures the grid row is always at least viewport-minus-sticky-chrome tall,
-        // so rails' bg extends to the page-footer edge even when main content is sparse.
-        "grid flex-1 min-h-[calc(100vh-120px)]",
+        scrollContained
+          ? "grid flex-1 min-h-0 overflow-hidden grid-rows-[1fr]"
+          : "grid flex-1 min-h-[calc(100vh-120px)]",
         // Edge-to-edge breakout: escape parent max-width/padding so rails meet viewport edges
         "w-screen ml-[calc(50%_-_50vw)]",
         gridCols,
@@ -44,27 +55,44 @@ function WorkspaceFrame({
       {leftRail && (
         <aside
           data-slot="workspace-rail-left"
-          className="bg-[color:var(--surface)] border-r border-[color:var(--border-subtle)] relative"
+          className={cn(
+            "bg-[color:var(--surface)] border-r border-[color:var(--border-subtle)]",
+            scrollContained ? "flex flex-col overflow-y-auto" : "relative"
+          )}
         >
-          <div className="sticky top-[120px] max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col">
-            {leftRail}
-          </div>
+          {scrollContained ? (
+            leftRail
+          ) : (
+            <div className="sticky top-[120px] max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col">
+              {leftRail}
+            </div>
+          )}
         </aside>
       )}
       <main
         data-slot="workspace-main"
-        className="min-w-0 px-10 pt-8 pb-18"
+        className={cn(
+          "min-w-0 px-10 pt-8 pb-18",
+          scrollContained && "overflow-y-auto"
+        )}
       >
         {children}
       </main>
       {hasRight && (
         <aside
           data-slot="workspace-rail-right"
-          className="bg-[color:var(--surface)] border-l border-[color:var(--border-subtle)] relative"
+          className={cn(
+            "bg-[color:var(--surface)] border-l border-[color:var(--border-subtle)]",
+            scrollContained ? "flex flex-col overflow-y-auto" : "relative"
+          )}
         >
-          <div className="sticky top-[120px] max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col">
-            {rightRail}
-          </div>
+          {scrollContained ? (
+            rightRail
+          ) : (
+            <div className="sticky top-[120px] max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col">
+              {rightRail}
+            </div>
+          )}
         </aside>
       )}
     </div>

@@ -1,13 +1,24 @@
 "use client";
 
 import { useState, useEffect, use, useRef } from "react";
-import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BackLink } from "@/components/layout/back-link";
+import { Checkbox } from "@/components/ui/checkbox";
+import { EmptyState } from "@/components/ui/empty-state";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     Select,
     SelectContent,
@@ -16,12 +27,9 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    ArrowLeft,
     Upload,
     Loader2,
     FileText,
-    Check,
-    X,
     Trash2,
     User,
     BookOpen,
@@ -29,12 +37,7 @@ import {
     Shield,
     HelpCircle,
     BookOpenText,
-    Briefcase,
-    Heart,
-    AlertCircle,
-    ChevronRight,
     Clock,
-    Eye
 } from "lucide-react";
 import {
     Dialog,
@@ -123,6 +126,10 @@ export default function ProjectKbPage({ params }: PageProps) {
     // View document state
     const [viewDoc, setViewDoc] = useState<KbDocument | null>(null);
 
+    // Delete document state
+    const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
     useEffect(() => {
         fetchData();
     }, [projectId]);
@@ -200,7 +207,7 @@ export default function ProjectKbPage({ params }: PageProps) {
             setUploadDialogOpen(false);
             fetchData();
         } catch (err) {
-            alert(err instanceof Error ? err.message : "Upload failed");
+            toast.error(err instanceof Error ? err.message : "Upload failed");
         } finally {
             setUploading(false);
         }
@@ -217,7 +224,7 @@ export default function ProjectKbPage({ params }: PageProps) {
             if (!res.ok) throw new Error("Approval failed");
             fetchData();
         } catch (err) {
-            alert("Failed to approve document");
+            toast.error("Failed to approve document");
         }
     };
 
@@ -232,15 +239,11 @@ export default function ProjectKbPage({ params }: PageProps) {
             if (!res.ok) throw new Error("Rejection failed");
             fetchData();
         } catch (err) {
-            alert("Failed to reject document");
+            toast.error("Failed to reject document");
         }
     };
 
-    const deleteDocument = async (documentId: string) => {
-        if (!confirm("Are you sure you want to delete this document?")) {
-            return;
-        }
-
+    const confirmDeleteDoc = async (documentId: string) => {
         try {
             const res = await fetch(`/api/projects/${projectId}/kb/documents/${documentId}`, {
                 method: "DELETE",
@@ -249,7 +252,7 @@ export default function ProjectKbPage({ params }: PageProps) {
             if (!res.ok) throw new Error("Delete failed");
             fetchData();
         } catch (err) {
-            alert("Failed to delete document");
+            toast.error("Failed to delete document");
         }
     };
 
@@ -269,16 +272,10 @@ export default function ProjectKbPage({ params }: PageProps) {
 
     return (
         <>
-            <div className="py-8">
+            <div className="pt-6 pb-20">
 
                     {/* Back Link */}
-                    <Link
-                        href={`/projects/${projectId}`}
-                        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to {project?.name || "Project"}
-                    </Link>
+                    <BackLink href={`/projects/${projectId}`} label="Back to Project" />
 
                     {/* Header Section */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
@@ -287,7 +284,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                                 <BookOpenText className="h-5 w-5" />
                             </div>
                             <div>
-                                <h1 className="text-3xl font-semibold tracking-tight mb-3">
+                                <h1 className="text-display-2 mb-3">
                                     Project Knowledge Base
                                 </h1>
                                 <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
@@ -298,10 +295,10 @@ export default function ProjectKbPage({ params }: PageProps) {
 
                         <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
                             <DialogTrigger asChild>
-                                <button className="group relative flex items-center gap-2 px-4 py-2 rounded-md bg-background border border-input text-foreground shadow-sm hover:bg-accent transition-all duration-300 text-sm font-medium overflow-hidden cursor-pointer">
-                                    <Upload className="h-3.5 w-3.5 relative z-10" />
-                                    <span className="relative z-10">Upload Document</span>
-                                </button>
+                                <Button variant="outline" size="default">
+                                    <Upload className="h-3.5 w-3.5" />
+                                    Upload Document
+                                </Button>
                             </DialogTrigger>
                             <DialogContent className="bg-background border-border shadow-lg rounded-md p-0 gap-0 overflow-hidden max-w-[500px]">
                                 <DialogHeader className="p-6 pb-4 border-b border-border/50">
@@ -319,7 +316,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                                         </div>
                                     </div>
                                     <p className="text-sm text-muted-foreground leading-relaxed">
-                                        Add a new document to this project's knowledge base.
+                                        Add a new document to this project&apos;s knowledge base.
                                     </p>
                                 </DialogHeader>
 
@@ -399,22 +396,21 @@ export default function ProjectKbPage({ params }: PageProps) {
                                     </div>
 
                                     {/* Data Classification Confirmation */}
-                                    <div className="p-4 bg-amber-50/60 border border-amber-100/80 rounded-md relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-amber-100/50 to-transparent rounded-bl-3xl -mr-4 -mt-4" />
+                                    <div className="p-4 bg-[color:var(--warning-soft)] border border-[color:var(--warning)]/25 rounded-[var(--radius-card)] relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-[color:var(--warning)]/10 to-transparent rounded-bl-3xl -mr-4 -mt-4" />
                                         <div className="flex items-start gap-3 relative z-10">
-                                            <div className="flex items-center h-5">
-                                                <input
-                                                    type="checkbox"
+                                            <div className="flex items-center h-5 mt-0.5">
+                                                <Checkbox
                                                     id="classificationConfirm"
                                                     checked={classificationConfirmed}
-                                                    onChange={(e) => setClassificationConfirmed(e.target.checked)}
-                                                    className="w-4 h-4 text-primary border-amber-300 rounded bg-background"
+                                                    onCheckedChange={(checked) => setClassificationConfirmed(checked === true)}
+                                                    aria-label="Confirm classification disclaimer"
                                                 />
                                             </div>
-                                            <label htmlFor="classificationConfirm" className="text-sm text-amber-900/80 select-none">
-                                                <span className="block font-bold text-amber-900 text-xs uppercase tracking-wide mb-1">Compliance Check</span>
+                                            <label htmlFor="classificationConfirm" className="text-sm text-[color:var(--warning)] select-none">
+                                                <span className="block font-bold text-[color:var(--warning)] text-xs uppercase tracking-wide mb-1">Compliance Check</span>
                                                 <p className="text-xs leading-relaxed opacity-90">
-                                                    I confirm this document contains no data classified above <strong className="font-semibold text-amber-950">OFFICIAL (CLOSED) / SENSITIVE-NORMAL</strong> and complies with IM8.
+                                                    I confirm this document contains no data classified above <strong className="font-semibold text-[color:var(--warning)]">OFFICIAL (CLOSED) / SENSITIVE-NORMAL</strong> and complies with IM8.
                                                 </p>
                                             </label>
                                         </div>
@@ -453,7 +449,7 @@ export default function ProjectKbPage({ params }: PageProps) {
 
                     {/* Tabs */}
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-                        <TabsList className="bg-transparent p-0 gap-2 h-auto flex-wrap justify-start">
+                        <TabsList>
                             {DOC_TYPES.map((type) => (
                                 <TabsTrigger
                                     key={type}
@@ -478,29 +474,24 @@ export default function ProjectKbPage({ params }: PageProps) {
 
                     {/* Documents Grid */}
                     {filteredDocuments.length === 0 ? (
-                        <div className="border border-dashed border-border bg-card rounded-md p-16 flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
-                            <div className="h-14 w-14 rounded-md flex items-center justify-center mb-4 transition-transform hover:scale-110 duration-300" style={{ backgroundColor: 'var(--color-knowledge-muted)' }}>
-                                <BookOpenText className="h-6 w-6" style={{ color: 'var(--color-knowledge)' }} />
-                            </div>
-                            <h3 className="text-sm font-semibold text-foreground mb-1">
-                                No content here
-                            </h3>
-                            <p className="text-xs text-muted-foreground mb-6 max-w-xs leading-relaxed">
-                                This section is empty. Upload {DOC_TYPE_LABELS[activeTab].toLowerCase()} to get started.
-                            </p>
-                            <Button
-                                onClick={() => {
-                                    setUploadDocType(activeTab);
-                                    setUploadDialogOpen(true);
-                                }}
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs border-input text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent"
-                            >
-                                <Upload className="h-3 w-3 mr-2" />
-                                Add {DOC_TYPE_LABELS[activeTab]}
-                            </Button>
-                        </div>
+                        <EmptyState
+                            icon={<BookOpenText />}
+                            title="No content here"
+                            description={`This section is empty. Upload ${DOC_TYPE_LABELS[activeTab].toLowerCase()} to get started.`}
+                            action={
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setUploadDocType(activeTab);
+                                        setUploadDialogOpen(true);
+                                    }}
+                                >
+                                    <Upload className="h-3.5 w-3.5" />
+                                    Upload document
+                                </Button>
+                            }
+                        />
                     ) : (
                         <div className="grid gap-5 grid-cols-1">
                             {filteredDocuments.map((doc) => {
@@ -522,7 +513,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                                             <div
                                                 className={`
                                                     h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm
-                                                    ${isPending ? 'bg-amber-50 text-amber-600' : isRejected ? 'bg-red-50 text-red-600' : 'group-hover:scale-105'}
+                                                    ${isPending ? 'bg-[color:var(--warning-soft)] text-[color:var(--warning)]' : isRejected ? 'bg-[color:var(--danger-soft)] text-[color:var(--danger)]' : 'group-hover:scale-105'}
                                                 `}
                                                 style={!isPending && !isRejected ? { backgroundColor: 'var(--color-knowledge-muted)', color: 'var(--color-knowledge)' } : undefined}
                                             >
@@ -537,8 +528,8 @@ export default function ProjectKbPage({ params }: PageProps) {
                                                         <Clock className="h-3 w-3" />
                                                         {new Date(doc.createdAt).toLocaleDateString()}
                                                     </span>
-                                                    {isPending && <span className="text-amber-500 font-medium">Pending Review</span>}
-                                                    {isRejected && <span className="text-red-500 font-medium">Rejected</span>}
+                                                    {isPending && <span className="text-[color:var(--warning)] font-medium">Pending Review</span>}
+                                                    {isRejected && <span className="text-[color:var(--danger)] font-medium">Rejected</span>}
                                                 </div>
                                             </div>
                                         </div>
@@ -548,16 +539,18 @@ export default function ProjectKbPage({ params }: PageProps) {
                                                 <>
                                                     <Button
                                                         size="sm"
+                                                        aria-label="Approve document"
                                                         onClick={(e) => { e.stopPropagation(); approveDocument(doc.id); }}
-                                                        className="h-7 px-3 text-[10px] font-bold tracking-wide uppercase bg-primary hover:bg-primary/90 text-primary-foreground rounded-md shadow-sm"
+                                                        className="h-7 px-3 text-[10px] font-bold tracking-wide uppercase bg-[color:var(--primary)] hover:bg-[color:var(--primary)]/90 text-primary-foreground rounded-md shadow-sm"
                                                     >
                                                         Approve
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
+                                                        aria-label="Reject document"
                                                         onClick={(e) => { e.stopPropagation(); rejectDocument(doc.id); }}
-                                                        className="h-7 px-3 text-[10px] font-bold tracking-wide uppercase text-red-600 hover:bg-red-50 rounded-lg"
+                                                        className="h-7 px-3 text-[10px] font-bold tracking-wide uppercase text-[color:var(--danger)] hover:bg-[color:var(--danger-soft)] rounded-lg"
                                                     >
                                                         Reject
                                                     </Button>
@@ -567,6 +560,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
+                                                aria-label="View document"
                                                 className="h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md"
                                                 onClick={(e) => { e.stopPropagation(); setViewDoc(doc); }}
                                             >
@@ -575,8 +569,9 @@ export default function ProjectKbPage({ params }: PageProps) {
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
-                                                className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-full"
-                                                onClick={(e) => { e.stopPropagation(); deleteDocument(doc.id); }}
+                                                aria-label="Delete document"
+                                                className="h-8 w-8 text-muted-foreground hover:text-[color:var(--danger)] hover:bg-[color:var(--danger-soft)] rounded-full"
+                                                onClick={(e) => { e.stopPropagation(); setDeleteDocId(doc.id); }}
                                             >
                                                 <Trash2 className="h-3.5 w-3.5" />
                                             </Button>
@@ -622,6 +617,40 @@ export default function ProjectKbPage({ params }: PageProps) {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Document AlertDialog */}
+            <AlertDialog
+              open={!!deleteDocId}
+              onOpenChange={(open) => !open && setDeleteDocId(null)}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This removes the document from this project&apos;s Knowledge Base. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={deleting}
+                    onClick={async () => {
+                      if (!deleteDocId) return;
+                      setDeleting(true);
+                      try {
+                        await confirmDeleteDoc(deleteDocId);
+                        setDeleteDocId(null);
+                      } finally {
+                        setDeleting(false);
+                      }
+                    }}
+                    className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                  >
+                    {deleting ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

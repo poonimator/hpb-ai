@@ -1245,17 +1245,16 @@ function GuideSetupPageContent() {
                                         setExpandedSuggestionId(null);
                                     }
                                 }}
-                                // RailCard outer. Collapsed = neutral white. Expanded is visually strong:
-                                // - subtle kind-tinted background (primary-soft for feedback, knowledge-soft for research)
-                                // - 3px colored left-accent bar in kind color
-                                // - soft kind-colored 1px border on the other three sides
-                                // - warm-lift shadow for elevation so the card reads as lifted off the list
+                                // RailCard outer. Collapsed = neutral white. Expanded differentiates via:
+                                // - stronger kind-tinted bg (no tinted borders / no left bar)
+                                // - 2px full ring in kind color around all sides (via box-shadow, uniform)
+                                // - warm-lift soft drop shadow so the card visibly elevates off the list
                                 className={cn(
                                     "rounded-[14px] cursor-pointer transition-all duration-200",
                                     isExpanded
                                         ? (item.kind === 'feedback'
-                                            ? "bg-[color:var(--primary-soft)]/55 border border-l-[3px] border-[color:var(--primary)]/25 border-l-[color:var(--primary)] shadow-warm-lift"
-                                            : "bg-[color:var(--knowledge-soft)]/55 border border-l-[3px] border-[color:var(--knowledge)]/25 border-l-[color:var(--knowledge)] shadow-warm-lift")
+                                            ? "bg-[color:var(--primary-soft)] border-none shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_38%,transparent),0_6px_18px_rgb(78_50_23_/0.06)]"
+                                            : "bg-[color:var(--knowledge-soft)] border-none shadow-[0_0_0_2px_color-mix(in_oklab,var(--knowledge)_38%,transparent),0_6px_18px_rgb(78_50_23_/0.06)]")
                                         : "bg-white border border-[color:var(--border-subtle)] shadow-inset-edge hover:shadow-outline-ring"
                                 )}
                             >

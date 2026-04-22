@@ -1759,8 +1759,10 @@ What we want to uncover: Understanding how participants structure their day
                                                                             aria-pressed={isActive}
                                                                             title="View Feedback in rail"
                                                                             className={cn(
-                                                                                "relative h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                isActive && "ring-[3px] ring-[color:var(--primary)] ring-offset-2 ring-offset-card scale-[1.08] shadow-[0_3px_12px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
+                                                                                "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
+                                                                                isActive
+                                                                                    ? "bg-white text-[color:var(--primary)] ring-[3px] ring-[color:var(--primary)] ring-offset-2 ring-offset-card scale-[1.1] shadow-[0_3px_12px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
+                                                                                    : "bg-[color:var(--primary)] text-white shadow-inset-edge"
                                                                             )}
                                                                         >
                                                                             <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
@@ -1783,8 +1785,10 @@ What we want to uncover: Understanding how participants structure their day
                                                                             aria-pressed={isActive}
                                                                             title="View Research Insight in rail"
                                                                             className={cn(
-                                                                                "relative h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                isActive && "ring-[3px] ring-[color:var(--knowledge)] ring-offset-2 ring-offset-card scale-[1.08] shadow-[0_3px_12px_color-mix(in_oklab,var(--knowledge)_40%,transparent)]"
+                                                                                "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
+                                                                                isActive
+                                                                                    ? "bg-white text-[color:var(--knowledge)] ring-[3px] ring-[color:var(--knowledge)] ring-offset-2 ring-offset-card scale-[1.1] shadow-[0_3px_12px_color-mix(in_oklab,var(--knowledge)_40%,transparent)]"
+                                                                                    : "bg-[color:var(--knowledge)] text-white shadow-inset-edge"
                                                                             )}
                                                                         >
                                                                             <FileText className="h-4 w-4" strokeWidth={2} />
@@ -1846,8 +1850,10 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 aria-pressed={isActive}
                                                                                 title="View Feedback in rail"
                                                                                 className={cn(
-                                                                                    "relative h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                    isActive && "ring-[3px] ring-[color:var(--primary)] ring-offset-2 ring-offset-card scale-[1.08] shadow-[0_3px_12px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
+                                                                                    "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
+                                                                                    isActive
+                                                                                        ? "bg-white text-[color:var(--primary)] ring-[3px] ring-[color:var(--primary)] ring-offset-2 ring-offset-card scale-[1.1] shadow-[0_3px_12px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
+                                                                                        : "bg-[color:var(--primary)] text-white shadow-inset-edge"
                                                                                 )}
                                                                             >
                                                                                 <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
@@ -1870,8 +1876,10 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 aria-pressed={isActive}
                                                                                 title="View Research Insight in rail"
                                                                                 className={cn(
-                                                                                    "relative h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                    isActive && "ring-[3px] ring-[color:var(--knowledge)] ring-offset-2 ring-offset-card scale-[1.08] shadow-[0_3px_12px_color-mix(in_oklab,var(--knowledge)_40%,transparent)]"
+                                                                                    "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
+                                                                                    isActive
+                                                                                        ? "bg-white text-[color:var(--knowledge)] ring-[3px] ring-[color:var(--knowledge)] ring-offset-2 ring-offset-card scale-[1.1] shadow-[0_3px_12px_color-mix(in_oklab,var(--knowledge)_40%,transparent)]"
+                                                                                        : "bg-[color:var(--knowledge)] text-white shadow-inset-edge"
                                                                                 )}
                                                                             >
                                                                                 <FileText className="h-4 w-4" strokeWidth={2} />

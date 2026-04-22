@@ -1491,13 +1491,13 @@ function GuideSetupPageContent() {
                                 <span>Good question</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="h-5 w-5 rounded-md bg-[color:var(--primary)] text-white flex items-center justify-center shadow-inset-edge">
+                                <div className="h-5 w-5 rounded-md bg-[color:var(--primary-soft)] text-[color:var(--primary)] flex items-center justify-center shadow-inset-edge">
                                     <MessageSquareWarning className="h-3 w-3" strokeWidth={2} />
                                 </div>
                                 <span>Feedback</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="h-5 w-5 rounded-md bg-[color:var(--knowledge)] text-white flex items-center justify-center shadow-inset-edge">
+                                <div className="h-5 w-5 rounded-md bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] flex items-center justify-center shadow-inset-edge">
                                     <FileText className="h-3 w-3" strokeWidth={2} />
                                 </div>
                                 <span>Research</span>
@@ -1852,8 +1852,8 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 className={cn(
                                                                                     "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
                                                                                     isActive
-                                                                                        ? "bg-white text-[color:var(--primary)] ring-2 ring-[color:var(--primary)] ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
-                                                                                        : "bg-[color:var(--primary)] text-white shadow-inset-edge"
+                                                                                        ? "bg-[color:var(--primary)] text-white ring-2 ring-[color:var(--primary)]/35 ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+                                                                                        : "bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge hover:bg-[color:color-mix(in_oklab,var(--primary)_14%,transparent)]"
                                                                                 )}
                                                                             >
                                                                                 <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
@@ -1878,8 +1878,8 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 className={cn(
                                                                                     "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
                                                                                     isActive
-                                                                                        ? "bg-white text-[color:var(--knowledge)] ring-2 ring-[color:var(--knowledge)] ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--knowledge)_35%,transparent)]"
-                                                                                        : "bg-[color:var(--knowledge)] text-white shadow-inset-edge"
+                                                                                        ? "bg-[color:var(--knowledge)] text-white ring-2 ring-[color:var(--knowledge)]/35 ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--knowledge)_35%,transparent)]"
+                                                                                        : "bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] shadow-inset-edge hover:bg-[color:color-mix(in_oklab,var(--knowledge)_14%,transparent)]"
                                                                                 )}
                                                                             >
                                                                                 <FileText className="h-4 w-4" strokeWidth={2} />

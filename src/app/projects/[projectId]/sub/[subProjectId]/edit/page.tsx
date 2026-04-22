@@ -8,11 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageBar } from "@/components/layout/page-bar";
+import { toast } from "sonner";
 import {
-    ArrowLeft,
     Loader2,
-    Target,
-    FolderPlus,
     Save
 } from "lucide-react";
 
@@ -24,10 +24,11 @@ interface SubProject {
     ageRange: string;
     lifeStage: string;
     projectId: string;
-    project: {
-        id: string;
-        name: string;
-    }
+}
+
+interface Project {
+    id: string;
+    name: string;
 }
 
 interface PageProps {
@@ -51,6 +52,7 @@ export default function EditSubProjectPage({ params }: PageProps) {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [project, setProject] = useState<Project | null>(null);
     const [subProject, setSubProject] = useState<SubProject | null>(null);
 
     // Form state
@@ -60,20 +62,23 @@ export default function EditSubProjectPage({ params }: PageProps) {
     const [ageMax, setAgeMax] = useState("25");
     const [selectedLifeStages, setSelectedLifeStages] = useState<string[]>([]);
 
-    useEffect(() => {
-        fetchSubProject();
-    }, [projectId, subProjectId]);
-
-    const fetchSubProject = async () => {
+    const fetchData = async () => {
         try {
-            const res = await fetch(`/api/sub-projects/${subProjectId}`);
-            const data = await res.json();
+            const spRes = await fetch(`/api/sub-projects/${subProjectId}`);
+            const spData = await spRes.json();
 
-            if (res.ok && data.data) {
-                const sp: SubProject = data.data;
+            if (spRes.ok && spData.data) {
+                const sp: SubProject = spData.data;
                 setSubProject(sp);
                 setName(sp.name);
                 setResearchStatement(sp.researchStatement || "");
+
+                // Fetch project for PageBar crumbs
+                const pRes = await fetch(`/api/projects/${projectId}`);
+                const pData = await pRes.json();
+                if (pRes.ok) {
+                    setProject(pData.data);
+                }
 
                 // Parse Age Range
                 if (sp.ageRange) {
@@ -89,22 +94,13 @@ export default function EditSubProjectPage({ params }: PageProps) {
                 // Parse Life Stages
                 if (sp.lifeStage) {
                     const stages = sp.lifeStage.split(",").map(s => s.trim());
-                    // Simple matching for clean UI
-                    const knownValues = LIFE_STAGE_OPTIONS.map(o => o.value);
-                    const matchedStages = stages.filter(s => knownValues.some(k => s.includes(k) || k.includes(s)));
-                    // Fallback if formatting is different or create new mapping if needed, 
-                    // for now assuming comma separated matching values or labels
-
-                    // Better approach: match checks against values
+                    // Match checks against values
                     const mapped = LIFE_STAGE_OPTIONS.filter(opt =>
                         stages.some(s => s.toLowerCase().includes(opt.value.toLowerCase()) || s.toLowerCase().includes(opt.label.toLowerCase()))
                     ).map(opt => opt.value);
 
                     if (mapped.length > 0) {
                         setSelectedLifeStages(mapped);
-                    } else {
-                        // If purely custom string, maybe just console log warning or try best effort
-                        // For this context, we assume it was created via our UI
                     }
                 }
             }
@@ -114,6 +110,11 @@ export default function EditSubProjectPage({ params }: PageProps) {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [projectId, subProjectId]);
 
     const toggleLifeStage = (stage: string) => {
         setSelectedLifeStages(prev =>
@@ -127,7 +128,7 @@ export default function EditSubProjectPage({ params }: PageProps) {
         e.preventDefault();
 
         if (!name.trim() || !researchStatement.trim() || selectedLifeStages.length === 0) {
-            alert("Please fill in all required fields");
+            toast.error("Please fill in all required fields");
             return;
         }
 
@@ -146,13 +147,13 @@ export default function EditSubProjectPage({ params }: PageProps) {
             });
 
             if (!res.ok) {
-                throw new Error("Failed to update sub-project");
+                throw new Error("Failed to update workspace");
             }
 
-            // Redirect back to sub-project page
+            // Redirect back to workspace page
             router.push(`/projects/${projectId}/sub/${subProjectId}`);
         } catch (err) {
-            alert(err instanceof Error ? err.message : "Failed to update sub-project");
+            toast.error(err instanceof Error ? err.message : "Failed to update workspace");
         } finally {
             setSaving(false);
         }
@@ -170,73 +171,71 @@ export default function EditSubProjectPage({ params }: PageProps) {
     }
 
     return (
-        <div className="py-8">
-            <div className="w-full max-w-4xl mx-auto animate-in zoom-in-95 fade-in duration-500 ease-out">
-                    {/* Back Link */}
-                    <Link
-                        href={`/projects/${projectId}/sub/${subProjectId}`}
-                        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to {subProject?.name || "Workspace"}
-                    </Link>
+        <div className="flex flex-col">
+            <PageBar
+                back={{ href: `/projects/${projectId}/sub/${subProjectId}`, label: "Back" }}
+                crumbs={
+                    subProject?.name && project?.name
+                        ? [
+                            { label: project.name, href: `/projects/${projectId}` },
+                            { label: subProject.name, href: `/projects/${projectId}/sub/${subProjectId}` },
+                            { label: "Edit" },
+                        ]
+                        : undefined
+                }
+            />
 
-                    {/* Card */}
-                    <div className="relative bg-card border border-border rounded-md shadow-sm p-8 md:p-10">
-                        <div className="max-w-3xl mx-auto">
-                            {/* Header Section */}
-                            <div className="mb-8">
-                                <h1 className="text-3xl font-semibold tracking-tight mb-2" aria-label="Edit Sub-Project">Edit Sub-Project</h1>
-                                <p className="text-sm text-muted-foreground">
-                                    Update the details regarding the research focus and target demographics.
-                                </p>
-                            </div>
+            <div className="pt-6 pb-20">
+                <div className="max-w-[640px] mx-auto">
+                    {/* Hero Section */}
+                    <div className="flex flex-col gap-2 mb-8">
+                        <h1 className="text-display-1 text-foreground">Edit workspace</h1>
+                        <p className="text-body text-muted-foreground">
+                            Update the name, research framing, audience, or stage for {subProject?.name ?? "this workspace"}.
+                        </p>
+                    </div>
 
+                    {/* Main Card */}
+                    <Card>
+                        <CardContent className="p-8">
                             {/* Form */}
-                            <form onSubmit={handleSubmit} className="space-y-8">
+                            <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Name Input */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-sm font-medium text-foreground">
-                                        Sub-Project Name <span className="text-red-400">*</span>
+                                    <Label htmlFor="name">
+                                        Workspace Name <span className="text-destructive">*</span>
                                     </Label>
-                                    <div className="relative">
-                                        <FolderPlus className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="name"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            placeholder="e.g., Secondary School Mental Health Awareness"
-                                            className="pl-9 bg-white/50 border-input focus:border-input transition-all"
-                                            required
-                                        />
-                                    </div>
+                                    <Input
+                                        id="name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="e.g., Secondary School Mental Health Awareness"
+                                        required
+                                    />
                                 </div>
 
                                 {/* Research Statement */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="statement" className="text-sm font-medium text-foreground">
-                                        Research Statement <span className="text-red-400">*</span>
+                                    <Label htmlFor="statement">
+                                        Research Statement <span className="text-destructive">*</span>
                                     </Label>
-                                    <div className="relative">
-                                        <Target className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Textarea
-                                            id="statement"
-                                            value={researchStatement}
-                                            onChange={(e) => setResearchStatement(e.target.value)}
-                                            placeholder="What are you trying to understand or explore?"
-                                            className="pl-9 bg-white/50 border-input focus:border-input transition-all resize-none min-h-[100px]"
-                                            required
-                                        />
-                                    </div>
+                                    <Textarea
+                                        id="statement"
+                                        value={researchStatement}
+                                        onChange={(e) => setResearchStatement(e.target.value)}
+                                        placeholder="What are you trying to understand or explore?"
+                                        className="min-h-[120px] resize-none"
+                                        required
+                                    />
                                 </div>
 
-                                <div className="grid md:grid-cols-2 gap-8">
+                                <div className="grid md:grid-cols-2 gap-6 pt-2">
                                     {/* Age Range */}
-                                    <div className="space-y-3">
-                                        <Label className="text-sm font-medium text-foreground block">Age Range</Label>
-                                        <div className="flex items-center gap-3 bg-white/40 p-3 rounded-xl border border-border">
+                                    <div className="space-y-2">
+                                        <Label>Age Range</Label>
+                                        <div className="flex items-center gap-3 p-3 rounded-md border border-input">
                                             <div className="flex-1">
-                                                <Label htmlFor="ageMin" className="text-[10px] uppercase text-muted-foreground mb-1 block tracking-wider font-semibold">
+                                                <Label htmlFor="ageMin" className="text-[10px] uppercase text-muted-foreground mb-1 block tracking-wider text-center">
                                                     Min Age
                                                 </Label>
                                                 <Input
@@ -246,12 +245,14 @@ export default function EditSubProjectPage({ params }: PageProps) {
                                                     onChange={(e) => setAgeMin(e.target.value)}
                                                     min="6"
                                                     max="100"
-                                                    className="h-9 bg-white border-input focus:border-input text-center"
+                                                    className="text-center font-medium text-lg"
                                                 />
                                             </div>
-                                            <span className="text-border pt-5">—</span>
+                                            <div className="flex flex-col items-center justify-center pt-5">
+                                                <div className="w-6 h-px bg-border" />
+                                            </div>
                                             <div className="flex-1">
-                                                <Label htmlFor="ageMax" className="text-[10px] uppercase text-muted-foreground mb-1 block tracking-wider font-semibold">
+                                                <Label htmlFor="ageMax" className="text-[10px] uppercase text-muted-foreground mb-1 block tracking-wider text-center">
                                                     Max Age
                                                 </Label>
                                                 <Input
@@ -261,42 +262,33 @@ export default function EditSubProjectPage({ params }: PageProps) {
                                                     onChange={(e) => setAgeMax(e.target.value)}
                                                     min="6"
                                                     max="100"
-                                                    className="h-9 bg-white border-input focus:border-input text-center"
+                                                    className="text-center font-medium text-lg"
                                                 />
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Life Stages */}
-                                    <div className="space-y-3 md:col-span-2">
-                                        <Label className="text-sm font-medium text-foreground block">
-                                            Target Life Stages <span className="text-red-400">*</span>
+                                    <div className="space-y-2">
+                                        <Label>
+                                            Target Life Stages <span className="text-destructive">*</span>
                                         </Label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        <div className="grid grid-cols-2 gap-2">
                                             {LIFE_STAGE_OPTIONS.map((option) => (
-                                                <div
+                                                <label
                                                     key={option.value}
-                                                    onClick={() => toggleLifeStage(option.value)}
-                                                    className={`
-                                                        relative flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all select-none
-                                                        ${selectedLifeStages.includes(option.value)
-                                                            ? 'border-primary bg-accent text-foreground'
-                                                            : 'border-input bg-white/40 hover:bg-white/60 hover:border-input text-muted-foreground'
-                                                        }
-                                                    `}
+                                                    className="flex items-center gap-2 text-body-sm cursor-pointer"
                                                 >
                                                     <Checkbox
                                                         checked={selectedLifeStages.includes(option.value)}
                                                         onCheckedChange={() => toggleLifeStage(option.value)}
-                                                        className={`data-[state=checked]:bg-primary data-[state=checked]:border-primary ${selectedLifeStages.includes(option.value) ? 'border-primary' : 'border-border'}`}
                                                     />
-                                                    <span className="text-xs font-medium">{option.label}</span>
-                                                </div>
+                                                    {option.label}
+                                                </label>
                                             ))}
                                         </div>
                                         {selectedLifeStages.length === 0 && (
-                                            <p className="text-xs text-amber-600 mt-1 pl-1 flex items-center gap-1">
-                                                <span className="h-1 w-1 rounded-full bg-amber-500" />
+                                            <p className="text-xs text-[color:var(--danger)] mt-1.5 flex items-center gap-1.5">
                                                 Please select at least one life stage
                                             </p>
                                         )}
@@ -306,7 +298,7 @@ export default function EditSubProjectPage({ params }: PageProps) {
                                 {/* Actions */}
                                 <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
                                     <Link href={`/projects/${projectId}/sub/${subProjectId}`}>
-                                        <Button type="button" variant="ghost" className="text-muted-foreground hover:text-foreground">
+                                        <Button type="button" variant="outline">
                                             Cancel
                                         </Button>
                                     </Link>
@@ -314,7 +306,6 @@ export default function EditSubProjectPage({ params }: PageProps) {
                                     <Button
                                         type="submit"
                                         disabled={saving || !name.trim() || !researchStatement.trim() || selectedLifeStages.length === 0}
-                                        className="bg-primary hover:bg-primary/90 text-primary-foreground transition-all"
                                     >
                                         {saving ? (
                                             <>
@@ -323,15 +314,16 @@ export default function EditSubProjectPage({ params }: PageProps) {
                                             </>
                                         ) : (
                                             <>
-                                                Save Changes
+                                                Save changes
                                                 <Save className="h-4 w-4 ml-2" />
                                             </>
                                         )}
                                     </Button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

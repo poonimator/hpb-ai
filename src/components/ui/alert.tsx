@@ -4,13 +4,23 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+  [
+    "relative w-full rounded-[var(--radius-card-lg)] px-5 py-4 text-body-sm",
+    "grid has-[>svg]:grid-cols-[20px_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-1 items-start",
+    "[&>svg]:size-[18px] [&>svg]:translate-y-0.5",
+    "shadow-outline-ring",
+  ].join(" "),
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground",
+        default:
+          "bg-[color:var(--surface)] text-foreground [&>svg]:text-muted-foreground",
+        info:
+          "bg-[color:var(--info-soft)] text-foreground [&>svg]:text-[color:var(--info)] border-l-[3px] border-l-[color:var(--info)] pl-4",
+        warning:
+          "bg-[color:var(--warning-soft)] text-foreground [&>svg]:text-[color:var(--warning)] border-l-[3px] border-l-[color:var(--warning)] pl-4",
         destructive:
-          "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
+          "bg-[color:var(--danger-soft)] text-[color:var(--danger)] [&>svg]:text-[color:var(--danger)] border-l-[3px] border-l-[color:var(--danger)] pl-4 *:data-[slot=alert-description]:text-[color:var(--danger)]/85",
       },
     },
     defaultVariants: {
@@ -39,7 +49,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="alert-title"
       className={cn(
-        "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
+        "col-start-2 line-clamp-2 min-h-4 text-display-5",
         className
       )}
       {...props}
@@ -55,7 +65,7 @@ function AlertDescription({
     <div
       data-slot="alert-description"
       className={cn(
-        "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+        "col-start-2 grid justify-items-start gap-1 text-body-sm text-muted-foreground [&_p]:leading-relaxed",
         className
       )}
       {...props}

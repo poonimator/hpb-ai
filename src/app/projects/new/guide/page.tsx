@@ -29,6 +29,8 @@ import {
     Download
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { CenteredSpinner } from "@/components/ui/centered-spinner";
 import {
     Dialog,
     DialogContent,
@@ -187,7 +189,7 @@ function GuideSetupPageContent() {
                 const projectRes = await fetch(`/api/projects/${projectId}`);
                 const projectData = await projectRes.json();
                 if (!projectData.success) {
-                    alert("Project not found");
+                    toast.error("Project not found");
                     router.push("/projects/new");
                     return;
                 }
@@ -241,7 +243,7 @@ function GuideSetupPageContent() {
                             }]);
                         }
                     } else {
-                        alert("Guide not found");
+                        toast.error("Guide not found");
                         router.back();
                         return;
                     }
@@ -258,7 +260,7 @@ function GuideSetupPageContent() {
                 }
             } catch (err) {
                 console.error(err);
-                alert("Failed to load data");
+                toast.error("Failed to load data");
             } finally {
                 setLoading(false);
             }
@@ -283,7 +285,7 @@ function GuideSetupPageContent() {
     // Remove a guide set
     const removeGuideSet = (setId: string) => {
         if (guideSets.length <= 1) {
-            alert("You need at least one question set");
+            toast.error("You need at least one question set");
             return;
         }
         setGuideSets(guideSets.filter(s => s.id !== setId));
@@ -434,7 +436,7 @@ function GuideSetupPageContent() {
 
         const validQuestions = set.questions.filter(q => q.text.trim());
         if (validQuestions.length === 0) {
-            alert("Add at least one question before checking");
+            toast.error("Add at least one question before checking");
             return;
         }
 
@@ -597,14 +599,14 @@ function GuideSetupPageContent() {
                 setHasUnsavedChanges(true);
 
             } else {
-                alert("Failed to check questions: " + (validationData.error || "Unknown error"));
+                toast.error("Failed to check questions: " + (validationData.error || "Unknown error"));
                 setGuideSets(prev => prev.map(s =>
                     s.id === setId ? { ...s, isChecking: false } : s
                 ));
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to check questions");
+            toast.error("Failed to check questions");
             setGuideSets(prev => prev.map(s =>
                 s.id === setId ? { ...s, isChecking: false } : s
             ));
@@ -650,16 +652,16 @@ function GuideSetupPageContent() {
         // Validate
         for (const set of guideSets) {
             if (!set.title.trim()) {
-                alert("Please provide a title for all question sets");
+                toast.error("Please provide a title for all question sets");
                 return false;
             }
             if (!set.intent.trim()) {
-                alert("Please provide an intent for all question sets");
+                toast.error("Please provide an intent for all question sets");
                 return false;
             }
             const validQuestions = set.questions.filter(q => q.text.trim());
             if (validQuestions.length === 0) {
-                alert(`Please add at least one question to "${set.title}"`);
+                toast.error(`Please add at least one question to "${set.title}"`);
                 return false;
             }
         }
@@ -703,12 +705,12 @@ function GuideSetupPageContent() {
                 setHasSavedGuide(true); // Mark that guide has been saved
                 return true;
             } else {
-                alert("Failed to save: " + (data.error || "Unknown error"));
+                toast.error("Failed to save: " + (data.error || "Unknown error"));
                 return false;
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to save guide");
+            toast.error("Failed to save guide");
             return false;
         } finally {
             setSaving(false);
@@ -738,11 +740,11 @@ function GuideSetupPageContent() {
             if (data.success) {
                 router.push(`/projects/${projectId}/sub/${subProjectId}`);
             } else {
-                alert("Failed to complete setup: " + (data.error || "Unknown error"));
+                toast.error("Failed to complete setup: " + (data.error || "Unknown error"));
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to complete setup");
+            toast.error("Failed to complete setup");
         } finally {
             setFinishing(false);
         }
@@ -919,10 +921,14 @@ function GuideSetupPageContent() {
 
     const getSeverityColor = (severity: string) => {
         switch (severity) {
-            case 'HIGH': return 'text-red-600 bg-red-50 border-red-200';
-            case 'MEDIUM': return 'text-amber-600 bg-amber-50 border-amber-200';
-            case 'LOW': return 'text-blue-600 bg-blue-50 border-blue-200';
-            default: return 'text-muted-foreground bg-muted border-border';
+            case 'HIGH':
+                return 'text-[color:var(--danger)] bg-[color:var(--danger-soft)] border-[color:var(--danger)]/25'
+            case 'MEDIUM':
+                return 'text-[color:var(--warning)] bg-[color:var(--warning-soft)] border-[color:var(--warning)]/25'
+            case 'LOW':
+                return 'text-[color:var(--info)] bg-[color:var(--info-soft)] border-[color:var(--info)]/25'
+            default:
+                return 'text-muted-foreground bg-[color:var(--surface-muted)] border-[color:var(--border-subtle)]'
         }
     };
 
@@ -935,9 +941,9 @@ function GuideSetupPageContent() {
     }
 
     return (
-        <div className="flex flex-col pb-12">
+        <div className="flex flex-col pb-20">
             {/* Edge-to-edge header bar */}
-            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-background border-b border-border">
                 <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
                     <div className="flex items-center gap-3">
                         <Link
@@ -1038,7 +1044,7 @@ function GuideSetupPageContent() {
                                 <span>Feedback / Issues</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="h-5 w-5 rounded-md bg-violet-50 flex items-center justify-center text-violet-600 border border-violet-200">
+                                <div className="h-5 w-5 rounded-md bg-[color:var(--knowledge-soft)] flex items-center justify-center text-[color:var(--knowledge)] border border-[color:var(--knowledge)]/25">
                                     <FileText className="h-3 w-3" />
                                 </div>
                                 <span>Research Insight</span>
@@ -1108,7 +1114,7 @@ What we want to uncover: Understanding how participants structure their day
 
                                 {/* Error Message */}
                                 {importError && (
-                                    <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50/80 border border-red-200/60 text-red-700 text-sm">
+                                    <div className="flex items-start gap-2 p-3 rounded-lg bg-[color:var(--danger-soft)] border border-[color:var(--danger)]/25 text-[color:var(--danger)] text-sm">
                                         <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                                         <span>{importError}</span>
                                     </div>
@@ -1225,7 +1231,7 @@ What we want to uncover: Understanding how participants structure their day
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => removeGuideSet(set.id)}
-                                                    className="text-muted-foreground hover:text-red-500 h-8 w-8"
+                                                    className="text-muted-foreground hover:text-[color:var(--danger)] h-8 w-8"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -1258,7 +1264,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         onClick={() => removeQuestion(set.id, question.id)}
-                                                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity h-8 w-8"
+                                                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity h-8 w-8"
                                                                     >
                                                                         <Trash2 className="h-4 w-4" />
                                                                     </Button>
@@ -1266,7 +1272,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                 {/* Follow-up button - appears on hover below the question */}
                                                                 <button
                                                                     onClick={() => addSubQuestion(set.id, question.id)}
-                                                                    className="opacity-0 group-hover:opacity-100 text-xs text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 ml-1 transition-all duration-200 hover:gap-1.5"
+                                                                    className="opacity-0 group-hover:opacity-100 text-xs text-[color:var(--info)] hover:text-[color:var(--info)] font-medium flex items-center gap-1 ml-1 transition-all duration-200 hover:gap-1.5"
                                                                     title="Add follow-up question"
                                                                 >
                                                                     <Plus className="h-3 w-3" />
@@ -1286,10 +1292,10 @@ What we want to uncover: Understanding how participants structure their day
                                                                     const suggestionId = `${question.id}-main-0`;
                                                                     const isExpanded = expandedSuggestionId === suggestionId;
                                                                     const theme = issue.severity === 'HIGH'
-                                                                        ? { border: 'border-red-200/60', iconText: 'text-red-600', iconBg: 'from-red-50 to-red-100', accent: 'via-red-400/40', title: 'text-red-600/80', boxBg: 'bg-red-50/30', ring: 'ring-red-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
+                                                                        ? { border: 'border-[color:var(--danger)]/25', iconText: 'text-[color:var(--danger)]', iconBg: 'from-[color:var(--danger-soft)] to-[color:var(--danger-soft)]', accent: 'via-[color:var(--danger)]/40', title: 'text-[color:var(--danger)]/80', boxBg: 'bg-[color:var(--danger-soft)]/30', ring: 'ring-[color:var(--danger)]/25', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
                                                                         : issue.severity === 'MEDIUM'
-                                                                            ? { border: 'border-amber-200/60', iconText: 'text-amber-600', iconBg: 'from-amber-50 to-amber-100', accent: 'via-amber-400/40', title: 'text-amber-600/80', boxBg: 'bg-amber-50/30', ring: 'ring-amber-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
-                                                                            : { border: 'border-blue-200/60', iconText: 'text-blue-600', iconBg: 'from-blue-50 to-blue-100', accent: 'via-blue-400/40', title: 'text-blue-600/80', boxBg: 'bg-blue-50/30', ring: 'ring-blue-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' };
+                                                                            ? { border: 'border-[color:var(--warning)]/25', iconText: 'text-[color:var(--warning)]', iconBg: 'from-[color:var(--warning-soft)] to-[color:var(--warning-soft)]', accent: 'via-[color:var(--warning)]/40', title: 'text-[color:var(--warning)]/80', boxBg: 'bg-[color:var(--warning-soft)]/30', ring: 'ring-[color:var(--warning)]/25', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
+                                                                            : { border: 'border-[color:var(--info)]/25', iconText: 'text-[color:var(--info)]', iconBg: 'from-[color:var(--info-soft)] to-[color:var(--info-soft)]', accent: 'via-[color:var(--info)]/40', title: 'text-[color:var(--info)]/80', boxBg: 'bg-[color:var(--info-soft)]/30', ring: 'ring-[color:var(--info)]/25', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' };
 
                                                                     return (
                                                                         <div key={suggestionId} className={`relative ${isExpanded ? 'z-50' : 'z-0'}`}>
@@ -1321,7 +1327,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                                                     {issue.suggestedRewrite.replace(/^Reflection:\s*/i, '')}
                                                                                                 </p>
                                                                                             </div>
-                                                                                            <button onClick={() => dismissSuggestion(set.id, question.id, undefined, 0)} className="text-xs text-muted-foreground hover:text-red-500 font-medium flex items-center gap-1.5 transition-colors mt-2">
+                                                                                            <button onClick={() => dismissSuggestion(set.id, question.id, undefined, 0)} className="text-xs text-muted-foreground hover:text-[color:var(--danger)] font-medium flex items-center gap-1.5 transition-colors mt-2">
                                                                                                 <Trash2 className="h-3 w-3" /> Dismiss
                                                                                             </button>
                                                                                         </div>
@@ -1342,21 +1348,21 @@ What we want to uncover: Understanding how participants structure their day
                                                                             {!isExpanded ? (
                                                                                 <button
                                                                                     onClick={() => setExpandedSuggestionId(insightId)}
-                                                                                    className="relative h-10 w-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 hover:scale-105 transition-all cursor-pointer overflow-hidden"
+                                                                                    className="relative h-10 w-10 rounded-xl bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] flex items-center justify-center shrink-0 hover:scale-105 transition-all cursor-pointer overflow-hidden"
                                                                                     title="View Research Insight"
                                                                                 >
                                                                                     <FileText className="h-5 w-5" />
                                                                                 </button>
                                                                             ) : (
-                                                                                <div data-feedback-card className="absolute top-0 left-0 w-[450px] z-50 p-4 rounded-md bg-card border border-violet-200/60 shadow-md animate-in fade-in zoom-in-95 duration-300">
-                                                                                    <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-violet-400/40 to-transparent rounded-full" />
+                                                                                <div data-feedback-card className="absolute top-0 left-0 w-[450px] z-50 p-4 rounded-md bg-card border border-[color:var(--knowledge)]/25 shadow-md animate-in fade-in zoom-in-95 duration-300">
+                                                                                    <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-[color:var(--knowledge)]/40 to-transparent rounded-full" />
                                                                                     <div className="flex items-start gap-4">
-                                                                                        <div className="h-9 w-9 rounded-md bg-gradient-to-br from-violet-50 to-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                                                                                        <div className="h-9 w-9 rounded-md bg-gradient-to-br from-[color:var(--knowledge-soft)] to-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] flex items-center justify-center shrink-0">
                                                                                             <FileText className="h-5 w-5" />
                                                                                         </div>
                                                                                         <div className="flex-1 min-w-0 pt-0.5">
                                                                                             <div className="flex items-center justify-between mb-3">
-                                                                                                <p className="text-xs font-bold uppercase tracking-[0.12em] text-violet-600/80">From Research</p>
+                                                                                                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--knowledge)]/80">From Research</p>
                                                                                                 <button onClick={() => setExpandedSuggestionId(null)} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors p-1 -mr-2 -mt-2">
                                                                                                     <ChevronUp className="h-4 w-4" />
                                                                                                 </button>
@@ -1369,13 +1375,13 @@ What we want to uncover: Understanding how participants structure their day
                                                                                                     {question.researchInsight.summary}
                                                                                                 </p>
                                                                                             )}
-                                                                                            <div className="bg-violet-50/30 rounded-xl p-3 border border-violet-100/50 mb-3">
+                                                                                            <div className="bg-[color:var(--knowledge-soft)]/30 rounded-xl p-3 border border-[color:var(--knowledge)]/25 mb-3">
                                                                                                 <p className="text-sm text-muted-foreground italic flex gap-2">
-                                                                                                    <span className="opacity-50 text-lg leading-none text-violet-400">"</span>
+                                                                                                    <span className="opacity-50 text-lg leading-none text-[color:var(--knowledge)]">"</span>
                                                                                                     {question.researchInsight.excerpt}
-                                                                                                    <span className="opacity-50 text-lg leading-none self-end text-violet-400">"</span>
+                                                                                                    <span className="opacity-50 text-lg leading-none self-end text-[color:var(--knowledge)]">"</span>
                                                                                                 </p>
-                                                                                                <p className="text-xs text-violet-500 font-medium mt-2 text-right">— {question.researchInsight.documentName}</p>
+                                                                                                <p className="text-xs text-[color:var(--knowledge)] font-medium mt-2 text-right">— {question.researchInsight.documentName}</p>
                                                                                             </div>
                                                                                             <p className="text-xs text-muted-foreground leading-relaxed">
                                                                                                 💡 {question.researchInsight.actionSuggestion || "Consider reframing your question to avoid redundancy, or add a follow-up question to explore deeper insights."}
@@ -1396,7 +1402,7 @@ What we want to uncover: Understanding how participants structure their day
                                                         <div key={subQ.id} className="grid grid-cols-[65%_35%] gap-6 items-start group/sub">
                                                             {/* Col 1: Sub Input */}
                                                             <div className="flex items-start gap-3 pl-10 border-l-2 border-border ml-3 relative">
-                                                                <span className="text-sm text-blue-400 font-mono pt-2.5 w-8 text-right">
+                                                                <span className="text-sm text-[color:var(--info)] font-mono pt-2.5 w-8 text-right">
                                                                     {qIndex + 1}{numberToLetter(sqIndex)}.
                                                                 </span>
                                                                 <div className="flex-1">
@@ -1412,7 +1418,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             onClick={() => removeSubQuestion(set.id, question.id, subQ.id)}
-                                                                            className="opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity h-8 w-8"
+                                                                            className="opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity h-8 w-8"
                                                                         >
                                                                             <Trash2 className="h-4 w-4" />
                                                                         </Button>
@@ -1429,10 +1435,10 @@ What we want to uncover: Understanding how participants structure their day
                                                                         const suggestionId = `${question.id}-sub-${subQ.id}-0`;
                                                                         const isExpanded = expandedSuggestionId === suggestionId;
                                                                         const theme = issue.severity === 'HIGH'
-                                                                            ? { border: 'border-red-200/60', iconText: 'text-red-600', iconBg: 'from-red-50 to-red-100', accent: 'via-red-400/40', title: 'text-red-600/80', boxBg: 'bg-red-50/30', ring: 'ring-red-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
+                                                                            ? { border: 'border-[color:var(--danger)]/25', iconText: 'text-[color:var(--danger)]', iconBg: 'from-[color:var(--danger-soft)] to-[color:var(--danger-soft)]', accent: 'via-[color:var(--danger)]/40', title: 'text-[color:var(--danger)]/80', boxBg: 'bg-[color:var(--danger-soft)]/30', ring: 'ring-[color:var(--danger)]/25', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
                                                                             : issue.severity === 'MEDIUM'
-                                                                                ? { border: 'border-amber-200/60', iconText: 'text-amber-600', iconBg: 'from-amber-50 to-amber-100', accent: 'via-amber-400/40', title: 'text-amber-600/80', boxBg: 'bg-amber-50/30', ring: 'ring-amber-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
-                                                                                : { border: 'border-blue-200/60', iconText: 'text-blue-600', iconBg: 'from-blue-50 to-blue-100', accent: 'via-blue-400/40', title: 'text-blue-600/80', boxBg: 'bg-blue-50/30', ring: 'ring-blue-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' };
+                                                                                ? { border: 'border-[color:var(--warning)]/25', iconText: 'text-[color:var(--warning)]', iconBg: 'from-[color:var(--warning-soft)] to-[color:var(--warning-soft)]', accent: 'via-[color:var(--warning)]/40', title: 'text-[color:var(--warning)]/80', boxBg: 'bg-[color:var(--warning-soft)]/30', ring: 'ring-[color:var(--warning)]/25', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
+                                                                                : { border: 'border-[color:var(--info)]/25', iconText: 'text-[color:var(--info)]', iconBg: 'from-[color:var(--info-soft)] to-[color:var(--info-soft)]', accent: 'via-[color:var(--info)]/40', title: 'text-[color:var(--info)]/80', boxBg: 'bg-[color:var(--info-soft)]/30', ring: 'ring-[color:var(--info)]/25', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' };
 
                                                                         return (
                                                                             <div key={suggestionId} className={`relative ${isExpanded ? 'z-50' : 'z-0'}`}>
@@ -1464,7 +1470,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                                                         {issue.suggestedRewrite.replace(/^Reflection:\s*/i, '')}
                                                                                                     </p>
                                                                                                 </div>
-                                                                                                <button onClick={() => dismissSuggestion(set.id, question.id, subQ.id, 0)} className="text-xs text-muted-foreground hover:text-red-500 font-medium flex items-center gap-1.5 transition-colors mt-2">
+                                                                                                <button onClick={() => dismissSuggestion(set.id, question.id, subQ.id, 0)} className="text-xs text-muted-foreground hover:text-[color:var(--danger)] font-medium flex items-center gap-1.5 transition-colors mt-2">
                                                                                                     <Trash2 className="h-3 w-3" /> Dismiss
                                                                                                 </button>
                                                                                             </div>
@@ -1485,21 +1491,21 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 {!isExpanded ? (
                                                                                     <button
                                                                                         onClick={() => setExpandedSuggestionId(insightId)}
-                                                                                        className="relative h-10 w-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 hover:scale-105 transition-all cursor-pointer overflow-hidden"
+                                                                                        className="relative h-10 w-10 rounded-xl bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] flex items-center justify-center shrink-0 hover:scale-105 transition-all cursor-pointer overflow-hidden"
                                                                                         title="View Research Insight"
                                                                                     >
                                                                                         <FileText className="h-5 w-5" />
                                                                                     </button>
                                                                                 ) : (
-                                                                                    <div data-feedback-card className="absolute top-0 left-0 w-[450px] z-50 p-4 rounded-md bg-card border border-violet-200/60 shadow-md animate-in fade-in zoom-in-95 duration-300">
-                                                                                        <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-violet-400/40 to-transparent rounded-full" />
+                                                                                    <div data-feedback-card className="absolute top-0 left-0 w-[450px] z-50 p-4 rounded-md bg-card border border-[color:var(--knowledge)]/25 shadow-md animate-in fade-in zoom-in-95 duration-300">
+                                                                                        <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-[color:var(--knowledge)]/40 to-transparent rounded-full" />
                                                                                         <div className="flex items-start gap-4">
-                                                                                            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-violet-50 to-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                                                                                            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-[color:var(--knowledge-soft)] to-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] flex items-center justify-center shrink-0">
                                                                                                 <FileText className="h-5 w-5" />
                                                                                             </div>
                                                                                             <div className="flex-1 min-w-0 pt-0.5">
                                                                                                 <div className="flex items-center justify-between mb-3">
-                                                                                                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-violet-600/80">From Research</p>
+                                                                                                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--knowledge)]/80">From Research</p>
                                                                                                     <button onClick={() => setExpandedSuggestionId(null)} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors p-1 -mr-2 -mt-2">
                                                                                                         <ChevronUp className="h-4 w-4" />
                                                                                                     </button>
@@ -1512,13 +1518,13 @@ What we want to uncover: Understanding how participants structure their day
                                                                                                         {subQ.researchInsight.summary}
                                                                                                     </p>
                                                                                                 )}
-                                                                                                <div className="bg-violet-50/30 rounded-xl p-3 border border-violet-100/50 mb-3">
+                                                                                                <div className="bg-[color:var(--knowledge-soft)]/30 rounded-xl p-3 border border-[color:var(--knowledge)]/25 mb-3">
                                                                                                     <p className="text-sm text-muted-foreground italic flex gap-2">
-                                                                                                        <span className="opacity-50 text-lg leading-none text-violet-400">"</span>
+                                                                                                        <span className="opacity-50 text-lg leading-none text-[color:var(--knowledge)]">"</span>
                                                                                                         {subQ.researchInsight.excerpt}
-                                                                                                        <span className="opacity-50 text-lg leading-none self-end text-violet-400">"</span>
+                                                                                                        <span className="opacity-50 text-lg leading-none self-end text-[color:var(--knowledge)]">"</span>
                                                                                                     </p>
-                                                                                                    <p className="text-xs text-violet-500 font-medium mt-2 text-right">— {subQ.researchInsight.documentName}</p>
+                                                                                                    <p className="text-xs text-[color:var(--knowledge)] font-medium mt-2 text-right">— {subQ.researchInsight.documentName}</p>
                                                                                                 </div>
                                                                                                 <p className="text-xs text-muted-foreground leading-relaxed">
                                                                                                     💡 {subQ.researchInsight.actionSuggestion || "Consider reframing your question to avoid redundancy, or add a follow-up question to explore deeper insights."}
@@ -1571,14 +1577,7 @@ What we want to uncover: Understanding how participants structure their day
 
 // Loading fallback for Suspense
 function GuideSetupLoading() {
-    return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading guide editor...</p>
-            </div>
-        </div>
-    );
+    return <CenteredSpinner label="Loading guide editor..." />;
 }
 
 // Export wrapped in Suspense for useSearchParams

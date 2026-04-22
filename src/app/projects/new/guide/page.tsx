@@ -1266,15 +1266,16 @@ What we want to uncover: Understanding how participants structure their day
 
                     {/* Content Area */}
                     <div>
-                        <div className="space-y-4 pb-8">
+                        <div className="pb-8">
 
                             {/* Guide Sets */}
+                            <div className="flex flex-col gap-6">
                             {guideSets.map((set, setIndex) => (
                                 <div
                                     key={set.id}
                                     id={`guideset-${set.id}`}
                                     data-guideset-id={set.id}
-                                    className="mb-6 relative isolate animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-[120px]"
+                                    className="relative isolate animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-[120px]"
                                 >
                                     {/* Card Background Layer (Left 65%) */}
                                     <div className="absolute top-0 bottom-0 left-0 w-[65%] bg-card rounded-md border border-border -z-10 transition-all duration-500" />
@@ -1655,11 +1656,12 @@ What we want to uncover: Understanding how participants structure their day
                                     )}
                                 </div>
                             ))}
+                            </div>
 
                             <Button
                                 variant="outline"
                                 onClick={addGuideSet}
-                                className="w-full border-dashed border-2 border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-accent"
+                                className="mt-6 w-full border-dashed border-2 border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-accent"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Topic Section

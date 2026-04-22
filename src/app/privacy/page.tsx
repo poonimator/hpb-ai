@@ -91,7 +91,7 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-display-3">Data Retention</h2>
           <p className="text-body">
-            Data is retained in accordance with HPB's records management policies:
+            Data is retained in accordance with HPB&apos;s records management policies:
           </p>
           <ul className="list-disc list-inside text-body space-y-2">
             <li>Training simulation data is retained for the duration of the project plus a reasonable review period</li>
@@ -142,7 +142,7 @@ export default function PrivacyPage() {
           <h2 className="text-display-3">Changes to This Statement</h2>
           <p className="text-body">
             HPB may update this Privacy Statement from time to time to reflect changes in our practices
-            or for legal, operational, or regulatory reasons. The "Last updated" date at the top of this
+            or for legal, operational, or regulatory reasons. The &ldquo;Last updated&rdquo; date at the top of this
             page indicates when this Statement was last revised.
           </p>
         </section>

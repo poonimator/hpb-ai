@@ -1115,8 +1115,15 @@ function GuideSetupPageContent() {
             />
 
             {/* Main Content Container */}
-            <div className="pt-6 pb-20">
-                <h1 className="text-display-2 mb-6">Moderator Guide Setup</h1>
+            <WorkspaceFrame variant="review" leftRail={leftRail}>
+                <div className="max-w-3xl">
+                <div className="flex flex-col gap-1 mb-8">
+                    <Eyebrow>Setup</Eyebrow>
+                    <h1 className="text-display-1 text-foreground">Moderator Guide</h1>
+                    <p className="text-body-lg text-muted-foreground">
+                        Design the question sets the AI moderator will use. Each set should have an intent and a few questions; quality feedback appears inline as you type.
+                    </p>
+                </div>
                 <div className="relative min-h-[600px]">
                     {/* Legend */}
                     <div className="flex justify-end mb-8">
@@ -1263,7 +1270,12 @@ What we want to uncover: Understanding how participants structure their day
 
                             {/* Guide Sets */}
                             {guideSets.map((set, setIndex) => (
-                                <div key={set.id} className="mb-6 relative isolate animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div
+                                    key={set.id}
+                                    id={`guideset-${set.id}`}
+                                    data-guideset-id={set.id}
+                                    className="mb-6 relative isolate animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-[120px]"
+                                >
                                     {/* Card Background Layer (Left 65%) */}
                                     <div className="absolute top-0 bottom-0 left-0 w-[65%] bg-card rounded-md border border-border -z-10 transition-all duration-500" />
 
@@ -1655,7 +1667,8 @@ What we want to uncover: Understanding how participants structure their day
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
+            </WorkspaceFrame>
         </div >
     );
 }

@@ -86,8 +86,8 @@ export default function NewMappingPage({ params }: PageProps) {
         e.preventDefault();
         if (e.dataTransfer.files) {
             const newFiles = Array.from(e.dataTransfer.files).filter(f =>
-                f.type === "text/plain" || f.type === "application/pdf" ||
-                f.name.endsWith(".md") || f.name.endsWith(".docx")
+                f.type === "text/plain" || f.type === "text/markdown" ||
+                f.name.endsWith(".md") || f.name.endsWith(".txt")
             ).map(file => ({
                 file,
                 id: Math.random().toString(36).substring(7),
@@ -189,24 +189,37 @@ export default function NewMappingPage({ params }: PageProps) {
     };
 
     return (
-        <div className="min-h-screen relative overflow-hidden">
-            {/* Background Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-to-b from-violet-50 to-transparent blur-3xl -z-10 pointer-events-none" />
-
-            <div className="max-w-4xl mx-auto px-6 py-10">
-                {/* Header */}
-                <div className="mb-8">
-                    <Link href={`/projects/${projectId}/sub/${subProjectId}?tab=mapping`} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-4 inline-flex items-center gap-1">
-                        <ArrowLeft className="h-3 w-3" />
-                        Back to Workspace
-                    </Link>
-                    <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600">
-                            <Network className="h-6 w-6" />
+        <div className="flex flex-col relative">
+            {/* Edge-to-edge header bar */}
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={`/projects/${projectId}/sub/${subProjectId}?tab=mapping`}
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Back to Workspace"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back</span>
+                        </Link>
+                        <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600">
+                            <Network className="h-4 w-4" />
                         </div>
-                        New Mapping Session
-                    </h1>
+                        <div>
+                            <h1 className="text-base font-bold text-foreground">New Mapping Session</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                Upload transcripts and map participant insights
+                            </p>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            {/* Background Glow */}
+            <div className="absolute top-[64px] left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-to-b from-violet-50 to-transparent blur-3xl -z-10 pointer-events-none" />
+
+            <div className="py-8">
+                <div className="w-full">
 
                 {/* STEPS */}
 
@@ -239,7 +252,7 @@ export default function NewMappingPage({ params }: PageProps) {
                                             multiple
                                             ref={fileInputRef}
                                             className="hidden"
-                                            accept=".txt,.pdf,.md,.docx"
+                                            accept=".txt,.md,text/plain,text/markdown"
                                             onChange={handleFileSelect}
                                         />
                                         <div className="flex flex-col items-center gap-3">
@@ -248,7 +261,7 @@ export default function NewMappingPage({ params }: PageProps) {
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-foreground">Click to upload or drag & drop</p>
-                                                <p className="text-sm text-muted-foreground">PDF, Custom Text, Markdown</p>
+                                                <p className="text-sm text-muted-foreground">Custom Text (.txt), Markdown (.md)</p>
                                             </div>
                                         </div>
                                     </div>
@@ -400,6 +413,7 @@ export default function NewMappingPage({ params }: PageProps) {
                         </div>
                     </div>
                 )}
+                </div>
             </div>
         </div>
     );

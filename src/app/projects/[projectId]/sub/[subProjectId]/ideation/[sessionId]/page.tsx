@@ -131,8 +131,10 @@ export default function IdeationResultsPage({ params }: PageProps) {
                         <Link
                             href={`/projects/${projectId}/sub/${subProjectId}?tab=ideation`}
                             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Back to Workspace"
                         >
                             <ArrowLeft className="h-4 w-4" />
+                            <span>Back</span>
                         </Link>
                         <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--color-interact-subtle)' }}>
                             <Zap className="h-4 w-4" style={{ color: 'var(--color-interact)' }} />

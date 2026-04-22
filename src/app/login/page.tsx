@@ -37,7 +37,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-[#fafafa]"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-white"
     >
       <div className="w-full max-w-[360px] px-6">
         <div className="text-center mb-8">

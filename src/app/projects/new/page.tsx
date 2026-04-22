@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Loader2, FolderPlus, ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowLeft, Loader2, FolderPlus, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function NewProjectPage() {
@@ -58,16 +58,14 @@ export default function NewProjectPage() {
         <div className="py-8 flex flex-col items-center">
 
             <div className="w-full max-w-2xl">
-                {/* Breadcrumb Navigation */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-8 pl-1">
-                    <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                        Projects
-                    </Link>
-                    <span className="text-border">/</span>
-                    <span className="text-foreground">
-                        New Project
-                    </span>
-                </div>
+                {/* Back Link */}
+                <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Projects
+                </Link>
 
                 <Card>
                     <CardContent className="p-8 md:p-10">

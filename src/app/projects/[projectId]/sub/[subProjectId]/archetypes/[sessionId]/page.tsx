@@ -142,23 +142,41 @@ export default function ArchetypeViewPage({ params }: PageProps) {
     const accentColor = colorScheme.accent;
 
     return (
-        <div className="min-h-screen bg-accent/30 pb-20">
-            <div className="max-w-4xl mx-auto px-6 py-10">
-                {/* Back */}
-                <Link href={`/projects/${projectId}/sub/${subProjectId}?tab=archetypes`} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-6 inline-flex items-center gap-1">
-                    <ArrowLeft className="h-3 w-3" />
-                    Back to Workspace
-                </Link>
+        <div className="flex flex-col">
+            {/* Edge-to-edge header bar */}
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={`/projects/${projectId}/sub/${subProjectId}?tab=archetypes`}
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Back to Workspace"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back</span>
+                        </Link>
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <h1 className="text-base font-bold text-foreground">{archetype.name}</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                Archetype profile
+                                {archetype.kicker && (
+                                    <>
+                                        <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
+                                        <span>{archetype.kicker}</span>
+                                    </>
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                {/* Header — kicker, name, description */}
+            <div className="py-8">
+                {/* Header — name, description */}
                 <div className="mb-8">
-                    {/* Kicker */}
-                    {archetype.kicker && (
-                        <p className="text-sm text-muted-foreground mb-2">
-                            {archetype.kicker}
-                        </p>
-                    )}
-
                     {/* Name */}
                     <h1 className={`text-3xl md:text-4xl font-extrabold ${accentColor} tracking-tight leading-tight mb-4`}>
                         {archetype.name}

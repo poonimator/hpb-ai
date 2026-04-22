@@ -214,11 +214,13 @@ export default function ProjectHomePage({ params }: PageProps) {
             <div className="py-8">
                 {/* Header Section */}
                 <div className="mb-8">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                        <Link href="/dashboard" className="hover:text-foreground transition-colors">Projects</Link>
-                        <span className="text-border">/</span>
-                        <span className="text-foreground">{project.name}</span>
-                    </div>
+                    <Link
+                        href="/dashboard"
+                        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Projects
+                    </Link>
 
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex-1 max-w-3xl">

@@ -935,110 +935,100 @@ function GuideSetupPageContent() {
     }
 
     return (
-        <div className="min-h-screen bg-background pb-12">
-            {/* Fixed Top Bar with Breadcrumbs - below main navbar */}
-            <div className="fixed top-16 left-0 right-0 bg-background z-30 border-b border-border">
-                <div className="max-w-7xl mx-auto px-4 md:px-6 py-3">
-                    <div className="flex items-center justify-between">
-                        {/* Breadcrumb Navigation */}
-                        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                            <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                                Projects
-                            </Link>
-                            <span className="text-muted-foreground/50">/</span>
-                            <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[120px]">
-                                {project?.name || "Project"}
-                            </Link>
-                            {subProjectId && (
-                                <>
-                                    <span className="text-muted-foreground/50">/</span>
-                                    <Link href={`/projects/${projectId}/sub/${subProjectId}`} className="hover:text-foreground transition-colors truncate max-w-[120px]">
-                                        Workspace
-                                    </Link>
-                                </>
-                            )}
-                            <span className="text-muted-foreground/50">/</span>
-                            <span className="text-foreground">
-                                Guide Setup
-                            </span>
+        <div className="flex flex-col pb-12">
+            {/* Edge-to-edge header bar */}
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={subProjectId ? `/projects/${projectId}/sub/${subProjectId}?tab=guides` : `/projects/${projectId}`}
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label={`Back to ${project?.name || "Project"}`}
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back</span>
+                        </Link>
+                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-foreground">
+                            <FileText className="h-4 w-4" />
                         </div>
-
-                        {/* Action Buttons - Right side */}
-                        <div className="flex items-center gap-2">
-                            {/* Export Button */}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={exportGuide}
-                                className="h-8 px-4 text-xs font-semibold border-input bg-background text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-300 rounded-md"
-                                title="Export Guide and Feedback to Text File"
-                            >
-                                <Download className="h-3.5 w-3.5 mr-2" />
-                                Export
-                            </Button>
-
-                            {/* Check All Button */}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={checkAllGuides}
-                                disabled={guideSets.some(s => s.isChecking)}
-                                className="h-8 px-4 text-xs font-semibold border-input bg-accent text-foreground hover:bg-accent/80 transition-all duration-300 rounded-md"
-                            >
-                                {guideSets.some(s => s.isChecking) ? (
+                        <div>
+                            <h1 className="text-base font-bold text-foreground">Moderator Guide Setup</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                {project?.name || "Project"}
+                                {hasSavedGuide ? (
                                     <>
-                                        <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                                        Checking...
+                                        <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
+                                        <span>Editing saved guide</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles className="h-3.5 w-3.5 mr-2" />
-                                        Check All
+                                        <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
+                                        <span>Step 2 of 2</span>
                                     </>
                                 )}
-                            </Button>
-
-                            {/* Import Guide Button */}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setImportDialogOpen(true)}
-                                disabled={saving || finishing || importing}
-                                className="h-8 px-4 text-xs font-semibold border-input bg-accent text-foreground hover:bg-accent/80 transition-all duration-300 rounded-md"
-                            >
-                                <ClipboardPaste className="h-3.5 w-3.5 mr-2" />
-                                Import Guide
-                            </Button>
-
-                            {/* Save Button */}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={saveGuideSets}
-                                disabled={saving || finishing}
-                                className="h-8 px-4 text-xs font-semibold border-input bg-background text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-300 rounded-md"
-                            >
-                                {saving ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : null}
-                                Save
-                            </Button>
+                            </p>
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={exportGuide}
+                            className="gap-1.5"
+                            title="Export Guide and Feedback to Text File"
+                        >
+                            <Download className="h-3.5 w-3.5" />
+                            Export
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={checkAllGuides}
+                            disabled={guideSets.some(s => s.isChecking)}
+                            className="gap-1.5"
+                        >
+                            {guideSets.some(s => s.isChecking) ? (
+                                <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    Checking...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                    Check All
+                                </>
+                            )}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setImportDialogOpen(true)}
+                            disabled={saving || finishing || importing}
+                            className="gap-1.5"
+                        >
+                            <ClipboardPaste className="h-3.5 w-3.5" />
+                            Import Guide
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={saveGuideSets}
+                            disabled={saving || finishing}
+                            className="gap-1.5"
+                        >
+                            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                            Save
+                        </Button>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Container - with top padding for fixed breadcrumb */}
-            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-16">
-                <div className="relative min-h-[800px]">
-                    {/* Internal Header */}
-                    <div className="flex items-end justify-between mb-8">
-                        <div>
-                            <h1 className="text-3xl font-bold text-foreground mb-1.5">Moderator Guide Setup</h1>
-                            <p className="text-muted-foreground text-sm leading-relaxed">
-                                {hasSavedGuide ? `Editing guide for ${project?.name}` : `Step 2 of 2: Create interview guide`}
-                            </p>
-                        </div>
-
-                        {/* Legend */}
+            {/* Main Content Container */}
+            <div>
+                <div className="relative min-h-[600px] py-8">
+                    {/* Legend */}
+                    <div className="flex justify-end mb-8">
                         <div className="inline-flex items-center gap-4 text-xs text-muted-foreground px-4 py-2.5 bg-muted rounded-md border border-border">
                             <span className="font-medium text-foreground">Legend:</span>
                             <div className="flex items-center gap-2">

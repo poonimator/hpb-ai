@@ -269,35 +269,26 @@ export default function ProjectKbPage({ params }: PageProps) {
 
     return (
         <>
-            <div className="min-h-screen pb-12">
-                <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-8">
+            <div className="py-8">
 
-                    {/* Breadcrumbs */}
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-8">
-                        <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                            Projects
-                        </Link>
-                        <span className="text-border">/</span>
-                        <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[150px]">
-                            {project?.name || "Project"}
-                        </Link>
-                        <span className="text-border">/</span>
-                        <span className="text-foreground">
-                            Knowledge Base
-                        </span>
-                    </div>
+                    {/* Back Link */}
+                    <Link
+                        href={`/projects/${projectId}`}
+                        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to {project?.name || "Project"}
+                    </Link>
 
                     {/* Header Section */}
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
                         <div className="flex items-start gap-4">
                             <div className="h-10 w-10 rounded-md flex items-center justify-center shrink-0 mt-1" style={{ backgroundColor: 'var(--color-knowledge-muted)', color: 'var(--color-knowledge)' }}>
                                 <BookOpenText className="h-5 w-5" />
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold text-foreground tracking-tight mb-3">
-                                    <span className="text-foreground">
-                                        Project Knowledge Base
-                                    </span>
+                                <h1 className="text-3xl font-semibold tracking-tight mb-3">
+                                    Project Knowledge Base
                                 </h1>
                                 <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
                                     Manage project-specific personas, frameworks, and documents used to ground the AI in this research context.
@@ -595,7 +586,6 @@ export default function ProjectKbPage({ params }: PageProps) {
                             })}
                         </div>
                     )}
-                </div>
             </div>
 
             {/* View Dialog - Modernized */}

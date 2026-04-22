@@ -261,26 +261,34 @@ export default function NewIdeationPage({ params }: PageProps) {
     const hasCompletedMappings = mappingSessions.length > 0;
 
     return (
-        <div className="max-w-3xl mx-auto py-8 px-4">
-            {/* Header */}
-            <div className="mb-8">
-                <Link
-                    href={`/projects/${projectId}/sub/${subProjectId}?tab=ideation`}
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to workspace
-                </Link>
-                <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--color-interact-subtle)' }}>
-                        <Zap className="h-5 w-5" style={{ color: 'var(--color-interact)' }} />
+        <div className="flex flex-col">
+            {/* Edge-to-edge header bar */}
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={`/projects/${projectId}/sub/${subProjectId}?tab=ideation`}
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Back to Workspace"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back</span>
+                        </Link>
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--color-interact-subtle)' }}>
+                            <Zap className="h-4 w-4" style={{ color: 'var(--color-interact)' }} />
+                        </div>
+                        <div>
+                            <h1 className="text-base font-bold text-foreground">New Ideation — Crazy 8s</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                Generate 8 creative design concepts from your research
+                            </p>
+                        </div>
                     </div>
-                    New Ideation — Crazy 8s
-                </h1>
-                <p className="text-sm text-muted-foreground mt-2">
-                    Generate 8 creative design concepts grounded in your research data.
-                </p>
+                </div>
             </div>
+
+            <div className="py-8">
+                <div className="w-full">
 
             {!hasCompletedMappings ? (
                 <Card className="border-dashed">
@@ -305,27 +313,44 @@ export default function NewIdeationPage({ params }: PageProps) {
                             Select Mapping <span className="text-destructive">*</span>
                         </Label>
                         <div className="grid gap-2">
-                            {mappingSessions.map((m) => (
-                                <button
-                                    key={m.id}
-                                    onClick={() => setSelectedMappingId(m.id)}
-                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                                        selectedMappingId === m.id
-                                            ? "border-primary bg-accent/50 ring-1 ring-primary/20"
-                                            : "border-border bg-card hover:bg-muted/50"
-                                    }`}
-                                >
-                                    <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' }}>
-                                        {selectedMappingId === m.id ? <Check className="h-4 w-4" /> : <Network className="h-4 w-4" />}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-foreground truncate">{m.name}</p>
-                                        <p className="text-[11px] text-muted-foreground">
-                                            {new Date(m.createdAt).toLocaleDateString()} &middot; {m._count.transcripts} files &middot; {m._count.clusters} clusters
-                                        </p>
-                                    </div>
-                                </button>
-                            ))}
+                            {mappingSessions.map((m) => {
+                                const isSelected = selectedMappingId === m.id;
+                                return (
+                                    <button
+                                        key={m.id}
+                                        onClick={() => setSelectedMappingId(m.id)}
+                                        aria-pressed={isSelected}
+                                        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                                            isSelected
+                                                ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20"
+                                                : "border-border bg-card hover:bg-muted/50 hover:border-muted-foreground/30"
+                                        }`}
+                                    >
+                                        <div
+                                            className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                                                isSelected ? "bg-primary text-primary-foreground" : ""
+                                            }`}
+                                            style={!isSelected ? { backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' } : undefined}
+                                        >
+                                            {isSelected ? <Check className="h-4 w-4" /> : <Network className="h-4 w-4" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-sm truncate ${isSelected ? "font-bold text-foreground" : "font-semibold text-foreground"}`}>
+                                                {m.name}
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {new Date(m.createdAt).toLocaleDateString()} &middot; {m._count.transcripts} files &middot; {m._count.clusters} clusters
+                                            </p>
+                                        </div>
+                                        {isSelected && (
+                                            <div className="flex items-center gap-1 text-xs font-medium text-primary shrink-0 pr-1">
+                                                <Check className="h-3.5 w-3.5" />
+                                                Selected
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -464,6 +489,8 @@ export default function NewIdeationPage({ params }: PageProps) {
                     </Button>
                 </div>
             )}
+            </div>
+            </div>
         </div>
     );
 }

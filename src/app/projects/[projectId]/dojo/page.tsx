@@ -42,7 +42,8 @@ import {
     ChevronDown,
     ChevronUp,
     Target,
-    MessageSquare
+    MessageSquare,
+    MessageCircle
 } from "lucide-react";
 
 interface KBDocument {
@@ -620,70 +621,58 @@ export default function DojoPage({ params }: PageProps) {
     const activePersona = personas.find(p => p.id === selectedPersonaId);
 
     return (
-        <div className="h-screen flex flex-col bg-accent/50 overflow-hidden">
-
-            {/* 
-                LAYOUT: Floating Architecture
-                - All content inside a max-w-7xl container with p-6
-             */}
-            <div className="flex-1 overflow-hidden p-6 flex flex-col gap-4 max-w-7xl mx-auto w-full">
-
-                {/* 1. Header Card (Slimmer) */}
-                <Card className="shrink-0 bg-white border-border shadow-sm">
-                    <div className="px-5 py-3 flex items-center justify-between gap-4 h-16">
-                        <div className="flex items-center gap-4">
-                            <Link
-                                href="/dashboard"
-                                className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-muted hover:bg-accent hover:text-foreground text-muted-foreground transition-colors"
-                            >
-                                <ChevronLeft className="h-5 w-5" />
-                            </Link>
-
-                            <Separator orientation="vertical" className="h-8 bg-border" />
-
-                            <div>
-                                <h1 className="text-lg font-bold text-foreground tracking-tight leading-none">
-                                    Interview Rehearsal
-                                </h1>
-                                {/* Context Info */}
-                                <div className="flex items-center gap-2 mt-1 truncate max-w-[200px] md:max-w-md">
-                                    <p className="text-xs text-muted-foreground font-medium truncate">{project?.name}</p>
-                                    {simulationId && activePersona && (
-                                        <>
-                                            <span className="text-border">•</span>
-                                            <Badge variant="secondary" className="h-5 px-1.5 bg-accent text-foreground text-[10px] gap-1 border-border font-medium">
-                                                <User className="h-3 w-3" />
-                                                {activePersona.title}
-                                            </Badge>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
+        <div className="h-[calc(100vh-64px)] flex flex-col bg-accent/50 overflow-hidden">
+            {/* Edge-to-edge header bar */}
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border shrink-0">
+                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href="/dashboard"
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Back to Dashboard"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back</span>
+                        </Link>
+                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                            <MessageCircle className="h-4 w-4 text-muted-foreground" />
                         </div>
-
-                        {/* Right Side: Warning & Controls */}
-                        <div className="flex items-center gap-3">
-
-
-                            {/* End Session Button */}
-                            {simulationId ? (
-                                <Button
-                                    onClick={endSession}
-                                    disabled={ending || generatingReview}
-                                    variant="destructive"
-                                    size="sm"
-                                    className="bg-red-600 hover:bg-red-700 shadow-sm h-9"
-                                >
-                                    {ending ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Square className="h-3.5 w-3.5 mr-2" />}
-                                    End Session
-                                </Button>
-                            ) : (
-                                // Placeholder for Start Button if we wanted it in header, but we don't.
-                                null
-                            )}
+                        <div>
+                            <h1 className="text-base font-bold text-foreground">Interview Rehearsal</h1>
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 truncate max-w-[300px] md:max-w-[500px]">
+                                <span className="truncate">{project?.name}</span>
+                                {simulationId && activePersona && (
+                                    <>
+                                        <span className="text-muted-foreground/40">&middot;</span>
+                                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                                            <User className="h-3 w-3" />
+                                            {activePersona.title}
+                                        </span>
+                                    </>
+                                )}
+                            </p>
                         </div>
                     </div>
-                </Card>
+
+                    <div className="flex items-center gap-2">
+                        {simulationId ? (
+                            <Button
+                                onClick={endSession}
+                                disabled={ending || generatingReview}
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700"
+                            >
+                                {ending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" />}
+                                End Session
+                            </Button>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden p-6 flex flex-col gap-4 max-w-7xl mx-auto w-full">
+
 
 
 

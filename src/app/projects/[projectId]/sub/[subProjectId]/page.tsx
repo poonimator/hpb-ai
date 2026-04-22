@@ -453,25 +453,21 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
             <div className="py-8 animate-in fade-in zoom-in-95 duration-500">
 
-                {/* Breadcrumbs */}
-                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground mb-8">
-                    <Link href="/dashboard" className="hover:text-foreground transition-colors">Projects</Link>
-                    <span className="text-border">/</span>
-                    <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[150px]">
-                        {subProject.project.name}
-                    </Link>
-                    <span className="text-border">/</span>
-                    <span className="text-foreground truncate max-w-[200px]">
-                        {subProject.name}
-                    </span>
-                </div>
+                {/* Back Link */}
+                <Link
+                    href={`/projects/${projectId}`}
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to {subProject.project.name}
+                </Link>
 
                 {/* Header Section */}
-                <div className="mb-12">
+                <div className="mb-8">
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                         <div className="max-w-3xl">
                             <div className="flex items-center gap-4 mb-4 group">
-                                <h1 className="text-4xl font-extrabold text-foreground tracking-tight leading-tight" aria-label={`Workspace: ${subProject.name}`}>
+                                <h1 className="text-3xl font-semibold tracking-tight" aria-label={`Workspace: ${subProject.name}`}>
                                     {subProject.name}
                                 </h1>
                                 <Button

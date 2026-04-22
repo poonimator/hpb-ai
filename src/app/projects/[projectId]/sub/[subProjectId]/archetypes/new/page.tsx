@@ -179,26 +179,36 @@ export default function NewArchetypePage({ params }: PageProps) {
     };
 
     return (
-        <div className={`min-h-screen relative overflow-hidden transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
-            {/* Background Glow */}
-            {/* Background removed */}
-
-            <div className="max-w-4xl mx-auto px-6 py-10">
-                {/* Header */}
-                {step !== 3 && (
-                    <div className="mb-8">
-                        <Link href={`/projects/${projectId}/sub/${subProjectId}?tab=archetypes`} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-4 inline-flex items-center gap-1">
-                            <ArrowLeft className="h-3 w-3" />
-                            Back to Workspace
-                        </Link>
-                        <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-primary">
-                                <Users className="h-6 w-6" />
+        <div className={`flex flex-col transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
+            {/* Edge-to-edge header bar */}
+            {step !== 3 && (
+                <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                    <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                        <div className="flex items-center gap-3">
+                            <Link
+                                href={`/projects/${projectId}/sub/${subProjectId}?tab=archetypes`}
+                                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label="Back to Workspace"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                <span>Back</span>
+                            </Link>
+                            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-primary">
+                                <Users className="h-4 w-4" />
                             </div>
-                            Generate Profiles
-                        </h1>
+                            <div>
+                                <h1 className="text-base font-bold text-foreground">Generate Profiles</h1>
+                                <p className="text-[11px] text-muted-foreground">
+                                    Create archetypes from selected mapping sessions
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                )}
+                </div>
+            )}
+
+            <div className="py-8">
+                <div className="w-full">
 
                 {/* Step 1: Setup */}
                 {step === 1 && (
@@ -401,6 +411,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                         </div>
                     </div>
                 )}
+                </div>
             </div>
         </div>
     );

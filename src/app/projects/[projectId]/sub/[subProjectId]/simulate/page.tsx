@@ -48,6 +48,7 @@ import {
     ChevronDown,
     Zap,
     Users,
+    MessageCircle,
     ImagePlus
 } from "lucide-react";
 
@@ -943,54 +944,80 @@ function SimulationPageContent({ params }: PageProps) {
             {/* When simulation is STARTED - Fixed header + sidebar layout */}
             {isStarted ? (
                 <>
-                    {/* Fixed Top Bar with Breadcrumbs - below main navbar */}
-                    <div className="fixed top-16 left-0 right-0 bg-white z-30 border-b border-border/60">
-                        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3">
-                            <div className="flex items-center justify-between">
-                                {/* Breadcrumb Navigation - minimal */}
-                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                    <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                                        Projects
-                                    </Link>
-                                    <span className="text-border">/</span>
-                                    <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[120px]">
-                                        {subProject?.project.name || "Project"}
-                                    </Link>
-                                    <span className="text-border">/</span>
-                                    <Link href={`/projects/${projectId}/sub/${subProjectId}`} className="hover:text-foreground transition-colors truncate max-w-[120px]">
-                                        {subProject?.name || "Workspace"}
-                                    </Link>
-                                    <span className="text-border">/</span>
-                                    <span className="text-foreground">
-                                        Interview Simulation
-                                    </span>
-                                </div>
+                    {/* Fixed header bar — matches edge-to-edge white-bar style */}
+                    <div className="fixed top-16 left-0 right-0 bg-white z-30 border-b border-border">
+                        <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <Link
+                                    href={`/projects/${projectId}/sub/${subProjectId}?tab=simulations`}
+                                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                    aria-label={`Back to ${subProject?.name || "Workspace"}`}
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                    <span>Back</span>
+                                </Link>
+                                {isFocusGroup && focusGroupArchetypes.length > 0 ? (
+                                    <>
+                                        <div className="flex items-center -space-x-1.5 shrink-0">
+                                            {focusGroupArchetypes.map((arch) => {
+                                                const color = getArchetypeColor(arch.id);
+                                                return (
+                                                    <div
+                                                        key={arch.id}
+                                                        className={`h-8 w-8 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} font-bold text-xs ring-2 ring-white shadow-sm`}
+                                                    >
+                                                        {getInitial(arch.name)}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h1 className="text-base font-bold text-foreground">Focus Group</h1>
+                                            <p className="text-[11px] text-muted-foreground truncate">
+                                                {focusGroupArchetypes.map(a => a.name).join(" · ")}
+                                            </p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
+                                            {(selectedPersonaDetails?.name || "P").charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h1 className="text-base font-bold text-foreground truncate">
+                                                {selectedPersonaDetails?.name || "Interview Simulation"}
+                                            </h1>
+                                            <p className="text-[11px] text-muted-foreground truncate">
+                                                {selectedPersonaDetails?.occupation || subProject?.name || "Workspace"}
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
 
-                                {/* Status Badges - Right side of breadcrumbs */}
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5" style={{ backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)', borderColor: 'var(--color-info-muted)' }}>
-                                        <span className="w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse" style={{ backgroundColor: 'var(--color-info)' }} />
-                                        In Progress
-                                    </Badge>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={endSimulation}
-                                        disabled={isEnding}
-                                        className="h-6 px-2.5 text-[10px] rounded-full bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all"
-                                    >
-                                        {isEnding ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Square className="h-3 w-3 mr-1" />}
-                                        End Session
-                                    </Button>
-                                </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <Badge variant="secondary" className="text-[10px] px-2 py-0.5" style={{ backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)', borderColor: 'var(--color-info-muted)' }}>
+                                    <span className="w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse" style={{ backgroundColor: 'var(--color-info)' }} />
+                                    In Progress
+                                </Badge>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={endSimulation}
+                                    disabled={isEnding}
+                                    className="gap-1.5 bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700"
+                                >
+                                    {isEnding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" />}
+                                    End Session
+                                </Button>
                             </div>
                         </div>
                     </div>
 
                     {/* Fixed LEFT Sidebar - Moderator Guide */}
                     {selectedGuideId && selectedGuideId !== "none" && guides.find(g => g.id === selectedGuideId) && (
-                        <div className="fixed top-[120px] left-4 md:left-6 lg:left-[calc((100vw-1280px)/2+24px)] w-[300px] z-30 hidden lg:block">
-                            <Card className="relative flex flex-col bg-white/90 backdrop-blur-md border-border/60 overflow-hidden py-0 gap-0 h-[calc(100vh-220px)] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)]">
+                        <div className="fixed top-[150px] left-4 md:left-6 lg:left-[calc((100vw-1280px)/2+24px)] w-[300px] z-30 hidden lg:block">
+                            <Card className="relative flex flex-col bg-white/90 backdrop-blur-md border-border/60 overflow-hidden py-0 gap-0 h-[calc(100vh-250px)] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)]">
                                 {/* Subtle gradient accent line at top */}
                                 <div className="absolute top-0 left-4 right-4 h-[2px] bg-border rounded-full" />
 
@@ -1006,7 +1033,7 @@ function SimulationPageContent({ params }: PageProps) {
 
                                 {/* Guide Content */}
                                 <div className="flex-1 overflow-hidden min-h-0">
-                                    <ScrollArea className="h-[calc(100vh-280px)]">
+                                    <ScrollArea className="h-[calc(100vh-310px)]">
                                         <div className="p-4 space-y-5">
                                             {/* Covered Questions Badge */}
                                             {coveredQuestionIds.size > 0 && (
@@ -1122,50 +1149,8 @@ function SimulationPageContent({ params }: PageProps) {
                     )}
 
                     {/* Scrollable Chat Area - Two column layout: Chat on left, Opportunities on right */}
-                    <div className="pt-16 pb-24 px-4 md:px-6 lg:pl-[340px]">
+                    <div className="pt-24 pb-24 px-4 md:px-6 lg:pl-[340px]">
                         <div className="max-w-5xl mx-auto">
-                            {/* Persona Header - Compact inline version */}
-                            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_minmax(0,280px)] gap-6">
-                                {isFocusGroup ? (
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="flex items-center -space-x-1.5">
-                                            {focusGroupArchetypes.map((arch) => {
-                                                const color = getArchetypeColor(arch.id);
-                                                return (
-                                                    <div key={arch.id} className={`w-10 h-10 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} font-bold text-sm ring-2 ring-white shadow-sm shrink-0`}>
-                                                        {getInitial(arch.name)}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                        <div>
-                                            <h2 className="text-base font-semibold text-foreground">Focus Group</h2>
-                                            <p className="text-xs text-muted-foreground">
-                                                {focusGroupArchetypes.map(a => a.name).join(" · ")}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm shadow-md shadow-sm shrink-0">
-                                            {(selectedPersonaDetails?.name || "P").charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <h2 className="text-base font-semibold text-foreground">
-                                                {selectedPersonaDetails?.name || "Persona"}
-                                            </h2>
-                                            {selectedPersonaDetails?.occupation && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    {selectedPersonaDetails.occupation}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                                {/* Empty right column for header */}
-                                <div className="hidden lg:block" />
-                            </div>
-
                             {/* Chat Messages - Two column grid */}
                             <div className="space-y-5">
                                 {messages.length === 0 && (
@@ -1815,62 +1800,55 @@ function SimulationPageContent({ params }: PageProps) {
                 </>
             ) : (
                 /* When simulation is NOT STARTED - Setup View */
-                <div className="w-full max-w-6xl mx-auto px-4 md:px-6 py-6">
-
-                    {/* Header */}
-                    <div className="mb-6">
-                        {/* Breadcrumb Navigation */}
-                        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-4">
-                            <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                                Projects
-                            </Link>
-                            <span className="text-border">/</span>
-                            <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[150px]">
-                                {subProject?.project.name || "Project"}
-                            </Link>
-                            <span className="text-border">/</span>
-                            <Link href={`/projects/${projectId}/sub/${subProjectId}`} className="hover:text-foreground transition-colors truncate max-w-[150px]">
-                                {subProject?.name || "Workspace"}
-                            </Link>
-                            <span className="text-border">/</span>
-                            <span className="text-foreground">
-                                New Session
-                            </span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold text-foreground tracking-tight mb-1" aria-label="New Simulation Session">New Simulation Session</h1>
-                                <p className="text-sm text-muted-foreground">
-                                    Select a persona and start your simulation.
-                                </p>
+                <div className="flex flex-col">
+                    {/* Edge-to-edge header bar */}
+                    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                        <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                            <div className="flex items-center gap-3">
+                                <Link
+                                    href={`/projects/${projectId}/sub/${subProjectId}?tab=simulations`}
+                                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    aria-label={`Back to ${subProject?.name || "Workspace"}`}
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                    <span>Back</span>
+                                </Link>
+                                <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                                    <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <div>
+                                    <h1 className="text-base font-bold text-foreground">New Simulation Session</h1>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Select a persona and start your simulation
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* Action buttons — config toggle + start */}
                             <div className="flex items-center gap-2">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setShowConfig(!showConfig)}
-                                    className={`h-9 px-3 rounded-xl text-xs font-medium transition-all ${showConfig ? "bg-muted border-border text-foreground" : "border-border text-muted-foreground hover:text-foreground hover:border-border"}`}
+                                    className="gap-1.5"
                                 >
-                                    <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
+                                    <SlidersHorizontal className="h-3.5 w-3.5" />
                                     Settings
-                                    <ChevronDown className={`h-3 w-3 ml-1 transition-transform duration-200 ${showConfig ? "rotate-180" : ""}`} />
+                                    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showConfig ? "rotate-180" : ""}`} />
                                 </Button>
                                 <Button
+                                    size="sm"
                                     onClick={startSimulation}
                                     disabled={isFocusGroup
                                         ? selectedArchetypeIds.length < 2
                                         : (!selectedPersonaId || (personas.length === 0 && archetypes.length === 0))
                                     }
-                                    className="h-9 px-5 rounded-xl text-xs font-bold shadow-sm bg-primary hover:bg-primary/90 transition-all active:scale-[0.98]"
+                                    className="gap-1.5"
                                 >
                                     {loading ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                     ) : (
                                         <>
-                                            {isFocusGroup ? <Users className="h-3.5 w-3.5 mr-1.5" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}
+                                            {isFocusGroup ? <Users className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                                             {isFocusGroup ? `Start Focus Group (${selectedArchetypeIds.length})` : "Start Simulation"}
                                         </>
                                     )}
@@ -1878,6 +1856,8 @@ function SimulationPageContent({ params }: PageProps) {
                             </div>
                         </div>
                     </div>
+
+                    <div className="py-8">
 
                     {/* Collapsible Configuration Panel */}
                     {showConfig && (
@@ -2461,6 +2441,7 @@ function SimulationPageContent({ params }: PageProps) {
                             </div>
                         </div>
                     )}
+                    </div>
                 </div>
             )
             }

@@ -1,29 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, FileText, ArrowLeft } from "lucide-react";
+import { FileText, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function TermsOfUsePage() {
     return (
-        <div className="min-h-screen pb-16">
-            {/* Hero Header */}
-            <div className="relative flex flex-col items-center justify-center mb-12 pt-8 text-center max-w-4xl mx-auto w-full px-4 md:px-6">
-                <div className="flex flex-col items-center">
+        <div className="py-8">
+            <div className="max-w-4xl mx-auto">
+                {/* Back Link */}
+                <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Dashboard
+                </Link>
+
+                {/* Hero Header */}
+                <div className="relative flex flex-col items-center justify-center mb-12 text-center">
                     <div className="h-16 w-16 bg-primary rounded-md flex items-center justify-center mb-4">
                         <FileText className="h-8 w-8 text-primary-foreground" />
                     </div>
-                    <h1 className="text-3xl font-bold text-foreground">
+                    <h1 className="text-3xl font-semibold tracking-tight text-foreground">
                         Terms of Use
                     </h1>
-                    <p className="text-muted-foreground mt-2">
+                    <p className="text-sm text-muted-foreground mt-1">
                         Last updated: January 2026
                     </p>
                 </div>
-            </div>
 
-            {/* Content */}
-            <div className="max-w-4xl mx-auto px-4 md:px-6">
+                {/* Content */}
                 <div className="bg-card border border-border rounded-md p-8 md:p-12">
 
                     <div className="prose max-w-none">

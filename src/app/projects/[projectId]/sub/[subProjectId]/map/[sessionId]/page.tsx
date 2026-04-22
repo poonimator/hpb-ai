@@ -748,60 +748,49 @@ export default function MappingSessionPage({ params }: PageProps) {
     if (!enabled) return null; // Wait for DND
 
     return (
-        <div className="min-h-screen flex flex-col relative">
-            {/* Sticky Header */}
-            <div className="sticky top-[64px] z-30 bg-background/95 backdrop-blur-md transition-all duration-200 border-b border-border/40">
-                <div className="w-full px-8 py-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Link
-                                href={`/projects/${projectId}/sub/${subProjectId}?tab=mapping`}
-                                className="group p-1.5 rounded-full hover:bg-muted transition-all text-muted-foreground hover:text-foreground border border-transparent hover:border-border"
-                            >
-                                <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-                            </Link>
-                            {/* Title ... */}
-                            <div className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-2">
-                                    <div className="h-4 w-4 rounded bg-violet-100 flex items-center justify-center text-violet-600">
-                                        <Network className="h-2.5 w-2.5" />
-                                    </div>
-                                    <h1 className="text-base font-bold text-foreground tracking-tight leading-none">
-                                        {session.name}
-                                    </h1>
-                                    <span className="text-muted-foreground/50 text-xs">|</span>
-                                    <span className="text-xs font-medium text-muted-foreground">
-                                        {session.clusters.length} insights • {themes.length} themes
-                                    </span>
-                                </div>
-                            </div>
+        <div className="flex flex-col min-h-[calc(100vh-64px)]">
+            {/* Edge-to-edge header bar */}
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={`/projects/${projectId}/sub/${subProjectId}?tab=mapping`}
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Back to Workspace"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back</span>
+                        </Link>
+                        <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600">
+                            <Network className="h-4 w-4" />
                         </div>
                         <div>
-                            <Button
-                                variant={viewMode === "insights" ? "secondary" : "ghost"}
-                                size="sm"
-                                onClick={handleToggleView}
-                                className={cn(
-                                    "h-8 rounded-lg font-medium text-xs transition-all duration-300",
-                                    viewMode === "insights"
-                                        ? "bg-violet-100 text-violet-700 hover:bg-violet-200"
-                                        : "text-muted-foreground hover:bg-accent hover:text-violet-600"
-                                )}
-                            >
-                                {viewMode === "insights" ? (
-                                    <>
-                                        <Network className="h-3.5 w-3.5 mr-1.5" />
-                                        View Mapping
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                                        Insights View
-                                    </>
-                                )}
-                            </Button>
+                            <h1 className="text-base font-bold text-foreground">{session.name}</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                {session.clusters.length} insights
+                                <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
+                                {themes.length} themes
+                            </p>
                         </div>
                     </div>
+                    <Button
+                        variant={viewMode === "insights" ? "secondary" : "outline"}
+                        size="sm"
+                        onClick={handleToggleView}
+                        className="gap-2"
+                    >
+                        {viewMode === "insights" ? (
+                            <>
+                                <Network className="h-3.5 w-3.5" />
+                                View Mapping
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles className="h-3.5 w-3.5" />
+                                Insights View
+                            </>
+                        )}
+                    </Button>
                 </div>
             </div>
 

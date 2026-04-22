@@ -10,12 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
     ArrowLeft,
-    ArrowRight,
     Loader2,
     Target,
     FolderPlus,
-    Save,
-    ChevronRight
+    Save
 } from "lucide-react";
 
 interface SubProject {
@@ -174,32 +172,21 @@ export default function EditSubProjectPage({ params }: PageProps) {
     return (
         <div className="py-8">
             <div className="w-full max-w-4xl mx-auto animate-in zoom-in-95 fade-in duration-500 ease-out">
+                    {/* Back Link */}
+                    <Link
+                        href={`/projects/${projectId}/sub/${subProjectId}`}
+                        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to {subProject?.name || "Workspace"}
+                    </Link>
+
                     {/* Card */}
                     <div className="relative bg-card border border-border rounded-md shadow-sm p-8 md:p-10">
-                        {/* Breadcrumb Navigation */}
-                        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-6">
-                            <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                                Projects
-                            </Link>
-                            <span className="text-border">/</span>
-                            <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[120px]">
-                                {subProject?.project?.name || "Project"}
-                            </Link>
-                            <span className="text-border">/</span>
-                            <Link href={`/projects/${projectId}/sub/${subProjectId}`} className="hover:text-foreground transition-colors truncate max-w-[120px]">
-                                {subProject?.name || "Workspace"}
-                            </Link>
-                            <span className="text-border">/</span>
-                            <span className="text-foreground">
-                                Edit
-                            </span>
-                        </div>
-
-
                         <div className="max-w-3xl mx-auto">
                             {/* Header Section */}
                             <div className="mb-8">
-                                <h1 className="text-xl font-semibold text-foreground mb-2" aria-label="Edit Sub-Project">Edit Sub-Project</h1>
+                                <h1 className="text-3xl font-semibold tracking-tight mb-2" aria-label="Edit Sub-Project">Edit Sub-Project</h1>
                                 <p className="text-sm text-muted-foreground">
                                     Update the details regarding the research focus and target demographics.
                                 </p>

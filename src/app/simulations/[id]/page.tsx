@@ -29,6 +29,7 @@ import {
     Send,
     X,
     FileText,
+    ArrowLeft,
     ArrowRight,
     Handshake,
     Zap,
@@ -581,92 +582,76 @@ export default function ViewSessionPage({ params }: PageProps) {
 
     return (
         <TooltipProvider delayDuration={200}>
-            <div className="min-h-screen pb-12">
-                {/* Main Card Container - full width */}
-                <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4">
-                    <div className="relative min-h-[800px] px-8 py-4 md:px-12">
-                        {/* Breadcrumbs */}
-                        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-6">
-                            <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                                Projects
+            <div className="flex flex-col">
+                {/* Edge-to-edge header bar */}
+                <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                    <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                        <div className="flex items-center gap-3">
+                            <Link
+                                href={subProjectId && subProjectName ? `/projects/${projectId}/sub/${subProjectId}?tab=simulations` : (projectId ? `/projects/${projectId}` : "/dashboard")}
+                                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label={`Back to ${subProjectName || projectName || "Dashboard"}`}
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                <span>Back</span>
                             </Link>
-                            <span className="text-border">/</span>
-                            {projectName && (
-                                <>
-                                    <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[150px]">
-                                        {projectName}
-                                    </Link>
-                                    <span className="text-border">/</span>
-                                </>
-                            )}
-                            {subProjectId && subProjectName && (
-                                <>
-                                    <Link href={`/projects/${projectId}/sub/${subProjectId}`} className="hover:text-foreground transition-colors truncate max-w-[150px]">
-                                        {subProjectName}
-                                    </Link>
-                                    <span className="text-border">/</span>
-                                </>
-                            )}
-                            <span className="text-foreground">
-                                Session Review
-                            </span>
-                        </div>
-
-                        {/* Header Section */}
-                        <div className="mb-8 animate-in slide-in-from-top-4 fade-in duration-500">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <h1 className="text-3xl font-bold text-foreground">
-                                            {isFocusGroup ? "Focus Group" : `Session with ${personaName}`}
-                                        </h1>
-                                        <Badge
-                                            variant="secondary"
-                                            className={`${isCompleted ? 'bg-accent text-foreground' : 'bg-amber-100 text-amber-700'}`}
-                                        >
-                                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                                            {isCompleted ? 'Completed' : 'In Progress'}
-                                        </Badge>
-                                    </div>
-                                    <p className="text-muted-foreground text-sm">
-                                        {isFocusGroup
-                                            ? focusGroupArchetypes.map(a => a.name).join(" · ")
-                                            : new Date(simulation.startedAt).toLocaleDateString()}
-                                    </p>
-                                </div>
-
-                                <div className="flex flex-col items-end gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={regenerateReview}
-                                        disabled={regenerating}
-                                        className="border-input text-foreground hover:bg-accent rounded-md"
+                            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                                {isFocusGroup ? (
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                )}
+                            </div>
+                            <div>
+                                <h1 className="text-base font-bold text-foreground flex items-center gap-2">
+                                    {isFocusGroup ? "Focus Group" : `Session with ${personaName}`}
+                                    <Badge
+                                        variant="secondary"
+                                        className={`text-[10px] px-1.5 py-0 ${isCompleted ? 'bg-accent text-foreground' : 'bg-amber-100 text-amber-700'}`}
                                     >
-                                        {regenerating ? (
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        ) : (
-                                            <RefreshCw className="h-4 w-4 mr-2" />
-                                        )}
-                                        {regenerating ? "Analysing..." : "Analyse Interview Technique"}
-                                    </Button>
-
-                                    {summary && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setSummaryDialogOpen(true)}
-                                            className="text-foreground hover:text-foreground hover:bg-accent h-8 px-3 text-xs"
-                                        >
-                                            <FileText className="h-3.5 w-3.5 mr-1.5" />
-                                            View Summary
-                                        </Button>
-                                    )}
-                                </div>
+                                        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                                        {isCompleted ? 'Completed' : 'In Progress'}
+                                    </Badge>
+                                </h1>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {isFocusGroup
+                                        ? focusGroupArchetypes.map(a => a.name).join(" · ")
+                                        : new Date(simulation.startedAt).toLocaleDateString()}
+                                </p>
                             </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                            {summary && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSummaryDialogOpen(true)}
+                                    className="gap-1.5"
+                                >
+                                    <FileText className="h-3.5 w-3.5" />
+                                    View Summary
+                                </Button>
+                            )}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={regenerateReview}
+                                disabled={regenerating}
+                                className="gap-1.5"
+                            >
+                                {regenerating ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                )}
+                                {regenerating ? "Analysing..." : "Analyse Interview Technique"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
 
-
-
+                <div className="py-8">
+                    <div className="relative">
                         {/* Focus Group Archetype Summaries */}
                         {isFocusGroup && isCompleted && (
                             <div className="mb-8">

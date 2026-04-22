@@ -21,6 +21,7 @@ import {
     ShieldCheck,
     Trash2,
     FileText,
+    ArrowLeft,
     ArrowRight,
 } from "lucide-react";
 
@@ -769,35 +770,37 @@ export default function HMWPage({ params }: PageProps) {
     }
 
     return (
-        <div className="relative overflow-hidden pb-20">
-            <div className="py-8 animate-in fade-in zoom-in-95 duration-500">
-
-                {/* Breadcrumbs */}
-                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground mb-8">
-                    <Link href="/dashboard" className="hover:text-foreground transition-colors">Projects</Link>
-                    <span className="text-border">/</span>
-                    <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[150px]">
-                        {subProject?.project.name || "Project"}
-                    </Link>
-                    <span className="text-border">/</span>
-                    <Link href={`/projects/${projectId}/sub/${subProjectId}`} className="hover:text-foreground transition-colors truncate max-w-[200px]">
-                        {subProject?.name || "Workspace"}
-                    </Link>
-                    <span className="text-border">/</span>
-                    <span className="text-foreground">How Might We</span>
+        <div className="flex flex-col pb-20">
+            {/* Edge-to-edge header bar */}
+            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
+                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={`/projects/${projectId}/sub/${subProjectId}?tab=hmw`}
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label={`Back to ${subProject?.name || "Workspace"}`}
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back</span>
+                        </Link>
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                            <Lightbulb className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <h1 className="text-base font-bold text-foreground">How Might We Analyser</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                Critique HMW statements against the NN/g 5-lens framework
+                            </p>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                {/* Page Title */}
+            <div className="py-8 animate-in fade-in zoom-in-95 duration-500">
+                {/* Page intro */}
                 <div className="max-w-3xl mx-auto">
                     <div className="text-center mb-8">
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-xs font-bold text-primary mb-4">
-                            <Lightbulb className="h-3.5 w-3.5" />
-                            HMW ANALYSER
-                        </div>
-                        <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
-                            How Might We
-                        </h1>
-                        <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+                        <p className="text-sm text-muted-foreground max-w-lg mx-auto">
                             Critique your HMW statements against the NN/g 5-lens framework, enriched with LUMA&apos;s human-centred design principles, and your project&apos;s research.
                         </p>
                     </div>

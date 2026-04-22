@@ -10,11 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+    ArrowLeft,
     ArrowRight,
     Loader2,
     Target,
     FolderPlus,
-    ChevronRight,
     Check
 } from "lucide-react";
 
@@ -130,14 +130,14 @@ export default function NewSubProjectPage({ params }: PageProps) {
         <div className="py-8">
             <div className="w-full max-w-4xl mx-auto">
 
-                {/* Breadcrumb Navigation */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-8 ml-1">
-                    <Link href="/dashboard" className="hover:text-foreground transition-colors">Projects</Link>
-                    <span className="text-border">/</span>
-                    <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors truncate max-w-[150px]">{project?.name || "Project"}</Link>
-                    <span className="text-border">/</span>
-                    <span className="text-foreground">New Workspace</span>
-                </div>
+                {/* Back Link */}
+                <Link
+                    href={`/projects/${projectId}`}
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to {project?.name || "Project"}
+                </Link>
 
                 {/* Main Card */}
                 <Card>
@@ -146,7 +146,7 @@ export default function NewSubProjectPage({ params }: PageProps) {
                             {/* Header Section */}
                             <div className="mb-8">
                                 <h1 className="text-3xl font-semibold tracking-tight mb-2">Create New Workspace</h1>
-                                <p className="text-muted-foreground">
+                                <p className="text-sm text-muted-foreground">
                                     Define the research focus and target demographics for this study track.
                                 </p>
                             </div>

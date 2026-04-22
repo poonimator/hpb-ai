@@ -1350,9 +1350,9 @@ What we want to uncover: Understanding how participants structure their day
                                                                                             )}
                                                                                             <div className="bg-[color:var(--knowledge-soft)]/30 rounded-xl p-3 border border-[color:var(--knowledge)]/25 mb-3">
                                                                                                 <p className="text-sm text-muted-foreground italic flex gap-2">
-                                                                                                    <span className="opacity-50 text-lg leading-none text-[color:var(--knowledge)]">"</span>
+                                                                                                    <span className="opacity-50 text-lg leading-none text-[color:var(--knowledge)]">&ldquo;</span>
                                                                                                     {question.researchInsight.excerpt}
-                                                                                                    <span className="opacity-50 text-lg leading-none self-end text-[color:var(--knowledge)]">"</span>
+                                                                                                    <span className="opacity-50 text-lg leading-none self-end text-[color:var(--knowledge)]">&rdquo;</span>
                                                                                                 </p>
                                                                                                 <p className="text-xs text-[color:var(--knowledge)] font-medium mt-2 text-right">— {question.researchInsight.documentName}</p>
                                                                                             </div>
@@ -1493,9 +1493,9 @@ What we want to uncover: Understanding how participants structure their day
                                                                                                 )}
                                                                                                 <div className="bg-[color:var(--knowledge-soft)]/30 rounded-xl p-3 border border-[color:var(--knowledge)]/25 mb-3">
                                                                                                     <p className="text-sm text-muted-foreground italic flex gap-2">
-                                                                                                        <span className="opacity-50 text-lg leading-none text-[color:var(--knowledge)]">"</span>
+                                                                                                        <span className="opacity-50 text-lg leading-none text-[color:var(--knowledge)]">&ldquo;</span>
                                                                                                         {subQ.researchInsight.excerpt}
-                                                                                                        <span className="opacity-50 text-lg leading-none self-end text-[color:var(--knowledge)]">"</span>
+                                                                                                        <span className="opacity-50 text-lg leading-none self-end text-[color:var(--knowledge)]">&rdquo;</span>
                                                                                                     </p>
                                                                                                     <p className="text-xs text-[color:var(--knowledge)] font-medium mt-2 text-right">— {subQ.researchInsight.documentName}</p>
                                                                                                 </div>

@@ -42,7 +42,7 @@ function WorkspaceFrame({
       {leftRail && (
         <aside
           data-slot="workspace-rail-left"
-          className="bg-[color:var(--surface)] border-r border-[color:var(--border-subtle)] flex flex-col"
+          className="bg-[color:var(--surface)] border-r border-[color:var(--border-subtle)] flex flex-col sticky top-[120px] self-start max-h-[calc(100vh-120px)] overflow-y-auto"
         >
           {leftRail}
         </aside>
@@ -56,7 +56,7 @@ function WorkspaceFrame({
       {hasRight && (
         <aside
           data-slot="workspace-rail-right"
-          className="bg-[color:var(--surface)] border-l border-[color:var(--border-subtle)] flex flex-col"
+          className="bg-[color:var(--surface)] border-l border-[color:var(--border-subtle)] flex flex-col sticky top-[120px] self-start max-h-[calc(100vh-120px)] overflow-y-auto"
         >
           {rightRail}
         </aside>

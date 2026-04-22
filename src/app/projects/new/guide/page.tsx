@@ -1010,13 +1010,6 @@ function GuideSetupPageContent() {
                 )}
             </RailHeader>
 
-            <RailSection title="Guide Info">
-                <MetaRow k="Question sets" v={<Mono>{guideSets.length}</Mono>} />
-                <MetaRow k="Total questions" v={<Mono>{totalQuestions}</Mono>} />
-                <MetaRow k="With titles" v={<Mono>{setsWithTitles}/{guideSets.length}</Mono>} />
-                <MetaRow k="Has questions" v={<Mono>{setsWithQuestions}/{guideSets.length}</Mono>} />
-            </RailSection>
-
             <RailSection title="Question sets">
                 {guideSets.length === 0 ? (
                     <p className="text-body-sm text-muted-foreground">No question sets yet.</p>
@@ -1060,6 +1053,14 @@ function GuideSetupPageContent() {
                         : `/projects/${projectId}`,
                     label: "Back",
                 }}
+                crumbs={
+                    project?.name
+                        ? [
+                              { label: project.name, href: `/projects/${projectId}` },
+                              { label: "Moderator Guide" },
+                          ]
+                        : undefined
+                }
                 action={
                     <div className="flex items-center gap-2">
                         <Button
@@ -1116,8 +1117,7 @@ function GuideSetupPageContent() {
 
             {/* Main Content Container */}
             <WorkspaceFrame variant="review" leftRail={leftRail}>
-                <div className="max-w-3xl">
-                <div className="flex flex-col gap-1 mb-8">
+                <div className="flex flex-col gap-1 mb-8 max-w-4xl">
                     <Eyebrow>Setup</Eyebrow>
                     <h1 className="text-display-1 text-foreground">Moderator Guide</h1>
                     <p className="text-body-lg text-muted-foreground">
@@ -1357,11 +1357,11 @@ What we want to uncover: Understanding how participants structure their day
                                                                         onChange={(e: any) => updateQuestion(set.id, question.id, 'text', e.target.value)}
                                                                         className="flex-1 bg-card/50 border-input hover:border-border hover:bg-card focus:bg-card rounded-md transition-all min-h-[50px] resize-none py-3 placeholder:text-muted-foreground/50"
                                                                     />
-                                                                    {getQualityBadge(question.overallQuality)}
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         onClick={() => removeQuestion(set.id, question.id)}
+                                                                        aria-label="Remove question"
                                                                         className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity h-8 w-8"
                                                                     >
                                                                         <Trash2 className="h-4 w-4" />
@@ -1379,11 +1379,11 @@ What we want to uncover: Understanding how participants structure their day
                                                             </div>
                                                         </div>
 
-                                                        {/* Col 2: Suggestions - Only show for non-GOOD questions */}
-                                                        {/* Col 2: Feedback & Research - Horizontal Icons */}
+                                                        {/* Col 2: Feedback & Research — Quality badge + icons */}
                                                         <div className="relative pt-1 min-h-[42px]">
                                                             {/* Collapsed Icons Row */}
                                                             <div className="flex items-center gap-2">
+                                                                {getQualityBadge(question.overallQuality)}
                                                                 {/* Feedback Icon */}
                                                                 {question.overallQuality !== 'GOOD' && question.issues && question.issues.length > 0 && (() => {
                                                                     const issue = question.issues[0];
@@ -1511,11 +1511,11 @@ What we want to uncover: Understanding how participants structure their day
                                                                             onChange={(e: any) => updateSubQuestion(set.id, question.id, subQ.id, 'text', e.target.value)}
                                                                             className="flex-1 bg-card/50 border-input hover:border-border hover:bg-card focus:bg-card rounded-md transition-all min-h-[44px] resize-none py-2.5 placeholder:text-muted-foreground/50"
                                                                         />
-                                                                        {getQualityBadge(subQ.overallQuality)}
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             onClick={() => removeSubQuestion(set.id, question.id, subQ.id)}
+                                                                            aria-label="Remove follow-up"
                                                                             className="opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity h-8 w-8"
                                                                         >
                                                                             <Trash2 className="h-4 w-4" />
@@ -1527,6 +1527,7 @@ What we want to uncover: Understanding how participants structure their day
                                                             <div className="relative pt-1 min-h-[42px]">
                                                                 {/* Collapsed Icons Row */}
                                                                 <div className="flex items-center gap-2">
+                                                                    {getQualityBadge(subQ.overallQuality)}
                                                                     {/* Feedback Icon */}
                                                                     {subQ.overallQuality !== 'GOOD' && subQ.issues && subQ.issues.length > 0 && (() => {
                                                                         const issue = subQ.issues[0];
@@ -1668,7 +1669,6 @@ What we want to uncover: Understanding how participants structure their day
                             </Button>
                         </div>
                     </div>
-                </div>
                 </div>
             </WorkspaceFrame>
         </div >

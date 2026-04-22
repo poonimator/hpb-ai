@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Loader2, FolderPlus, ArrowRight } from "lucide-react";
+import { Loader2, FolderPlus, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { BackLink } from "@/components/layout/back-link";
 
 export default function NewProjectPage() {
     const router = useRouter();
@@ -22,7 +24,7 @@ export default function NewProjectPage() {
         e.preventDefault();
 
         if (!name.trim()) {
-            alert("Please enter a project name");
+            toast.error("Please enter a project name");
             return;
         }
 
@@ -44,10 +46,10 @@ export default function NewProjectPage() {
                 // Redirect to the project home where they can create sub-projects
                 router.push(`/projects/${data.data.id}`);
             } else {
-                alert(data.error || "Failed to create project");
+                toast.error(data.error || "Failed to create project");
             }
         } catch (err) {
-            alert("Failed to create project");
+            toast.error("Failed to create project");
             console.error(err);
         } finally {
             setLoading(false);
@@ -55,17 +57,11 @@ export default function NewProjectPage() {
     };
 
     return (
-        <div className="py-8 flex flex-col items-center">
+        <div className="pt-6 pb-20 flex flex-col items-center">
 
             <div className="w-full max-w-2xl">
                 {/* Back Link */}
-                <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Projects
-                </Link>
+                <BackLink href="/dashboard" label="Back to Projects" />
 
                 <Card>
                     <CardContent className="p-8 md:p-10">
@@ -74,7 +70,7 @@ export default function NewProjectPage() {
                             <div className="h-10 w-10 rounded-md flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--color-interact-muted)', color: 'var(--color-interact)' }}>
                                 <FolderPlus className="h-5 w-5" />
                             </div>
-                            <h1 className="text-3xl font-semibold tracking-tight mb-2">Create New Project</h1>
+                            <h1 className="text-display-2 mb-2">Create New Project</h1>
                             <p className="text-sm text-muted-foreground max-w-md mx-auto">
                                 Initialize a new research hub to organize your documents, workspaces, and simulation guides.
                             </p>

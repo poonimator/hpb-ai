@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Dialog,
@@ -17,12 +19,24 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
     Upload,
     FileText,
@@ -113,6 +127,7 @@ export default function KnowledgeBasePage() {
 
     // Dialog State
     const [viewDoc, setViewDoc] = useState<KBDocument | null>(null);
+    const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchDocs();
@@ -159,11 +174,11 @@ export default function KnowledgeBasePage() {
                 fetchDocs();
             } else {
                 const err = await res.json();
-                alert(err.error || "Upload failed");
+                toast.error(err.error || "Upload failed");
             }
         } catch (error) {
             console.error(error);
-            alert("Upload failed");
+            toast.error("Upload failed");
         } finally {
             setUploading(false);
         }
@@ -181,7 +196,7 @@ export default function KnowledgeBasePage() {
             if (res.ok) {
                 fetchDocs();
             } else {
-                alert("Failed to approve");
+                toast.error("Failed to approve");
             }
         } catch (error) {
             console.error(error);
@@ -202,7 +217,7 @@ export default function KnowledgeBasePage() {
             if (res.ok) {
                 fetchDocs();
             } else {
-                alert("Failed to reject");
+                toast.error("Failed to reject");
             }
         } catch (error) {
             console.error(error);
@@ -211,9 +226,7 @@ export default function KnowledgeBasePage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) return;
-
+    const confirmDelete = async (id: string) => {
         setProcessingId(id);
         try {
             const res = await fetch(`/api/kb/documents/${id}`, {
@@ -223,7 +236,7 @@ export default function KnowledgeBasePage() {
             if (res.ok) {
                 fetchDocs();
             } else {
-                alert("Failed to delete");
+                toast.error("Failed to delete");
             }
         } catch (error) {
             console.error(error);
@@ -248,27 +261,18 @@ export default function KnowledgeBasePage() {
 
     return (
         <div className="py-8">
-            {/* Header */}
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-1">
-                    <div className="h-8 w-8 rounded-md flex items-center justify-center" style={{ backgroundColor: 'var(--color-knowledge-muted)', color: 'var(--color-knowledge)' }}>
-                        <BookOpenText className="h-4 w-4" />
-                    </div>
-                    <h1 className="text-3xl font-semibold tracking-tight">
-                        Global Knowledge Base
-                    </h1>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1 ml-11">
-                    Shared frameworks, policies, and research accessible across all projects
-                </p>
-            </div>
+            <PageHeader
+                eyebrow="Knowledge Base"
+                title="Global Knowledge Base"
+                description="Shared frameworks, policies, and research accessible across all projects."
+            />
 
             {/* Main Content */}
             <div>
                 {/* Tabs with Upload Button */}
                 <div className="flex items-center justify-between mb-6">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-                        <TabsList className="bg-muted p-1 gap-0 h-auto">
+                        <TabsList>
                             {DOC_TYPES.map((type) => (
                                 <TabsTrigger
                                     key={type}
@@ -279,7 +283,7 @@ export default function KnowledgeBasePage() {
                                     {docCounts[type] > 0 && (
                                         <Badge
                                             variant="secondary"
-                                            className="ml-1.5 h-5 min-w-[20px] px-1.5 text-[11px] rounded-full"
+                                            className="ml-1.5 h-5 min-w-[20px] px-1.5 text-caption rounded-full"
                                         >
                                             {docCounts[type]}
                                         </Badge>
@@ -291,10 +295,10 @@ export default function KnowledgeBasePage() {
 
                     <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
                         <DialogTrigger asChild>
-                            <button className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
-                                <Upload className="h-3.5 w-3.5" />
-                                <span>Upload Document</span>
-                            </button>
+                            <Button variant="outline" size="sm">
+                                <Upload className="h-4 w-4" />
+                                Upload Document
+                            </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[480px]">
                             <DialogHeader>
@@ -374,16 +378,15 @@ export default function KnowledgeBasePage() {
                                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                                     <div className="flex items-start gap-3">
                                         <div className="flex items-center h-5 pt-0.5">
-                                            <input
-                                                type="checkbox"
+                                            <Checkbox
                                                 id="classificationConfirmGlobal"
                                                 checked={classificationConfirmed}
-                                                onChange={(e) => setClassificationConfirmed(e.target.checked)}
-                                                className="w-4 h-4 rounded border-amber-300"
+                                                onCheckedChange={(checked) => setClassificationConfirmed(checked === true)}
+                                                aria-label="Confirm data classification compliance"
                                             />
                                         </div>
                                         <label htmlFor="classificationConfirmGlobal" className="text-sm select-none">
-                                            <span className="block font-medium text-amber-900 text-xs mb-1">Compliance Check</span>
+                                            <span className="block font-medium text-[color:var(--primary)] text-xs mb-1">Compliance Check</span>
                                             <p className="text-xs text-amber-800 leading-relaxed">
                                                 I confirm this document contains no data classified above <strong>OFFICIAL (CLOSED) / SENSITIVE-NORMAL</strong> and complies with IM8.
                                             </p>
@@ -422,27 +425,23 @@ export default function KnowledgeBasePage() {
 
                 {/* Documents Grid - Matching Project KB style */}
                 {filteredDocs.length === 0 ? (
-                    <Card>
-                        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                            <BookOpenText className="h-10 w-10 text-muted-foreground/40 mb-4" />
-                            <h3 className="text-base font-medium mb-1">
-                                No {DOC_TYPE_LABELS[activeTab].toLowerCase()} yet
-                            </h3>
-                            <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                                Upload {DOC_TYPE_LABELS[activeTab].toLowerCase()} to make them available across all projects.
-                            </p>
+                    <EmptyState
+                        icon={<BookOpenText />}
+                        title={`No ${DOC_TYPE_LABELS[activeTab].toLowerCase()} yet`}
+                        description={`Upload ${DOC_TYPE_LABELS[activeTab].toLowerCase()} to make them available across all projects.`}
+                        action={
                             <Button
+                                variant="outline"
                                 onClick={() => {
                                     setDocType(activeTab);
                                     setUploadDialogOpen(true);
                                 }}
-                                variant="outline"
                             >
-                                <Upload className="h-4 w-4 mr-2" />
+                                <Upload className="h-4 w-4" />
                                 Upload {DOC_TYPE_LABELS[activeTab]}
                             </Button>
-                        </CardContent>
-                    </Card>
+                        }
+                    />
                 ) : (
                     <div className={`grid gap-4 ${activeTab === 'PERSONA' ? 'md:grid-cols-2 lg:grid-cols-2' : 'grid-cols-1'}`}>
                         {filteredDocs.map((doc) => {
@@ -461,7 +460,7 @@ export default function KnowledgeBasePage() {
                                                 size="icon"
                                                 variant="ghost"
                                                 className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
-                                                onClick={() => handleDelete(doc.id)}
+                                                onClick={() => setDeleteDocId(doc.id)}
                                                 disabled={processingId === doc.id}
                                                 title="Delete Stuck Persona"
                                             >
@@ -522,7 +521,7 @@ export default function KnowledgeBasePage() {
                                                         <div className="space-y-1.5">
                                                             <div className="flex items-center gap-1.5 text-foreground">
                                                                 <Heart className="h-3.5 w-3.5" />
-                                                                <span className="text-[10px] font-medium uppercase tracking-wider">Motivations</span>
+                                                                <span className="text-caption font-medium uppercase tracking-wider">Motivations</span>
                                                             </div>
                                                             <p className="text-xs text-muted-foreground leading-snug">
                                                                 {persona.gains}
@@ -533,7 +532,7 @@ export default function KnowledgeBasePage() {
                                                         <div className="space-y-1.5">
                                                             <div className="flex items-center gap-1.5 text-foreground">
                                                                 <AlertCircle className="h-3.5 w-3.5" />
-                                                                <span className="text-[10px] font-medium uppercase tracking-wider">Frustrations</span>
+                                                                <span className="text-caption font-medium uppercase tracking-wider">Frustrations</span>
                                                             </div>
                                                             <p className="text-xs text-muted-foreground leading-snug">
                                                                 {persona.pains}
@@ -580,7 +579,7 @@ export default function KnowledgeBasePage() {
                                                     size="icon"
                                                     variant="ghost"
                                                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                                    onClick={() => handleDelete(doc.id)}
+                                                    onClick={() => setDeleteDocId(doc.id)}
                                                     disabled={processingId === doc.id}
                                                 >
                                                     <Trash2 className="h-3.5 w-3.5" />
@@ -608,10 +607,10 @@ export default function KnowledgeBasePage() {
                                                 <div className="flex-1 min-w-0 flex items-center gap-4">
                                                     <h3 className="font-medium text-sm truncate">{doc.title}</h3>
 
-                                                    <div className="flex items-center gap-3 text-xs text-muted-foreground hidden sm:flex shrink-0">
+                                                    <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
                                                         <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
                                                         <span className="text-border">•</span>
-                                                        <span className="uppercase tracking-wider text-[10px]">{doc.docType}</span>
+                                                        <span className="uppercase tracking-wider text-caption">{doc.docType}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -627,7 +626,7 @@ export default function KnowledgeBasePage() {
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <Badge variant={isRejected ? "destructive" : "secondary"} className="text-[10px] uppercase tracking-wider">
+                                                    <Badge variant={isRejected ? "destructive" : "secondary"} className="text-caption uppercase tracking-wider">
                                                         {doc.status}
                                                     </Badge>
                                                 )}
@@ -640,13 +639,13 @@ export default function KnowledgeBasePage() {
                                                         onClick={() => setViewDoc(doc)}
                                                     >
                                                         <Eye className="h-3.5 w-3.5 mr-1" />
-                                                        <span className="hidden sm:inline">View</span>
+                                                        <span>View</span>
                                                     </Button>
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
                                                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                                        onClick={() => handleDelete(doc.id)}
+                                                        onClick={() => setDeleteDocId(doc.id)}
                                                         disabled={processingId === doc.id}
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
@@ -679,13 +678,36 @@ export default function KnowledgeBasePage() {
                         {viewDoc && (
                             <iframe
                                 src={`/api/kb/documents/${viewDoc.id}/view`}
-                                className="w-full h-full bg-white"
+                                className="w-full h-full bg-card"
                                 title="Document Viewer"
                             />
                         )}
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This removes the document from the global Knowledge Base. Projects that reference it will lose access. This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteDocId) await confirmDelete(deleteDocId);
+                                setDeleteDocId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
 
     );

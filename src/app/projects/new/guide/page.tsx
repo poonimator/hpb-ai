@@ -498,7 +498,7 @@ function GuideSetupPageContent() {
             questionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         setPulseIconId(cardId);
-        setTimeout(() => setPulseIconId(null), 1600);
+        setTimeout(() => setPulseIconId(null), 1000);
     }, []);
 
     // Run quality check on a specific set
@@ -1246,7 +1246,7 @@ function GuideSetupPageContent() {
                                             questionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                         }
                                         setPulseIconId(item.id);
-                                        setTimeout(() => setPulseIconId(null), 1600);
+                                        setTimeout(() => setPulseIconId(null), 1000);
                                     } else {
                                         setExpandedSuggestionId(null);
                                     }
@@ -1751,7 +1751,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                 return (
                                                                     <span className="relative inline-flex">
                                                                         {isPulsing && (
-                                                                            <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--primary)] opacity-60 animate-ping pointer-events-none" />
+                                                                            <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--primary)] opacity-60 animate-[ping_1s_ease-out_1] pointer-events-none" />
                                                                         )}
                                                                         <button
                                                                             onClick={() => focusFeedback(fid, question.id)}
@@ -1760,7 +1760,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                             title="View Feedback in rail"
                                                                             className={cn(
                                                                                 "relative h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                isActive && "ring-2 ring-[color:var(--primary)]/45 ring-offset-2 ring-offset-card"
+                                                                                isActive && "ring-[3px] ring-[color:var(--primary)] ring-offset-2 ring-offset-card scale-[1.08] shadow-[0_3px_12px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
                                                                             )}
                                                                         >
                                                                             <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
@@ -1775,7 +1775,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                 return (
                                                                     <span className="relative inline-flex">
                                                                         {isPulsing && (
-                                                                            <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--knowledge)] opacity-60 animate-ping pointer-events-none" />
+                                                                            <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--knowledge)] opacity-60 animate-[ping_1s_ease-out_1] pointer-events-none" />
                                                                         )}
                                                                         <button
                                                                             onClick={() => focusFeedback(rid, question.id)}
@@ -1784,7 +1784,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                             title="View Research Insight in rail"
                                                                             className={cn(
                                                                                 "relative h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                isActive && "ring-2 ring-[color:var(--knowledge)]/45 ring-offset-2 ring-offset-card"
+                                                                                isActive && "ring-[3px] ring-[color:var(--knowledge)] ring-offset-2 ring-offset-card scale-[1.08] shadow-[0_3px_12px_color-mix(in_oklab,var(--knowledge)_40%,transparent)]"
                                                                             )}
                                                                         >
                                                                             <FileText className="h-4 w-4" strokeWidth={2} />
@@ -1838,7 +1838,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                     return (
                                                                         <span className="relative inline-flex">
                                                                             {isPulsing && (
-                                                                                <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--primary)] opacity-60 animate-ping pointer-events-none" />
+                                                                                <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--primary)] opacity-60 animate-[ping_1s_ease-out_1] pointer-events-none" />
                                                                             )}
                                                                             <button
                                                                                 onClick={() => focusFeedback(fid, subQ.id)}
@@ -1847,7 +1847,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 title="View Feedback in rail"
                                                                                 className={cn(
                                                                                     "relative h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                    isActive && "ring-2 ring-[color:var(--primary)]/45 ring-offset-2 ring-offset-card"
+                                                                                    isActive && "ring-[3px] ring-[color:var(--primary)] ring-offset-2 ring-offset-card scale-[1.08] shadow-[0_3px_12px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
                                                                                 )}
                                                                             >
                                                                                 <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
@@ -1862,7 +1862,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                     return (
                                                                         <span className="relative inline-flex">
                                                                             {isPulsing && (
-                                                                                <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--knowledge)] opacity-60 animate-ping pointer-events-none" />
+                                                                                <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--knowledge)] opacity-60 animate-[ping_1s_ease-out_1] pointer-events-none" />
                                                                             )}
                                                                             <button
                                                                                 onClick={() => focusFeedback(rid, subQ.id)}
@@ -1871,7 +1871,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 title="View Research Insight in rail"
                                                                                 className={cn(
                                                                                     "relative h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                    isActive && "ring-2 ring-[color:var(--knowledge)]/45 ring-offset-2 ring-offset-card"
+                                                                                    isActive && "ring-[3px] ring-[color:var(--knowledge)] ring-offset-2 ring-offset-card scale-[1.08] shadow-[0_3px_12px_color-mix(in_oklab,var(--knowledge)_40%,transparent)]"
                                                                                 )}
                                                                             >
                                                                                 <FileText className="h-4 w-4" strokeWidth={2} />

@@ -160,7 +160,10 @@ function GuideSetupPageContent() {
     const [saving, setSaving] = useState(false);
     const [finishing, setFinishing] = useState(false);
     const [expandedSuggestionId, setExpandedSuggestionId] = useState<string | null>(null);
-    const [flashQuestionId, setFlashQuestionId] = useState<string | null>(null);
+    // Which feedback/research icon should briefly pulse (holds the suggestion id, not a question id).
+    // Used to signal "this is the indicator your selected rail card belongs to" via the icon itself,
+    // rather than wrapping the whole question/sub-question with a ring.
+    const [pulseIconId, setPulseIconId] = useState<string | null>(null);
     const [railFilter, setRailFilter] = useState<'All' | 'Feedback' | 'Research'>('All');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [hasSavedGuide, setHasSavedGuide] = useState(false); // Track if guide has been saved
@@ -480,21 +483,22 @@ function GuideSetupPageContent() {
 
     const numberToLetter = (num: number): string => String.fromCharCode(65 + num);
 
-    // Focus a feedback/research card in the right rail and flash the source question
-    const focusFeedback = useCallback((cardId: string, questionId: string) => {
+    // Focus a feedback/research card in the right rail; scrolls the (sub-)question into view
+    // and briefly pulses the matching indicator icon. targetId is the sub-question id when the
+    // suggestion belongs to a sub-question, else the parent question id — never wraps the whole
+    // parent block when a sub-question is selected.
+    const focusFeedback = useCallback((cardId: string, targetId: string) => {
         setExpandedSuggestionId(cardId);
-        // Scroll the rail card into view
         const railCardEl = document.getElementById(`rail-card-${cardId}`);
         if (railCardEl) {
             railCardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-        // Scroll the question into view and flash
-        const questionEl = document.getElementById(`q-${questionId}`);
+        const questionEl = document.getElementById(`q-${targetId}`);
         if (questionEl) {
             questionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        setFlashQuestionId(questionId);
-        setTimeout(() => setFlashQuestionId(null), 1600);
+        setPulseIconId(cardId);
+        setTimeout(() => setPulseIconId(null), 1600);
     }, []);
 
     // Run quality check on a specific set
@@ -1235,12 +1239,14 @@ function GuideSetupPageContent() {
                                 onClick={() => {
                                     if (!isExpanded) {
                                         setExpandedSuggestionId(item.id);
-                                        const questionEl = document.getElementById(`q-${item.questionId}`);
+                                        // Scroll to the specific (sub-)question the suggestion belongs to, not just the parent block
+                                        const targetId = item.subQuestionId ?? item.questionId;
+                                        const questionEl = document.getElementById(`q-${targetId}`);
                                         if (questionEl) {
                                             questionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                         }
-                                        setFlashQuestionId(item.questionId);
-                                        setTimeout(() => setFlashQuestionId(null), 1600);
+                                        setPulseIconId(item.id);
+                                        setTimeout(() => setPulseIconId(null), 1600);
                                     } else {
                                         setExpandedSuggestionId(null);
                                     }
@@ -1696,7 +1702,7 @@ What we want to uncover: Understanding how participants structure their day
                                                 <div
                                                     key={question.id}
                                                     id={`q-${question.id}`}
-                                                    className={`space-y-4 rounded-lg transition-all duration-300 ${flashQuestionId === question.id ? 'ring-2 ring-[color:var(--primary)]/25 ring-offset-2' : ''}`}
+                                                    className="space-y-4 rounded-lg scroll-mt-24"
                                                 >
                                                     {/* Main Question Row — fixed 96px right column so all textareas align to same right edge */}
                                                     <div className="grid grid-cols-[1fr_96px] gap-3 items-start group">
@@ -1741,37 +1747,49 @@ What we want to uncover: Understanding how participants structure their day
                                                             {question.overallQuality !== 'GOOD' && question.issues && question.issues.length > 0 && (() => {
                                                                 const fid = `${question.id}-main-0`;
                                                                 const isActive = expandedSuggestionId === fid;
+                                                                const isPulsing = pulseIconId === fid;
                                                                 return (
-                                                                    <button
-                                                                        onClick={() => focusFeedback(fid, question.id)}
-                                                                        aria-label="Open feedback in right rail"
-                                                                        aria-pressed={isActive}
-                                                                        title="View Feedback in rail"
-                                                                        className={cn(
-                                                                            "h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                            isActive && "ring-2 ring-[color:var(--primary)]/45 ring-offset-2 ring-offset-card"
+                                                                    <span className="relative inline-flex">
+                                                                        {isPulsing && (
+                                                                            <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--primary)] opacity-60 animate-ping pointer-events-none" />
                                                                         )}
-                                                                    >
-                                                                        <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
-                                                                    </button>
+                                                                        <button
+                                                                            onClick={() => focusFeedback(fid, question.id)}
+                                                                            aria-label="Open feedback in right rail"
+                                                                            aria-pressed={isActive}
+                                                                            title="View Feedback in rail"
+                                                                            className={cn(
+                                                                                "relative h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
+                                                                                isActive && "ring-2 ring-[color:var(--primary)]/45 ring-offset-2 ring-offset-card"
+                                                                            )}
+                                                                        >
+                                                                            <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
+                                                                        </button>
+                                                                    </span>
                                                                 );
                                                             })()}
                                                             {question.researchInsight && (() => {
                                                                 const rid = `${question.id}-research`;
                                                                 const isActive = expandedSuggestionId === rid;
+                                                                const isPulsing = pulseIconId === rid;
                                                                 return (
-                                                                    <button
-                                                                        onClick={() => focusFeedback(rid, question.id)}
-                                                                        aria-label="Open research insight in right rail"
-                                                                        aria-pressed={isActive}
-                                                                        title="View Research Insight in rail"
-                                                                        className={cn(
-                                                                            "h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                            isActive && "ring-2 ring-[color:var(--knowledge)]/45 ring-offset-2 ring-offset-card"
+                                                                    <span className="relative inline-flex">
+                                                                        {isPulsing && (
+                                                                            <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--knowledge)] opacity-60 animate-ping pointer-events-none" />
                                                                         )}
-                                                                    >
-                                                                        <FileText className="h-4 w-4" strokeWidth={2} />
-                                                                    </button>
+                                                                        <button
+                                                                            onClick={() => focusFeedback(rid, question.id)}
+                                                                            aria-label="Open research insight in right rail"
+                                                                            aria-pressed={isActive}
+                                                                            title="View Research Insight in rail"
+                                                                            className={cn(
+                                                                                "relative h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
+                                                                                isActive && "ring-2 ring-[color:var(--knowledge)]/45 ring-offset-2 ring-offset-card"
+                                                                            )}
+                                                                        >
+                                                                            <FileText className="h-4 w-4" strokeWidth={2} />
+                                                                        </button>
+                                                                    </span>
                                                                 );
                                                             })()}
                                                         </div>
@@ -1782,7 +1800,7 @@ What we want to uncover: Understanding how participants structure their day
                                                         <div
                                                             key={subQ.id}
                                                             id={`q-${subQ.id}`}
-                                                            className={`grid grid-cols-[1fr_96px] gap-3 items-start group/sub rounded-lg transition-all duration-300 ${flashQuestionId === subQ.id ? 'ring-2 ring-[color:var(--primary)]/25 ring-offset-2' : ''}`}
+                                                            className="grid grid-cols-[1fr_96px] gap-3 items-start group/sub rounded-lg scroll-mt-24"
                                                         >
                                                             {/* Sub Input */}
                                                             <div className="flex items-start gap-3 pl-10 border-l-2 border-border ml-3">
@@ -1816,37 +1834,49 @@ What we want to uncover: Understanding how participants structure their day
                                                                 {subQ.overallQuality !== 'GOOD' && subQ.issues && subQ.issues.length > 0 && (() => {
                                                                     const fid = `${question.id}-sub-${subQ.id}-0`;
                                                                     const isActive = expandedSuggestionId === fid;
+                                                                    const isPulsing = pulseIconId === fid;
                                                                     return (
-                                                                        <button
-                                                                            onClick={() => focusFeedback(fid, question.id)}
-                                                                            aria-label="Open feedback in right rail"
-                                                                            aria-pressed={isActive}
-                                                                            title="View Feedback in rail"
-                                                                            className={cn(
-                                                                                "h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                isActive && "ring-2 ring-[color:var(--primary)]/45 ring-offset-2 ring-offset-card"
+                                                                        <span className="relative inline-flex">
+                                                                            {isPulsing && (
+                                                                                <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--primary)] opacity-60 animate-ping pointer-events-none" />
                                                                             )}
-                                                                        >
-                                                                            <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
-                                                                        </button>
+                                                                            <button
+                                                                                onClick={() => focusFeedback(fid, subQ.id)}
+                                                                                aria-label="Open feedback in right rail"
+                                                                                aria-pressed={isActive}
+                                                                                title="View Feedback in rail"
+                                                                                className={cn(
+                                                                                    "relative h-8 w-8 rounded-lg bg-[color:var(--primary)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
+                                                                                    isActive && "ring-2 ring-[color:var(--primary)]/45 ring-offset-2 ring-offset-card"
+                                                                                )}
+                                                                            >
+                                                                                <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
+                                                                            </button>
+                                                                        </span>
                                                                     );
                                                                 })()}
                                                                 {subQ.researchInsight && (() => {
                                                                     const rid = `${subQ.id}-research`;
                                                                     const isActive = expandedSuggestionId === rid;
+                                                                    const isPulsing = pulseIconId === rid;
                                                                     return (
-                                                                        <button
-                                                                            onClick={() => focusFeedback(rid, question.id)}
-                                                                            aria-label="Open research insight in right rail"
-                                                                            aria-pressed={isActive}
-                                                                            title="View Research Insight in rail"
-                                                                            className={cn(
-                                                                                "h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
-                                                                                isActive && "ring-2 ring-[color:var(--knowledge)]/45 ring-offset-2 ring-offset-card"
+                                                                        <span className="relative inline-flex">
+                                                                            {isPulsing && (
+                                                                                <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--knowledge)] opacity-60 animate-ping pointer-events-none" />
                                                                             )}
-                                                                        >
-                                                                            <FileText className="h-4 w-4" strokeWidth={2} />
-                                                                        </button>
+                                                                            <button
+                                                                                onClick={() => focusFeedback(rid, subQ.id)}
+                                                                                aria-label="Open research insight in right rail"
+                                                                                aria-pressed={isActive}
+                                                                                title="View Research Insight in rail"
+                                                                                className={cn(
+                                                                                    "relative h-8 w-8 rounded-lg bg-[color:var(--knowledge)] text-white flex items-center justify-center transition-all cursor-pointer shadow-inset-edge hover:brightness-110 active:scale-95",
+                                                                                    isActive && "ring-2 ring-[color:var(--knowledge)]/45 ring-offset-2 ring-offset-card"
+                                                                                )}
+                                                                            >
+                                                                                <FileText className="h-4 w-4" strokeWidth={2} />
+                                                                            </button>
+                                                                        </span>
                                                                     );
                                                                 })()}
                                                             </div>

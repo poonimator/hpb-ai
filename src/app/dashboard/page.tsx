@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, FolderKanban, FolderOpen, Loader2, AlertCircle, Trash2 } from "lucide-react";
+import { Plus, FolderKanban, AlertCircle, Trash2, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
     AlertDialog,
@@ -16,7 +17,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useRouter } from "next/navigation";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CenteredSpinner } from "@/components/ui/centered-spinner";
 
 interface SubProject {
     id: string;
@@ -85,59 +88,54 @@ export default function DashboardPage() {
                 setDeleteDialogOpen(false);
                 setProjectToDelete(null);
             } else {
-                alert("Failed to delete project: " + (data.error || "Unknown error"));
+                toast.error("Failed to delete project: " + (data.error || "Unknown error"));
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to delete project");
+            toast.error("Failed to delete project");
         } finally {
             setDeleting(false);
         }
     };
 
     return (
-        <div className="py-8">
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-semibold tracking-tight">My Projects</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                    Manage your HPB research projects
-                </p>
-
-                {/* Mobile FAB */}
-                <Link href="/projects/new" className="md:hidden fixed bottom-6 right-6 z-50">
-                    <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
-                        <Plus className="h-6 w-6" />
+        <div className="pb-20">
+            <PageHeader
+                eyebrow="Workspace"
+                title="My Projects"
+                description="Manage your HPB research projects."
+                action={
+                    <Button asChild variant="featured" size="lg">
+                        <Link href="/projects/new">
+                            <Plus className="h-4 w-4" />
+                            New Project
+                        </Link>
                     </Button>
-                </Link>
-            </div>
+                }
+            />
 
             {/* Projects Grid */}
             {loading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
+                <CenteredSpinner />
             ) : error ? (
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             ) : projects.length === 0 ? (
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-10">
-                        <FolderKanban className="h-10 w-10 text-muted-foreground/40 mb-4" />
-                        <h3 className="text-base font-medium mb-1">No projects yet</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                            Create your first project to get started
-                        </p>
-                        <Link href="/projects/new">
-                            <Button>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create Project
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
+                <EmptyState
+                    icon={<FolderKanban />}
+                    title="No projects yet"
+                    description="Create your first project to start organizing research, running simulations, and synthesizing insights."
+                    action={
+                        <Button asChild variant="featured">
+                            <Link href="/projects/new">
+                                <Plus className="h-4 w-4" />
+                                New Project
+                            </Link>
+                        </Button>
+                    }
+                />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {projects.map((project) => (
@@ -166,6 +164,7 @@ export default function DashboardPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    aria-label={`Delete project ${project.name}`}
                                                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                                     onClick={(e) => {
                                                         e.preventDefault();

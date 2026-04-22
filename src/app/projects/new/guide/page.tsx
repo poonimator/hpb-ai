@@ -1742,7 +1742,7 @@ What we want to uncover: Understanding how participants structure their day
                                                         </div>
 
                                                         {/* Feedback & Research indicator column — bold filled chips with light glyph; amber ring when expanded in rail */}
-                                                        <div className="flex items-center justify-end gap-1.5 pt-1 shrink-0">
+                                                        <div className="flex items-center justify-end gap-2 pt-1 shrink-0">
                                                             {getQualityBadge(question.overallQuality)}
                                                             {question.overallQuality !== 'GOOD' && question.issues && question.issues.length > 0 && (() => {
                                                                 const fid = `${question.id}-main-0`;
@@ -1833,7 +1833,7 @@ What we want to uncover: Understanding how participants structure their day
                                                             </div>
 
                                                             {/* Sub feedback/research icons — bold chips; amber ring when expanded */}
-                                                            <div className="flex items-center justify-end gap-1.5 pt-1 shrink-0">
+                                                            <div className="flex items-center justify-end gap-2 pt-1 shrink-0">
                                                                 {getQualityBadge(subQ.overallQuality)}
                                                                 {subQ.overallQuality !== 'GOOD' && subQ.issues && subQ.issues.length > 0 && (() => {
                                                                     const fid = `${question.id}-sub-${subQ.id}-0`;
@@ -1852,7 +1852,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 className={cn(
                                                                                     "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
                                                                                     isActive
-                                                                                        ? "bg-white text-[color:var(--primary)] ring-[3px] ring-[color:var(--primary)] ring-offset-2 ring-offset-card scale-[1.1] shadow-[0_3px_12px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
+                                                                                        ? "bg-white text-[color:var(--primary)] ring-2 ring-[color:var(--primary)] ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
                                                                                         : "bg-[color:var(--primary)] text-white shadow-inset-edge"
                                                                                 )}
                                                                             >
@@ -1878,7 +1878,7 @@ What we want to uncover: Understanding how participants structure their day
                                                                                 className={cn(
                                                                                     "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
                                                                                     isActive
-                                                                                        ? "bg-white text-[color:var(--knowledge)] ring-[3px] ring-[color:var(--knowledge)] ring-offset-2 ring-offset-card scale-[1.1] shadow-[0_3px_12px_color-mix(in_oklab,var(--knowledge)_40%,transparent)]"
+                                                                                        ? "bg-white text-[color:var(--knowledge)] ring-2 ring-[color:var(--knowledge)] ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--knowledge)_35%,transparent)]"
                                                                                         : "bg-[color:var(--knowledge)] text-white shadow-inset-edge"
                                                                                 )}
                                                                             >

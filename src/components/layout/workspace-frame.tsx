@@ -31,7 +31,9 @@ function WorkspaceFrame({
     <div
       data-slot="workspace-frame"
       className={cn(
-        "grid flex-1 min-h-0 w-full",
+        "grid flex-1 min-h-0",
+        // Edge-to-edge breakout: escape parent max-width/padding so rails meet viewport edges
+        "w-screen ml-[calc(50%_-_50vw)]",
         gridCols,
         "bg-[color:var(--canvas)]",
         className
@@ -47,7 +49,7 @@ function WorkspaceFrame({
       )}
       <main
         data-slot="workspace-main"
-        className="overflow-hidden px-10 pt-8 pb-18"
+        className="min-w-0 px-10 pt-8 pb-18"
       >
         {children}
       </main>

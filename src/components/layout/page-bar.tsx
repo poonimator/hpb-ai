@@ -20,7 +20,9 @@ function PageBar({ back, crumbs, action, className, sticky = true }: Props) {
       data-slot="page-bar"
       className={cn(
         sticky && "sticky top-16 z-40",
-        "w-full bg-[color:var(--surface)] border-b border-[color:var(--border-subtle)]",
+        // Edge-to-edge breakout: bar itself spans viewport, inner content stays centered
+        "w-screen ml-[calc(50%_-_50vw)]",
+        "bg-[color:var(--surface)] border-b border-[color:var(--border-subtle)]",
         className
       )}
     >

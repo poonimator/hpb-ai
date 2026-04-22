@@ -20,22 +20,30 @@ function PageBar({ back, crumbs, action, className, sticky = true }: Props) {
       data-slot="page-bar"
       className={cn(
         sticky && "sticky top-16 z-40",
-        // Edge-to-edge breakout: bar itself spans viewport, inner content stays centered
+        // Edge-to-edge breakout: bar itself spans viewport, content goes edge-to-edge with own px-8
         "w-screen ml-[calc(50%_-_50vw)]",
         "bg-[color:var(--surface)] border-b border-[color:var(--border-subtle)]",
         className
       )}
     >
-      <div className="max-w-7xl mx-auto px-8 h-14 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
+      {/* py-[14px] px-8 — matches session-review-v2.jsx:320-322 padding: '14px 32px' */}
+      <div className="py-[14px] px-8 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
           {back && <BackLink href={back.href} onClick={back.onClick} label={back.label} />}
-          {back && crumbs && <div className="h-5 w-px bg-[color:var(--border)]" />}
+          {back && crumbs && (
+            // Divider: w-px h-[22px] — matches session-review-v2.jsx:333 width:1,height:22
+            <div className="w-px h-[22px] bg-[color:var(--border)]" />
+          )}
           {crumbs && crumbs.length > 0 && (
-            <nav aria-label="Breadcrumb" className="flex items-center gap-2 min-w-0 text-body-sm text-muted-foreground">
+            // text-[12.5px] font-medium — matches session-review-v2.jsx:334
+            <nav
+              aria-label="Breadcrumb"
+              className="flex items-center gap-2 min-w-0 text-[12.5px] font-medium text-muted-foreground"
+            >
               {crumbs.map((c, i) => {
                 const last = i === crumbs.length - 1
                 const sep = (
-                  <span key={`sep-${i}`} className="text-muted-foreground/50 select-none" aria-hidden>
+                  <span key={`sep-${i}`} className="opacity-50 select-none" aria-hidden>
                     /
                   </span>
                 )
@@ -52,7 +60,8 @@ function PageBar({ back, crumbs, action, className, sticky = true }: Props) {
                     key={c.label}
                     className={cn(
                       "truncate",
-                      last && "text-foreground font-medium"
+                      // last crumb: text-foreground font-semibold — matches session-review-v2.jsx:339
+                      last && "text-foreground font-semibold"
                     )}
                   >
                     {c.label}

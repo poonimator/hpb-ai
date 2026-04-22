@@ -36,7 +36,6 @@ import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
 import { JumpItem } from "@/components/layout/jump-item";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { Mono } from "@/components/ui/mono";
 import {
     Dialog,
@@ -1067,6 +1066,9 @@ function GuideSetupPageContent() {
                     <ReadinessRow done={hasSavedGuide} label="Guide saved" />
                 </div>
             </RailSection>
+
+            {/* Trailing spacer — fills remaining aside height with surface bg (session-review-v2.jsx:404) */}
+            <div className="flex-1" />
         </>
     )
 
@@ -1179,42 +1181,49 @@ function GuideSetupPageContent() {
     };
 
     const rightRail = (
-        <div className="flex flex-col h-full">
-            {/* Rail header */}
-            <div className="px-4 pt-5 pb-3 border-b border-[color:var(--border-subtle)]">
-                <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold text-foreground">AI Feedback</span>
-                    <Badge variant="default" className="text-xs">{allFeedbackItems.length} found</Badge>
-                </div>
-                {/* Filter tabs */}
-                <div className="flex gap-1.5 flex-wrap">
-                    {(['All', 'Feedback', 'Research'] as const).map((tab) => (
+        <>
+            {/* Rail header — matches interview simulation.jsx:510-532 */}
+            {/* px-[22px] pt-[22px] pb-[14px] — padding:'20px 20px 14px' */}
+            <div className="px-[22px] pt-[22px] pb-[14px] flex items-center justify-between border-b border-[color:var(--border-subtle)]">
+                {/* text-display-4 — matches display fontSize:18 */}
+                <div className="text-display-4 text-foreground">AI Feedback</div>
+                {/* "N found" pill — matches interview simulation.jsx:516-517 Badge color="amber" */}
+                <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--primary)]" />
+                    <span className="text-[11.5px] font-semibold text-foreground">{allFeedbackItems.length} found</span>
+                </span>
+            </div>
+
+            {/* Filter tabs — matches interview simulation.jsx:518-531 */}
+            {/* gap-1 px-[22px] py-2.5 — gap:6, marginTop:14 on filter wrap */}
+            <div className="flex gap-1 px-[22px] py-2.5 border-b border-[color:var(--border-subtle)]">
+                {(['All', 'Feedback', 'Research'] as const).map((tab) => {
+                    const active = railFilter === tab;
+                    return (
                         <button
                             key={tab}
                             onClick={() => setRailFilter(tab)}
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                railFilter === tab
-                                    ? 'bg-foreground text-background'
-                                    : 'bg-[color:var(--surface-muted)] text-muted-foreground hover:text-foreground'
+                            className={`h-7 px-3 rounded-full text-[12px] font-medium transition-colors ${
+                                active
+                                    ? 'bg-[color:var(--ink)] text-white'
+                                    : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface-muted)]/60'
                             }`}
                         >
                             {tab}
                         </button>
-                    ))}
-                </div>
+                    );
+                })}
             </div>
 
-            {/* Scrollable card list */}
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+            {/* Scrollable card list — matches interview simulation.jsx:535-545 */}
+            {/* flex-1 overflow-y-auto padding:14, gap:10 */}
+            <div className="flex-1 overflow-y-auto px-4 py-3.5 flex flex-col gap-2.5">
                 {filteredItems.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-                        <Sparkles className="h-6 w-6 text-muted-foreground/40" />
-                        <p className="text-xs text-muted-foreground">
-                            {allFeedbackItems.length === 0
-                                ? 'Run a check to see AI feedback here'
-                                : 'No items match this filter'}
-                        </p>
-                    </div>
+                    <p className="text-body-sm text-muted-foreground text-center mt-8">
+                        {allFeedbackItems.length === 0
+                            ? 'Nothing yet. Run \u201cCheck All\u201d to surface feedback.'
+                            : 'No items match this filter.'}
+                    </p>
                 ) : (
                     filteredItems.map((item) => {
                         const isExpanded = expandedSuggestionId === item.id;
@@ -1236,103 +1245,121 @@ function GuideSetupPageContent() {
                                         setExpandedSuggestionId(null);
                                     }
                                 }}
-                                className={`rounded-xl border cursor-pointer transition-all duration-150 ${
+                                // RailCard outer — matches interview simulation.jsx:549-562
+                                // bg-white rounded-[14px] border border-[borderSubtle] shadow-inset-edge cursor-pointer
+                                // expanded: amber-pulse ring (outlineRing + 1.5px amberUnderline)
+                                className={`bg-white rounded-[14px] border cursor-pointer transition-all duration-150 ${
                                     isExpanded
-                                        ? 'border-[color:var(--primary)]/40 bg-card shadow-sm'
-                                        : 'border-[color:var(--border-subtle)] bg-card hover:border-[color:var(--border)] hover:shadow-sm'
+                                        ? 'border-[color:var(--border-subtle)] shadow-[0_0_0_1.5px_color-mix(in_oklab,var(--primary)_45%,transparent),var(--shadow-outline-ring)]'
+                                        : 'border-[color:var(--border-subtle)] shadow-inset-edge hover:shadow-outline-ring'
                                 }`}
                             >
-                                {/* Collapsed row */}
+                                {/* Collapsed — matches interview simulation.jsx:563-579 */}
                                 {!isExpanded && (
-                                    <div className="p-3 flex flex-col gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                    <div className="p-[12px_14px] flex flex-col gap-2">
+                                        {/* Header row */}
+                                        <div className="flex items-center gap-2.5">
+                                            {/* Severity dot — w-1.5 h-1.5 rounded-full */}
+                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                                                 item.kind === 'feedback'
                                                     ? getSeverityDotColor(item.severity)
                                                     : 'bg-[color:var(--knowledge)]'
                                             }`} />
-                                            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground flex-1 truncate">
+                                            {/* Question ref in MONO — text-[11px] text-muted-foreground font-mono */}
+                                            <span className="text-[11px] text-muted-foreground font-mono flex-1 truncate">
                                                 {item.questionRef}
                                             </span>
-                                            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                                            <ChevronDown className="text-muted-foreground shrink-0" style={{ width: 14, height: 14 }} />
                                         </div>
-                                        <p className="text-xs text-foreground leading-relaxed line-clamp-2">
+                                        {/* Body — text-[13.5px] text-foreground leading-[1.5] mt-2 line-clamp-2 */}
+                                        <p className="text-[13.5px] text-foreground leading-[1.5] mt-2 line-clamp-2">
                                             {item.kind === 'feedback' ? item.explanation : item.excerpt}
                                         </p>
                                     </div>
                                 )}
 
-                                {/* Expanded content */}
+                                {/* Expanded — matches interview simulation.jsx:582-661 */}
                                 {isExpanded && (
-                                    <div className="p-3.5 flex flex-col gap-3">
+                                    <div className="p-[14px_16px_16px] flex flex-col gap-3.5">
                                         {/* Meta row */}
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                        <div className="flex items-center gap-2.5">
+                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                                                 item.kind === 'feedback'
                                                     ? getSeverityDotColor(item.severity)
                                                     : 'bg-[color:var(--knowledge)]'
                                             }`} />
-                                            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground flex-1 truncate">
+                                            <span className="text-[11px] text-muted-foreground font-mono flex-1 truncate">
                                                 {item.questionRef}
                                             </span>
+                                            {/* Close X — matches interview simulation.jsx:593-600 */}
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setExpandedSuggestionId(null); }}
-                                                className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                                                className="h-[22px] w-[22px] flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors border-none bg-transparent"
                                             >
-                                                <X className="h-3 w-3" />
+                                                <X style={{ width: 13, height: 13 }} strokeWidth={1.8} />
                                             </button>
                                         </div>
 
                                         {item.kind === 'feedback' ? (
                                             <>
-                                                {/* Amber left-border quote block */}
-                                                <div className="border-l-2 border-[color:var(--primary)] pl-3">
-                                                    <p className="text-xs text-foreground leading-relaxed italic">
+                                                {/* Amber left-border quote — matches interview simulation.jsx:603-616 */}
+                                                <div className="border-l-2 border-[color:var(--primary)] pl-3 ml-0.5">
+                                                    <p className="text-[14px] text-foreground leading-[1.5] italic">
                                                         {item.explanation}
                                                     </p>
                                                 </div>
-                                                {/* Suggested rewrite */}
+
+                                                {/* Hypothesis to test — matches interview simulation.jsx:626-641 */}
                                                 {item.suggestedRewrite && (
-                                                    <div className="rounded-lg p-3 bg-[color:var(--surface-muted)] border border-[color:var(--border-subtle)]">
-                                                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-1.5">Suggested rewrite</p>
-                                                        <p className="text-xs text-foreground leading-relaxed">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        {/* eyebrow: text-[10.5px] font-semibold tracking-[0.12em] uppercase text-muted-foreground */}
+                                                        <div className="text-[10.5px] font-semibold text-muted-foreground tracking-[0.12em] uppercase">
+                                                            Hypothesis to test
+                                                        </div>
+                                                        <p className="text-[13px] text-muted-foreground leading-[1.55]">
                                                             {item.suggestedRewrite.replace(/^Reflection:\s*/i, '')}
                                                         </p>
                                                     </div>
                                                 )}
+
                                                 {/* Dismiss */}
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         dismissSuggestion(item.setId, item.questionId, item.subQuestionId, 0);
                                                     }}
-                                                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-[color:var(--danger)] font-medium transition-colors mt-1"
+                                                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-[color:var(--danger)] font-medium transition-colors mt-0.5"
                                                 >
                                                     <Trash2 className="h-3 w-3" /> Dismiss
                                                 </button>
                                             </>
                                         ) : (
                                             <>
-                                                {/* Research */}
-                                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                                {/* Research intro */}
+                                                <p className="text-[13.5px] text-foreground leading-[1.6]">
                                                     {item.introText || 'Relevant insights from your research:'}
                                                 </p>
-                                                {item.summary && (
-                                                    <p className="text-xs text-foreground font-medium leading-relaxed">{item.summary}</p>
-                                                )}
-                                                {/* Excerpt block */}
-                                                <div className="border-l-2 border-[color:var(--knowledge)] pl-3">
-                                                    <p className="text-xs text-muted-foreground leading-relaxed italic">
+
+                                                {/* Knowledge left-border excerpt — parallel to amber treatment for research */}
+                                                <div className="border-l-2 border-[color:var(--knowledge)] pl-3 ml-0.5">
+                                                    <p className="text-[14px] text-foreground leading-[1.5] italic">
                                                         &ldquo;{item.excerpt}&rdquo;
                                                     </p>
                                                     {item.source && (
                                                         <p className="text-[10px] text-[color:var(--knowledge)] font-medium mt-1.5 text-right">— {item.source}</p>
                                                     )}
                                                 </div>
+
+                                                {/* Consider exploring — matches interview simulation.jsx:643-657 */}
                                                 {item.actionSuggestion && (
-                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                        {item.actionSuggestion}
-                                                    </p>
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <div className="text-[10.5px] font-semibold text-muted-foreground tracking-[0.12em] uppercase">
+                                                            Consider exploring
+                                                        </div>
+                                                        <p className="text-[13px] text-muted-foreground leading-[1.55]">
+                                                            {item.actionSuggestion}
+                                                        </p>
+                                                    </div>
                                                 )}
                                             </>
                                         )}
@@ -1343,7 +1370,7 @@ function GuideSetupPageContent() {
                     })
                 )}
             </div>
-        </div>
+        </>
     );
 
     return (
@@ -1365,39 +1392,38 @@ function GuideSetupPageContent() {
                 }
                 action={
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
+                        {/* PillGhost — h-8 px-3 rounded-full bg-white shadow-outline-ring text-[12.5px] font-medium */}
+                        <button
                             onClick={checkAllGuides}
                             disabled={guideSets.some(s => s.isChecking)}
-                            className="gap-1.5"
+                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white text-[12.5px] font-medium text-foreground shadow-outline-ring transition-colors hover:bg-[color:var(--surface-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {guideSets.some(s => s.isChecking) ? (
                                 <>
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    Checking...
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    Checking…
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles className="h-3.5 w-3.5" />
+                                    <Sparkles className="h-3 w-3" />
                                     Check All
                                 </>
                             )}
-                        </Button>
-                        <Button
-                            size="sm"
+                        </button>
+                        {/* Primary pill — h-8 px-[14px] bg-foreground text-white rounded-full text-[12.5px] font-medium shadow-card */}
+                        <button
                             onClick={saveGuideSets}
                             disabled={saving || finishing}
-                            className="gap-1.5"
+                            className="inline-flex items-center gap-1.5 h-8 px-[14px] rounded-full bg-[color:var(--ink)] text-white text-[12.5px] font-medium shadow-card transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
                             Save
-                        </Button>
+                        </button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" title="More actions">
+                                <button className="inline-flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface-muted)]/60 transition-colors" title="More actions">
                                     <MoreHorizontal className="h-4 w-4" />
-                                </Button>
+                                </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={exportGuide}>
@@ -1416,10 +1442,11 @@ function GuideSetupPageContent() {
 
             {/* Main Content Container */}
             <WorkspaceFrame variant="platform" leftRail={leftRail} rightRail={rightRail}>
-                <div className="flex flex-col gap-1 mb-8 max-w-4xl">
-                    <Eyebrow>Setup</Eyebrow>
+                {/* Hero — session-review-v2.jsx:411-419: maxWidth:820, marginBottom:28 */}
+                <div className="max-w-[820px] mb-7">
                     <h1 className="text-display-1 text-foreground">Moderator Guide</h1>
-                    <p className="text-body-lg text-muted-foreground">
+                    {/* fontSize:13.5 → text-body, lineHeight:1.7, marginTop:14 → mt-3.5 */}
+                    <p className="text-body text-muted-foreground mt-3.5">
                         Design the question sets the AI moderator will use. Each set should have an intent and a few questions; quality feedback and research insights appear in the right rail.
                     </p>
                 </div>

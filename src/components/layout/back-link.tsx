@@ -16,16 +16,19 @@ type Props = {
 function BackLink({ href, onClick, label = "Back", className }: Props) {
   const router = useRouter()
 
+  // h-7 px-2.5 -ml-2.5 text-[12px] font-medium — matches session-review-v2.jsx:326-332
+  // height:28, padding:'0 10px', marginLeft:-10, fontSize:12, fontWeight:500
   const content = (
     <>
-      <ChevronLeft className="h-3 w-3" strokeWidth={2} />
+      {/* chevron size 12 — matches session-review-v2.jsx:332 <IconBack size={12}/> */}
+      <ChevronLeft className="h-3 w-3" strokeWidth={2} style={{ width: 12, height: 12 }} />
       <span>{label}</span>
     </>
   )
 
   const base = cn(
     "inline-flex items-center gap-1.5 h-7 px-2.5 -ml-2.5",
-    "text-ui-sm text-muted-foreground hover:text-foreground",
+    "text-[12px] font-medium text-muted-foreground hover:text-foreground",
     "bg-transparent hover:bg-[color:var(--surface-muted)]/50",
     "rounded-[var(--radius-sm2)] transition-colors outline-none",
     "focus-visible:shadow-focus",

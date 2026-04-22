@@ -5,7 +5,7 @@ type Variant = "live" | "platform" | "review"
 
 const columns: Record<Variant, string> = {
   live: "grid-cols-[260px_1fr_400px]",
-  platform: "grid-cols-[280px_1fr_320px]",
+  platform: "grid-cols-[280px_1fr_400px]",
   review: "grid-cols-[280px_1fr]",
 }
 
@@ -42,9 +42,11 @@ function WorkspaceFrame({
       {leftRail && (
         <aside
           data-slot="workspace-rail-left"
-          className="bg-[color:var(--surface)] border-r border-[color:var(--border-subtle)] flex flex-col sticky top-[120px] self-start max-h-[calc(100vh-120px)] overflow-y-auto"
+          className="bg-[color:var(--surface)] border-r border-[color:var(--border-subtle)] relative"
         >
-          {leftRail}
+          <div className="sticky top-[120px] max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col">
+            {leftRail}
+          </div>
         </aside>
       )}
       <main
@@ -56,9 +58,11 @@ function WorkspaceFrame({
       {hasRight && (
         <aside
           data-slot="workspace-rail-right"
-          className="bg-[color:var(--surface)] border-l border-[color:var(--border-subtle)] flex flex-col sticky top-[120px] self-start max-h-[calc(100vh-120px)] overflow-y-auto"
+          className="bg-[color:var(--surface)] border-l border-[color:var(--border-subtle)] relative"
         >
-          {rightRail}
+          <div className="sticky top-[120px] max-h-[calc(100vh-120px)] overflow-y-auto flex flex-col">
+            {rightRail}
+          </div>
         </aside>
       )}
     </div>

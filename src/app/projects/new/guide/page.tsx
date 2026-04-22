@@ -1302,23 +1302,27 @@ function GuideSetupPageContent() {
 
                                         {item.kind === 'feedback' ? (
                                             <>
-                                                {/* Amber left-border quote — matches interview simulation.jsx:603-616 */}
-                                                <div className="border-l-2 border-[color:var(--primary)] pl-3 ml-0.5">
-                                                    <p className="text-[14px] text-foreground leading-[1.5] italic">
+                                                {/* The issue — guide-adapted: AI-written explanation, not a verbatim quote (no italic) */}
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="text-[10.5px] font-semibold text-muted-foreground tracking-[0.12em] uppercase">
+                                                        Why this needs a look
+                                                    </div>
+                                                    <p className="text-[13.5px] text-foreground leading-[1.6]">
                                                         {item.explanation}
                                                     </p>
                                                 </div>
 
-                                                {/* Hypothesis to test — matches interview simulation.jsx:626-641 */}
+                                                {/* Suggested rewrite — guide-adapted: proposed better version of the question, accent quote block since this is literal question copy */}
                                                 {item.suggestedRewrite && (
                                                     <div className="flex flex-col gap-1.5">
-                                                        {/* eyebrow: text-[10.5px] font-semibold tracking-[0.12em] uppercase text-muted-foreground */}
                                                         <div className="text-[10.5px] font-semibold text-muted-foreground tracking-[0.12em] uppercase">
-                                                            Hypothesis to test
+                                                            Suggested rewrite
                                                         </div>
-                                                        <p className="text-[13px] text-muted-foreground leading-[1.55]">
-                                                            {item.suggestedRewrite.replace(/^Reflection:\s*/i, '')}
-                                                        </p>
+                                                        <div className="border-l-2 border-[color:var(--primary)] pl-3 ml-0.5">
+                                                            <p className="text-[13.5px] text-foreground leading-[1.55]">
+                                                                {item.suggestedRewrite.replace(/^Reflection:\s*/i, '')}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 )}
 
@@ -1350,11 +1354,11 @@ function GuideSetupPageContent() {
                                                     )}
                                                 </div>
 
-                                                {/* Consider exploring — matches interview simulation.jsx:643-657 */}
+                                                {/* How to apply — guide-adapted: actionable suggestion for refining the question based on this research */}
                                                 {item.actionSuggestion && (
                                                     <div className="flex flex-col gap-1.5">
                                                         <div className="text-[10.5px] font-semibold text-muted-foreground tracking-[0.12em] uppercase">
-                                                            Consider exploring
+                                                            How to apply
                                                         </div>
                                                         <p className="text-[13px] text-muted-foreground leading-[1.55]">
                                                             {item.actionSuggestion}

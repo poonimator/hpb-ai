@@ -3,6 +3,7 @@
 import { useState, useEffect, use, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,16 @@ import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
 import { Mono } from "@/components/ui/mono";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const LIFE_STAGE_OPTIONS = [
     { value: "Primary", label: "Primary School" },
@@ -205,6 +216,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
         window.history.replaceState({}, "", url.toString());
     }, []);
 
+    // Delete dialog state — one per destructive flow
+    const [deleteGuideId, setDeleteGuideId] = useState<string | null>(null);
+    const [deleteSimId, setDeleteSimId] = useState<string | null>(null);
+    const [deleteMappingId, setDeleteMappingId] = useState<string | null>(null);
+    const [deleteArchetypeId, setDeleteArchetypeId] = useState<string | null>(null);
+    const [deleteIdeationId, setDeleteIdeationId] = useState<string | null>(null);
+    const [deleteHmwId, setDeleteHmwId] = useState<string | null>(null);
+    const [deleteInsightId, setDeleteInsightId] = useState<string | null>(null);
+
     useEffect(() => {
         fetchSubProject();
     }, [subProjectId]);
@@ -277,10 +297,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 await fetchSubProject();
                 setIsEditOpen(false);
             } else {
-                alert("Failed to update workspace");
+                toast.error("Failed to update workspace");
             }
         } catch (err) {
-            alert("Failed to update workspace");
+            toast.error("Failed to update workspace");
         } finally {
             setIsSavingEdit(false);
         }
@@ -311,10 +331,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 // Navigate to edit the new guide
                 window.location.href = `/projects/new/guide?projectId=${projectId}&subProjectId=${subProjectId}&guideId=${data.data.guide.id}`;
             } else {
-                alert(data.error || "Failed to create guide");
+                toast.error(data.error || "Failed to create guide");
             }
         } catch (err) {
-            alert("Failed to create guide");
+            toast.error("Failed to create guide");
         } finally {
             setIsCreatingGuide(false);
         }
@@ -342,10 +362,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 await fetchSubProject();
                 setEditingGuideId(null);
             } else {
-                alert("Failed to rename guide");
+                toast.error("Failed to rename guide");
             }
         } catch (err) {
-            alert("Failed to rename guide");
+            toast.error("Failed to rename guide");
         } finally {
             setIsSavingGuide(false);
         }
@@ -353,10 +373,6 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
     // Delete a guide
     const handleDeleteGuide = async (guideId: string) => {
-        if (!confirm("Are you sure you want to delete this guide? This action cannot be undone.")) {
-            return;
-        }
-
         try {
             const res = await fetch(`/api/guides/${guideId}`, {
                 method: "DELETE"
@@ -365,22 +381,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
             if (res.ok) {
                 await fetchSubProject();
             } else {
-                alert("Failed to delete guide");
+                toast.error("Failed to delete guide");
             }
         } catch (err) {
-            alert("Failed to delete guide");
+            toast.error("Failed to delete guide");
         }
     };
 
     // Delete a simulation
-    const handleDeleteSimulation = async (e: React.MouseEvent, simulationId: string) => {
-        e.preventDefault(); // Prevent navigation
-        e.stopPropagation();
-
-        if (!confirm("Are you sure you want to delete this simulation? This action cannot be undone.")) {
-            return;
-        }
-
+    const handleDeleteSimulation = async (simulationId: string) => {
         try {
             const res = await fetch(`/api/simulations/${simulationId}`, {
                 method: "DELETE"
@@ -389,22 +398,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
             if (res.ok) {
                 await fetchSubProject();
             } else {
-                alert("Failed to delete simulation");
+                toast.error("Failed to delete simulation");
             }
         } catch (err) {
-            alert("Failed to delete simulation");
+            toast.error("Failed to delete simulation");
         }
     };
 
     // Delete a mapping session
-    const handleDeleteMappingSession = async (e: React.MouseEvent, sessionId: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (!confirm("Are you sure you want to delete this mapping session? This action cannot be undone.")) {
-            return;
-        }
-
+    const handleDeleteMappingSession = async (sessionId: string) => {
         try {
             const res = await fetch(`/api/mapping/${sessionId}`, {
                 method: "DELETE"
@@ -413,10 +415,68 @@ export default function SubProjectHomePage({ params }: PageProps) {
             if (res.ok) {
                 await fetchSubProject();
             } else {
-                alert("Failed to delete mapping session");
+                toast.error("Failed to delete mapping session");
             }
         } catch (err) {
-            alert("Failed to delete mapping session");
+            toast.error("Failed to delete mapping session");
+        }
+    };
+
+    // Delete an archetype
+    const handleDeleteArchetype = async (archetypeId: string) => {
+        try {
+            const res = await fetch(`/api/archetypes/single/${archetypeId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                toast.error("Failed to delete archetype");
+            }
+        } catch {
+            toast.error("Failed to delete archetype");
+        }
+    };
+
+    // Delete an ideation session
+    const handleDeleteIdeation = async (sessionId: string) => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}/ideations/${sessionId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                toast.error(data.error || "Failed to delete ideation session");
+            }
+        } catch (err) {
+            console.error("Delete failed:", err);
+            toast.error("Failed to delete ideation session");
+        }
+    };
+
+    // Delete a HMW critique
+    const handleDeleteHmw = async (critiqueId: string) => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques/${critiqueId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                toast.error("Failed to delete HMW critique");
+            }
+        } catch {
+            toast.error("Failed to delete HMW critique");
+        }
+    };
+
+    // Delete an insight critique
+    const handleDeleteInsight = async (critiqueId: string) => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}/insight-critiques/${critiqueId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                toast.error("Failed to delete insight critique");
+            }
+        } catch {
+            toast.error("Failed to delete insight critique");
         }
     };
 
@@ -607,7 +667,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     <Pencil className="h-3.5 w-3.5" />
                                                 </button>
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteGuide(guide.id); }}
+                                                    onClick={(e) => { e.stopPropagation(); setDeleteGuideId(guide.id); }}
                                                     className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
                                                 >
                                                     <Trash2 className="h-3.5 w-3.5" />
@@ -704,7 +764,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         {/* Delete on hover */}
                                         <button
                                             className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                            onClick={(e) => { e.preventDefault(); handleDeleteSimulation(e, sim.id); }}
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteSimId(sim.id); }}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
@@ -787,7 +847,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         {/* Delete on hover */}
                                         <button
                                             className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                            onClick={(e) => { e.preventDefault(); handleDeleteMappingSession(e, session.id); }}
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteMappingId(session.id); }}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
@@ -866,15 +926,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         >
                                             {/* Delete button on hover */}
                                             <button
-                                                onClick={async (e) => {
+                                                onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    if (!confirm("Delete this archetype?")) return;
-                                                    try {
-                                                        const res = await fetch(`/api/archetypes/single/${archetype.id}`, { method: "DELETE" });
-                                                        if (res.ok) await fetchSubProject();
-                                                        else alert("Failed to delete");
-                                                    } catch { alert("Failed to delete"); }
+                                                    setDeleteArchetypeId(archetype.id);
                                                 }}
                                                 className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
                                             >
@@ -936,22 +991,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     {/* Delete on hover */}
                                     <button
                                         className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                        onClick={async (e) => {
+                                        onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            if (!confirm("Delete this ideation session?")) return;
-                                            try {
-                                                const res = await fetch(`/api/sub-projects/${subProjectId}/ideations/${session.id}`, { method: "DELETE" });
-                                                if (res.ok) {
-                                                    await fetchSubProject();
-                                                } else {
-                                                    const data = await res.json().catch(() => ({}));
-                                                    alert(data.error || "Failed to delete");
-                                                }
-                                            } catch (err) {
-                                                console.error("Delete failed:", err);
-                                                alert("Failed to delete");
-                                            }
+                                            setDeleteIdeationId(session.id);
                                         }}
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />
@@ -1015,15 +1058,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 >
                                     {/* Delete button on hover */}
                                     <button
-                                        onClick={async (e) => {
+                                        onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            if (!confirm("Delete this HMW critique?")) return;
-                                            try {
-                                                const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques/${critique.id}`, { method: "DELETE" });
-                                                if (res.ok) await fetchSubProject();
-                                                else alert("Failed to delete");
-                                            } catch { alert("Failed to delete"); }
+                                            setDeleteHmwId(critique.id);
                                         }}
                                         className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
                                     >
@@ -1076,15 +1114,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 >
                                     {/* Delete button on hover */}
                                     <button
-                                        onClick={async (e) => {
+                                        onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            if (!confirm("Delete this insight critique?")) return;
-                                            try {
-                                                const res = await fetch(`/api/sub-projects/${subProjectId}/insight-critiques/${critique.id}`, { method: "DELETE" });
-                                                if (res.ok) await fetchSubProject();
-                                                else alert("Failed to delete");
-                                            } catch { alert("Failed to delete"); }
+                                            setDeleteInsightId(critique.id);
                                         }}
                                         className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
                                     >
@@ -1228,6 +1261,169 @@ export default function SubProjectHomePage({ params }: PageProps) {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* ── Delete AlertDialogs ── */}
+
+            <AlertDialog open={!!deleteGuideId} onOpenChange={(open) => !open && setDeleteGuideId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this moderator guide?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The guide and all question sets inside it will be permanently removed. Simulations previously run against this guide are unaffected but will no longer be linked to it.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteGuideId) await handleDeleteGuide(deleteGuideId);
+                                setDeleteGuideId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteSimId} onOpenChange={(open) => !open && setDeleteSimId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this simulation?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The transcript, opportunities, and analysis for this simulation will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteSimId) await handleDeleteSimulation(deleteSimId);
+                                setDeleteSimId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteMappingId} onOpenChange={(open) => !open && setDeleteMappingId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this mapping session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            All tagged quotes, themes, and cluster layouts in this mapping session will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteMappingId) await handleDeleteMappingSession(deleteMappingId);
+                                setDeleteMappingId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteArchetypeId} onOpenChange={(open) => !open && setDeleteArchetypeId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this archetype session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The generated personas and supporting evidence for this session will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteArchetypeId) await handleDeleteArchetype(deleteArchetypeId);
+                                setDeleteArchetypeId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteIdeationId} onOpenChange={(open) => !open && setDeleteIdeationId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this ideation session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            All concepts and their supporting quotes will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteIdeationId) await handleDeleteIdeation(deleteIdeationId);
+                                setDeleteIdeationId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteHmwId} onOpenChange={(open) => !open && setDeleteHmwId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this HMW critique?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The framing, lenses, and rewrite suggestions for this critique will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteHmwId) await handleDeleteHmw(deleteHmwId);
+                                setDeleteHmwId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteInsightId} onOpenChange={(open) => !open && setDeleteInsightId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this insight critique?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The insight statement, supporting evidence, and critique will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteInsightId) await handleDeleteInsight(deleteInsightId);
+                                setDeleteInsightId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

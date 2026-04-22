@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-    ArrowLeft,
     Loader2,
     BookOpen,
     Plus,
@@ -28,9 +27,9 @@ import {
     FileText,
     Download
 } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { CenteredSpinner } from "@/components/ui/centered-spinner";
+import { PageBar } from "@/components/layout/page-bar";
 import {
     Dialog,
     DialogContent,
@@ -941,41 +940,15 @@ function GuideSetupPageContent() {
     }
 
     return (
-        <div className="flex flex-col pb-20">
-            {/* Edge-to-edge header bar */}
-            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-background border-b border-border">
-                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={subProjectId ? `/projects/${projectId}/sub/${subProjectId}?tab=guides` : `/projects/${projectId}`}
-                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label={`Back to ${project?.name || "Project"}`}
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Back</span>
-                        </Link>
-                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-foreground">
-                            <FileText className="h-4 w-4" />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-foreground">Moderator Guide Setup</h1>
-                            <p className="text-[11px] text-muted-foreground">
-                                {project?.name || "Project"}
-                                {hasSavedGuide ? (
-                                    <>
-                                        <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
-                                        <span>Editing saved guide</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
-                                        <span>Step 2 of 2</span>
-                                    </>
-                                )}
-                            </p>
-                        </div>
-                    </div>
-
+        <div className="flex flex-col">
+            <PageBar
+                back={{
+                    href: subProjectId
+                        ? `/projects/${projectId}/sub/${subProjectId}?tab=guides`
+                        : `/projects/${projectId}`,
+                    label: "Back",
+                }}
+                action={
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
@@ -1017,7 +990,6 @@ function GuideSetupPageContent() {
                             Import Guide
                         </Button>
                         <Button
-                            variant="outline"
                             size="sm"
                             onClick={saveGuideSets}
                             disabled={saving || finishing}
@@ -1027,12 +999,13 @@ function GuideSetupPageContent() {
                             Save
                         </Button>
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Main Content Container */}
-            <div>
-                <div className="relative min-h-[600px] py-8">
+            <div className="pt-6 pb-20">
+                <h1 className="text-display-2 mb-6">Moderator Guide Setup</h1>
+                <div className="relative min-h-[600px]">
                     {/* Legend */}
                     <div className="flex justify-end mb-8">
                         <div className="inline-flex items-center gap-4 text-xs text-muted-foreground px-4 py-2.5 bg-muted rounded-md border border-border">

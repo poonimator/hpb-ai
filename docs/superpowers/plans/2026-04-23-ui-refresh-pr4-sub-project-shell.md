@@ -994,7 +994,7 @@ git add "src/app/projects/[projectId]/sub/[subProjectId]/page.tsx"
 git commit -m "style(sub/[id]): tokenise inline colours, unify 'Workspace' copy
 
 - Remove inline style={{color:'var(--color-info)'}} etc. in favour of
-  className text-[color:var(--...)] utilities
+  className `text-[color:var(--TOKEN)]` utilities
 - Replace remaining text-red-*/text-blue-*/text-violet-*/bg-amber-*/
   hover:text-red-* with --danger/--info/--knowledge/--warning tokens
 - User-facing 'Sub-Project' → 'Workspace' (variable names, API paths,

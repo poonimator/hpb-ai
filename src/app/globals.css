@@ -1,6 +1,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Restrict Tailwind content scanning to source dirs only.
+   Prevents docs/plans/specs (markdown containing placeholder class
+   names like `text-[color:var(--TOKEN)]`) from leaking into the
+   generated utility set and breaking the build. */
+@source "../";
+@source not "../../docs";
+@source not "../../archive";
+@source not "../../claude design explorations";
+
 @theme inline {
   /* Color tokens — Tailwind class mapping; keep every existing name aliased so call-sites still resolve */
   --color-background: var(--canvas);

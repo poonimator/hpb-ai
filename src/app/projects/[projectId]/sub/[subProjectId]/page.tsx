@@ -514,7 +514,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
     const hasGuide = subProject.guideVersions.length > 0;
 
-    // Left rail counts
+    // Tab count derivations (consumed by the <TabsTrigger> labels below)
     const guideCount = subProject.guideVersions?.length ?? 0;
     const simulationCount = subProject.simulations?.length ?? 0;
     const mappingCount = subProject.mappingSessions?.length ?? 0;
@@ -523,32 +523,42 @@ export default function SubProjectHomePage({ params }: PageProps) {
     const hmwCount = subProject.hmwCritiques?.length ?? 0;
     const insightCount = subProject.insightCritiques?.length ?? 0;
 
+    // Format created date if available on the subProject payload
+    const createdLabel = subProject.createdAt
+        ? new Date(subProject.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+          })
+        : null;
+
     const leftRail = (
         <>
             <RailHeader>
-                <h2 className="text-display-5 text-foreground leading-tight">
+                {/* Parent project as a subtle eyebrow link — replaces the awkward 'In Project Name' prose */}
+                {subProject.project?.name && (
+                    <Link
+                        href={`/projects/${projectId}`}
+                        className="group inline-flex items-center gap-1.5 text-eyebrow text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <ArrowLeft className="h-2.5 w-2.5" strokeWidth={2.5} />
+                        <span className="truncate">{subProject.project.name}</span>
+                    </Link>
+                )}
+                <h2 className="text-display-4 text-foreground leading-tight">
                     {subProject.name}
                 </h2>
-                {subProject.project?.name && (
-                    <p className="text-body-sm text-muted-foreground">
-                        In <span className="text-foreground">{subProject.project.name}</span>
+                {subProject.researchStatement && (
+                    <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-4">
+                        {subProject.researchStatement}
                     </p>
                 )}
             </RailHeader>
 
-            <RailSection title="Audience">
-                <MetaRow k="Age range" v={<Mono>{subProject.ageRange || "—"}</Mono>} />
-                <MetaRow k="Life stage" v={<span className="text-ui-sm text-foreground">{subProject.lifeStage || "—"}</span>} />
-            </RailSection>
-
-            <RailSection title="Activity" last>
-                <MetaRow k="Moderator guides" v={<Mono>{guideCount}</Mono>} />
-                <MetaRow k="Simulations" v={<Mono>{simulationCount}</Mono>} />
-                <MetaRow k="Mapping sessions" v={<Mono>{mappingCount}</Mono>} />
-                <MetaRow k="Archetypes" v={<Mono>{archetypeCount}</Mono>} />
-                <MetaRow k="Ideation sessions" v={<Mono>{ideationCount}</Mono>} />
-                <MetaRow k="HMW critiques" v={<Mono>{hmwCount}</Mono>} />
-                <MetaRow k="Insight critiques" v={<Mono>{insightCount}</Mono>} />
+            <RailSection title="Research" last>
+                <MetaRow k="Age range" v={subProject.ageRange || "—"} />
+                <MetaRow k="Life stage" v={subProject.lifeStage || "—"} />
+                {createdLabel && <MetaRow k="Created" v={createdLabel} />}
             </RailSection>
 
             <div className="flex-1" />

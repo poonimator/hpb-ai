@@ -12,12 +12,13 @@ function MetaRow({ k, v, className }: Props) {
     <div
       data-slot="meta-row"
       className={cn(
-        "flex items-center justify-between gap-3 py-1.5 text-body-sm",
+        // items-start so long values that wrap don't center-offset the key
+        "flex items-start justify-between gap-3 py-1.5 text-body-sm",
         className
       )}
     >
-      <span className="text-muted-foreground">{k}</span>
-      <span className="text-ui-sm text-foreground">{v}</span>
+      <span className="text-muted-foreground shrink-0">{k}</span>
+      <span className="text-ui-sm text-foreground text-right min-w-0">{v}</span>
     </div>
   )
 }

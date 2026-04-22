@@ -31,7 +31,9 @@ function WorkspaceFrame({
     <div
       data-slot="workspace-frame"
       className={cn(
-        "grid flex-1 min-h-0",
+        // min-h ensures the grid row is always at least viewport-minus-sticky-chrome tall,
+        // so rails' bg extends to the page-footer edge even when main content is sparse.
+        "grid flex-1 min-h-[calc(100vh-120px)]",
         // Edge-to-edge breakout: escape parent max-width/padding so rails meet viewport edges
         "w-screen ml-[calc(50%_-_50vw)]",
         gridCols,

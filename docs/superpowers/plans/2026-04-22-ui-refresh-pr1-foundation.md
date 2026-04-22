@@ -1498,38 +1498,1544 @@ git commit -m "style(ui): restyle Dialog — panel radius, warm shadow, display-
 
 ---
 
-## Tasks 15–28: Remaining shadcn primitives (compact format)
+## Task 15: Restyle `AlertDialog`
 
-For each of the remaining 14 primitives below, the target content is a straightforward token swap — replace the existing class strings with the tokenized equivalents defined in Task 2 plus the relevant radius/shadow/typography tokens. For every task: replace the file contents with the listed file in v1 of this plan (the previous plan at commit `aaa8bbd` had full target code for these primitives) — **but update each one by:**
+**Files:** `src/components/ui/alert-dialog.tsx`.
 
-1. Swapping `--primary-hover` / any green references → amber variants already defined in Task 2.
-2. Swapping raw `bg-card` / `bg-background` → `bg-[color:var(--surface)]` where on a card and `bg-[color:var(--canvas)]` where on canvas.
-3. Swapping any remaining `shadow-xs` / `shadow-sm` / `shadow-md` / `shadow-lg` utilities → tokens: `shadow-inset-edge` / `shadow-ring` / `shadow-card` / `shadow-outline-ring` / `shadow-composer` per the design spec §6.
-4. Swapping `rounded-md` / `rounded-lg` / `rounded-xl` / `rounded-2xl` → the specific radius token from the spec §4.7: pills `--radius-pill`, inputs `--radius-md2`, cards `--radius-card-lg`, panels `--radius-panel`.
-5. Ensure no remaining `dark:` classes in the output.
+- [ ] **Step 1: Replace entire contents with:**
 
-The list (same file contents as v1 of this plan with the swaps above applied):
+```tsx
+"use client"
 
-- [ ] **Task 15: AlertDialog** — matches Dialog. `buttonVariants()` continues to drive Action/Cancel.
-- [ ] **Task 16: DropdownMenu** — popover `rounded-[var(--radius-card-lg)]` + `shadow-outline-ring`. Items `rounded-[8px]` + `text-ui-sm`. Hover `bg-[color:var(--surface-muted)]`. Active checked `bg-[color:var(--primary-soft)]` + text `var(--primary)`.
-- [ ] **Task 17: Select** — trigger matches Input below. Popover matches DropdownMenu.
-- [ ] **Task 18: Tooltip** — `bg-foreground text-[color:var(--primary-fg)] text-caption rounded-[8px] py-1.5 px-2.5 shadow-ring`.
-- [ ] **Task 19: Input + Textarea** — `rounded-[var(--radius-md2)] bg-[color:var(--surface)] shadow-inset-edge px-3.5 py-2.5 text-body`. Focus `shadow-focus`. Invalid red ring.
-- [ ] **Task 20: Checkbox** — 16px, `rounded-[4px]`, `shadow-inset-edge` unchecked, `bg-[color:var(--primary)]` checked + white check.
-- [ ] **Task 21: Slider** — track 4px `bg-[color:var(--surface-muted)]`. Range `bg-[color:var(--primary)]`. Thumb 16px white + `shadow-card`.
-- [ ] **Task 22: Label** — `text-ui-sm text-foreground`. Error state `text-[color:var(--danger)]` via `data-error`.
-- [ ] **Task 23: Badge** — pill, `text-ui-sm`. Variants: `default` (stone + ink), `primary` (primary-soft + primary), `info`, `success`, `warning`, `destructive`, `knowledge`, `outline`. All with `shadow-inset-edge`.
-- [ ] **Task 24: Alert** — `rounded-[var(--radius-card-lg)] shadow-outline-ring`. Variants `default` / `info` / `warning` / `destructive`, all 3px left accent border + `{severity}-soft` bg + 18px icon.
-- [ ] **Task 25: Tabs** — **underline style**. TabsList `border-b border-[color:var(--border-subtle)]`, no bg. TabsTrigger `text-ui` ink-muted idle, hover `bg-[color:var(--surface-muted)]/40`, active `text-foreground` + 2px primary underline via `::after`.
-- [ ] **Task 26: Separator** — `bg-[color:var(--border-subtle)]`.
-- [ ] **Task 27: ScrollArea** — thumb `bg-[color:var(--ink-muted)]/30 hover:bg-[color:var(--ink-muted)]/50`, 6px wide.
-- [ ] **Task 28: Form** — FormItem gap 1.5. FormMessage `text-caption text-[color:var(--danger)]`. FormDescription `text-caption text-muted-foreground`.
+import * as React from "react"
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
-**For every task in 15–28:**
-1. Build & lint: `npm run build && npm run lint`
-2. Commit individually with message `style(ui): restyle <Component> to amber token system`.
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
 
-If any of these primitives has a current usage site that breaks when the classname changes, fix the primitive — NOT the site. (Page-level fixes belong in phase PRs.)
+function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
+  return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
+}
+function AlertDialogTrigger({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
+  return <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
+}
+function AlertDialogPortal({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
+  return <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
+}
+
+function AlertDialogOverlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
+  return (
+    <AlertDialogPrimitive.Overlay
+      data-slot="alert-dialog-overlay"
+      className={cn(
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px]",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  return (
+    <AlertDialogPortal>
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        data-slot="alert-dialog-content"
+        className={cn(
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)]",
+          "translate-x-[-50%] translate-y-[-50%] gap-4",
+          "rounded-[var(--radius-panel)] bg-[color:var(--surface)]",
+          "shadow-outline-ring shadow-warm-lift",
+          "p-7 duration-200 sm:max-w-lg",
+          className
+        )}
+        {...props}
+      />
+    </AlertDialogPortal>
+  )
+}
+
+function AlertDialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-dialog-header"
+      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-dialog-footer"
+      className={cn(
+        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 mt-2",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
+  return (
+    <AlertDialogPrimitive.Title
+      data-slot="alert-dialog-title"
+      className={cn("text-display-3 text-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Description>) {
+  return (
+    <AlertDialogPrimitive.Description
+      data-slot="alert-dialog-description"
+      className={cn("text-body text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogAction({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+  return (
+    <AlertDialogPrimitive.Action
+      className={cn(buttonVariants(), className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogCancel({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
+  return (
+    <AlertDialogPrimitive.Cancel
+      className={cn(buttonVariants({ variant: "outline" }), className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  AlertDialog,
+  AlertDialogPortal,
+  AlertDialogOverlay,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+}
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/alert-dialog.tsx
+git commit -m "style(ui): restyle AlertDialog to match Dialog treatment"
+```
+
+---
+
+## Task 16: Restyle `DropdownMenu`
+
+**Files:** `src/components/ui/dropdown-menu.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
+import { Check, ChevronRight, Circle } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+const DropdownMenu = DropdownMenuPrimitive.Root
+const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
+const DropdownMenuGroup = DropdownMenuPrimitive.Group
+const DropdownMenuPortal = DropdownMenuPrimitive.Portal
+const DropdownMenuSub = DropdownMenuPrimitive.Sub
+const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup
+
+const itemBase =
+  "relative flex cursor-default select-none items-center gap-2 rounded-[8px] px-2.5 py-2 text-ui-sm text-foreground outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+const itemState =
+  "focus:bg-[color:var(--surface-muted)] data-[state=open]:bg-[color:var(--surface-muted)] data-[state=checked]:bg-[color:var(--primary-soft)] data-[state=checked]:text-[color:var(--primary)]"
+
+const DropdownMenuSubTrigger = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & {
+    inset?: boolean
+  }
+>(({ className, inset, children, ...props }, ref) => (
+  <DropdownMenuPrimitive.SubTrigger
+    ref={ref}
+    className={cn(itemBase, itemState, inset && "pl-8", className)}
+    {...props}
+  >
+    {children}
+    <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+  </DropdownMenuPrimitive.SubTrigger>
+))
+DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName
+
+const contentBase =
+  "z-50 min-w-[10rem] overflow-hidden rounded-[var(--radius-card-lg)] bg-[color:var(--surface)] text-foreground p-1.5 shadow-outline-ring data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1"
+
+const DropdownMenuSubContent = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
+>(({ className, ...props }, ref) => (
+  <DropdownMenuPrimitive.SubContent
+    ref={ref}
+    className={cn(contentBase, className)}
+    {...props}
+  />
+))
+DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayName
+
+const DropdownMenuContent = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
+>(({ className, sideOffset = 6, ...props }, ref) => (
+  <DropdownMenuPrimitive.Portal>
+    <DropdownMenuPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(contentBase, className)}
+      {...props}
+    />
+  </DropdownMenuPrimitive.Portal>
+))
+DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
+
+const DropdownMenuItem = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Item>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
+    inset?: boolean
+  }
+>(({ className, inset, ...props }, ref) => (
+  <DropdownMenuPrimitive.Item
+    ref={ref}
+    className={cn(itemBase, itemState, inset && "pl-8", className)}
+    {...props}
+  />
+))
+DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName
+
+const DropdownMenuCheckboxItem = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
+>(({ className, children, checked, ...props }, ref) => (
+  <DropdownMenuPrimitive.CheckboxItem
+    ref={ref}
+    className={cn(itemBase, itemState, "pl-8 pr-2", className)}
+    checked={checked}
+    {...props}
+  >
+    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+      <DropdownMenuPrimitive.ItemIndicator>
+        <Check className="h-3.5 w-3.5 text-[color:var(--primary)]" />
+      </DropdownMenuPrimitive.ItemIndicator>
+    </span>
+    {children}
+  </DropdownMenuPrimitive.CheckboxItem>
+))
+DropdownMenuCheckboxItem.displayName = DropdownMenuPrimitive.CheckboxItem.displayName
+
+const DropdownMenuRadioItem = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>
+>(({ className, children, ...props }, ref) => (
+  <DropdownMenuPrimitive.RadioItem
+    ref={ref}
+    className={cn(itemBase, itemState, "pl-8 pr-2", className)}
+    {...props}
+  >
+    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+      <DropdownMenuPrimitive.ItemIndicator>
+        <Circle className="h-2 w-2 fill-[color:var(--primary)] text-[color:var(--primary)]" />
+      </DropdownMenuPrimitive.ItemIndicator>
+    </span>
+    {children}
+  </DropdownMenuPrimitive.RadioItem>
+))
+DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName
+
+const DropdownMenuLabel = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Label>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> & {
+    inset?: boolean
+  }
+>(({ className, inset, ...props }, ref) => (
+  <DropdownMenuPrimitive.Label
+    ref={ref}
+    className={cn(
+      "px-2.5 pt-2 pb-1 text-eyebrow text-muted-foreground",
+      inset && "pl-8",
+      className
+    )}
+    {...props}
+  />
+))
+DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName
+
+const DropdownMenuSeparator = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Separator>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>
+>(({ className, ...props }, ref) => (
+  <DropdownMenuPrimitive.Separator
+    ref={ref}
+    className={cn("-mx-1 my-1 h-px bg-[color:var(--border-subtle)]", className)}
+    {...props}
+  />
+))
+DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName
+
+const DropdownMenuShortcut = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement>) => {
+  return (
+    <span
+      className={cn("ml-auto text-caption text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+DropdownMenuShortcut.displayName = "DropdownMenuShortcut"
+
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+}
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/dropdown-menu.tsx
+git commit -m "style(ui): restyle DropdownMenu with outline-ring popover + amber-soft active"
+```
+
+---
+
+## Task 17: Restyle `Select`
+
+**Files:** `src/components/ui/select.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as SelectPrimitive from "@radix-ui/react-select"
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
+  return <SelectPrimitive.Root data-slot="select" {...props} />
+}
+function SelectGroup({ ...props }: React.ComponentProps<typeof SelectPrimitive.Group>) {
+  return <SelectPrimitive.Group data-slot="select-group" {...props} />
+}
+function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.Value>) {
+  return <SelectPrimitive.Value data-slot="select-value" {...props} />
+}
+
+function SelectTrigger({
+  className,
+  size = "default",
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  size?: "sm" | "default"
+}) {
+  return (
+    <SelectPrimitive.Trigger
+      data-slot="select-trigger"
+      data-size={size}
+      className={cn(
+        "flex w-full items-center justify-between gap-2 whitespace-nowrap",
+        "rounded-[var(--radius-md2)] bg-[color:var(--surface)] text-body text-foreground",
+        "shadow-inset-edge px-3.5 py-2.5",
+        "data-[size=default]:h-10 data-[size=sm]:h-9 data-[size=sm]:text-ui-sm",
+        "data-[placeholder]:text-muted-foreground",
+        "transition-shadow outline-none",
+        "focus-visible:shadow-focus",
+        "aria-invalid:shadow-[0_0_0_2px_color-mix(in_oklab,var(--danger)_45%,transparent)]",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <SelectPrimitive.Icon asChild>
+        <ChevronDownIcon className="size-4 text-muted-foreground" />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+  )
+}
+
+function SelectContent({
+  className,
+  children,
+  position = "popper",
+  align = "start",
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  return (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        data-slot="select-content"
+        className={cn(
+          "z-50 max-h-(--radix-select-content-available-height) min-w-[10rem]",
+          "origin-(--radix-select-content-transform-origin)",
+          "overflow-x-hidden overflow-y-auto",
+          "rounded-[var(--radius-card-lg)] bg-[color:var(--surface)] text-foreground",
+          "shadow-outline-ring p-1.5",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          position === "popper" &&
+            "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+          className
+        )}
+        position={position}
+        align={align}
+        {...props}
+      >
+        <SelectScrollUpButton />
+        <SelectPrimitive.Viewport
+          className={cn(
+            "p-0",
+            position === "popper" &&
+              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  )
+}
+
+function SelectLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Label>) {
+  return (
+    <SelectPrimitive.Label
+      data-slot="select-label"
+      className={cn(
+        "px-2.5 pt-2 pb-1 text-eyebrow text-muted-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function SelectItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+  return (
+    <SelectPrimitive.Item
+      data-slot="select-item"
+      className={cn(
+        "relative flex w-full cursor-default select-none items-center gap-2",
+        "rounded-[8px] py-2 pr-8 pl-2.5 text-ui-sm text-foreground",
+        "outline-none transition-colors",
+        "focus:bg-[color:var(--surface-muted)]",
+        "data-[state=checked]:bg-[color:var(--primary-soft)] data-[state=checked]:text-[color:var(--primary)]",
+        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "*:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        className
+      )}
+      {...props}
+    >
+      <span
+        data-slot="select-item-indicator"
+        className="absolute right-2 flex size-3.5 items-center justify-center"
+      >
+        <SelectPrimitive.ItemIndicator>
+          <CheckIcon className="size-4 text-[color:var(--primary)]" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    </SelectPrimitive.Item>
+  )
+}
+
+function SelectSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
+  return (
+    <SelectPrimitive.Separator
+      data-slot="select-separator"
+      className={cn(
+        "pointer-events-none -mx-1 my-1 h-px bg-[color:var(--border-subtle)]",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function SelectScrollUpButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+  return (
+    <SelectPrimitive.ScrollUpButton
+      data-slot="select-scroll-up-button"
+      className={cn(
+        "flex cursor-default items-center justify-center py-1 text-muted-foreground",
+        className
+      )}
+      {...props}
+    >
+      <ChevronUpIcon className="size-4" />
+    </SelectPrimitive.ScrollUpButton>
+  )
+}
+
+function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+  return (
+    <SelectPrimitive.ScrollDownButton
+      data-slot="select-scroll-down-button"
+      className={cn(
+        "flex cursor-default items-center justify-center py-1 text-muted-foreground",
+        className
+      )}
+      {...props}
+    >
+      <ChevronDownIcon className="size-4" />
+    </SelectPrimitive.ScrollDownButton>
+  )
+}
+
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+}
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/select.tsx
+git commit -m "style(ui): restyle Select trigger + popover to amber token system"
+```
+
+---
+
+## Task 18: Restyle `Tooltip`
+
+**Files:** `src/components/ui/tooltip.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
+
+import { cn } from "@/lib/utils"
+
+function TooltipProvider({
+  delayDuration = 150,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
+  return (
+    <TooltipPrimitive.Provider
+      data-slot="tooltip-provider"
+      delayDuration={delayDuration}
+      {...props}
+    />
+  )
+}
+
+function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+}
+
+function TooltipTrigger({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
+  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+}
+
+function TooltipContent({
+  className,
+  sideOffset = 6,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        data-slot="tooltip-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 max-w-xs rounded-[8px] px-2.5 py-1.5",
+          "bg-foreground text-[color:var(--primary-fg)]",
+          "text-caption shadow-ring",
+          "animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+          "data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1",
+          className
+        )}
+        {...props}
+      />
+    </TooltipPrimitive.Portal>
+  )
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/tooltip.tsx
+git commit -m "style(ui): restyle Tooltip to caption type and ring shadow"
+```
+
+---
+
+## Task 19: Restyle `Input` + `Textarea`
+
+**Files:**
+- `src/components/ui/input.tsx`
+- `src/components/ui/textarea.tsx`
+
+- [ ] **Step 1: Replace entire contents of `src/components/ui/input.tsx` with:**
+
+```tsx
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+  return (
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        "flex h-10 w-full min-w-0 rounded-[var(--radius-md2)] bg-[color:var(--surface)] text-body text-foreground",
+        "shadow-inset-edge px-3.5 py-2.5",
+        "placeholder:text-muted-foreground",
+        "selection:bg-[color:var(--primary)] selection:text-[color:var(--primary-fg)]",
+        "transition-shadow outline-none",
+        "focus-visible:shadow-focus",
+        "aria-invalid:shadow-[0_0_0_2px_color-mix(in_oklab,var(--danger)_45%,transparent)]",
+        "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+        "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-ui-sm file:text-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Input }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Replace entire contents of `src/components/ui/textarea.tsx` with:**
+
+```tsx
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+  return (
+    <textarea
+      data-slot="textarea"
+      className={cn(
+        "flex field-sizing-content min-h-20 w-full rounded-[var(--radius-md2)] bg-[color:var(--surface)] text-body text-foreground",
+        "shadow-inset-edge px-3.5 py-2.5",
+        "placeholder:text-muted-foreground",
+        "transition-shadow outline-none",
+        "focus-visible:shadow-focus",
+        "aria-invalid:shadow-[0_0_0_2px_color-mix(in_oklab,var(--danger)_45%,transparent)]",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Textarea }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 3: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/input.tsx src/components/ui/textarea.tsx
+git commit -m "style(ui): restyle Input + Textarea with inset-edge shadow and amber focus ring"
+```
+
+---
+
+## Task 20: Restyle `Checkbox`
+
+**Files:** `src/components/ui/checkbox.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
+import { Check } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+const Checkbox = React.forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <CheckboxPrimitive.Root
+    ref={ref}
+    className={cn(
+      "peer h-4 w-4 shrink-0 rounded-[4px] bg-[color:var(--surface)]",
+      "shadow-inset-edge",
+      "transition-[background-color,box-shadow] outline-none",
+      "focus-visible:shadow-focus",
+      "disabled:cursor-not-allowed disabled:opacity-50",
+      "data-[state=checked]:bg-[color:var(--primary)]",
+      "data-[state=checked]:text-[color:var(--primary-fg)]",
+      "data-[state=checked]:shadow-none",
+      className
+    )}
+    {...props}
+  >
+    <CheckboxPrimitive.Indicator
+      className={cn("flex items-center justify-center text-current")}
+    >
+      <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+    </CheckboxPrimitive.Indicator>
+  </CheckboxPrimitive.Root>
+))
+Checkbox.displayName = CheckboxPrimitive.Root.displayName
+
+export { Checkbox }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/checkbox.tsx
+git commit -m "style(ui): restyle Checkbox with inset-edge + amber primary fill"
+```
+
+---
+
+## Task 21: Restyle `Slider`
+
+**Files:** `src/components/ui/slider.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as SliderPrimitive from "@radix-ui/react-slider"
+
+import { cn } from "@/lib/utils"
+
+function Slider({
+  className,
+  defaultValue,
+  value,
+  min = 0,
+  max = 100,
+  ...props
+}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+  const _values = React.useMemo(
+    () =>
+      Array.isArray(value)
+        ? value
+        : Array.isArray(defaultValue)
+        ? defaultValue
+        : [min, max],
+    [value, defaultValue, min, max]
+  )
+
+  return (
+    <SliderPrimitive.Root
+      data-slot="slider"
+      defaultValue={defaultValue}
+      value={value}
+      min={min}
+      max={max}
+      className={cn(
+        "relative flex w-full touch-none items-center select-none",
+        "data-[disabled]:opacity-50",
+        "data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        className
+      )}
+      {...props}
+    >
+      <SliderPrimitive.Track
+        data-slot="slider-track"
+        className={cn(
+          "relative grow overflow-hidden rounded-full bg-[color:var(--surface-muted)]",
+          "data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full",
+          "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1"
+        )}
+      >
+        <SliderPrimitive.Range
+          data-slot="slider-range"
+          className={cn(
+            "absolute bg-[color:var(--primary)]",
+            "data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+          )}
+        />
+      </SliderPrimitive.Track>
+      {Array.from({ length: _values.length }, (_, index) => (
+        <SliderPrimitive.Thumb
+          data-slot="slider-thumb"
+          key={index}
+          className={cn(
+            "block size-4 shrink-0 rounded-full bg-[color:var(--surface)]",
+            "shadow-card",
+            "transition-shadow outline-none",
+            "focus-visible:shadow-focus",
+            "disabled:pointer-events-none disabled:opacity-50"
+          )}
+        />
+      ))}
+    </SliderPrimitive.Root>
+  )
+}
+
+export { Slider }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/slider.tsx
+git commit -m "style(ui): restyle Slider with thin track and card-shadow thumb"
+```
+
+---
+
+## Task 22: Restyle `Label`
+
+**Files:** `src/components/ui/label.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as LabelPrimitive from "@radix-ui/react-label"
+
+import { cn } from "@/lib/utils"
+
+function Label({
+  className,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+  return (
+    <LabelPrimitive.Root
+      data-slot="label"
+      className={cn(
+        "flex items-center gap-2 text-ui-sm text-foreground select-none",
+        "group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50",
+        "peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Label }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/label.tsx
+git commit -m "style(ui): restyle Label to text-ui-sm token"
+```
+
+---
+
+## Task 23: Restyle `Badge`
+
+**Files:** `src/components/ui/badge.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const badgeVariants = cva(
+  [
+    "inline-flex items-center justify-center gap-1 w-fit whitespace-nowrap shrink-0 overflow-hidden",
+    "rounded-[var(--radius-pill)] px-2.5 py-0.5 text-ui-sm",
+    "shadow-inset-edge",
+    "transition-[background-color,box-shadow,color]",
+    "[&>svg]:size-3 [&>svg]:pointer-events-none",
+    "outline-none focus-visible:shadow-focus",
+  ].join(" "),
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-[color:var(--surface-muted)] text-foreground",
+        primary:
+          "bg-[color:var(--primary-soft)] text-[color:var(--primary)]",
+        secondary:
+          "bg-[color:var(--surface-muted)] text-foreground",
+        info:
+          "bg-[color:var(--info-soft)] text-[color:var(--info)]",
+        success:
+          "bg-[color:var(--success-soft)] text-[color:var(--success)]",
+        warning:
+          "bg-[color:var(--warning-soft)] text-[color:var(--warning)]",
+        destructive:
+          "bg-[color:var(--danger-soft)] text-[color:var(--danger)]",
+        knowledge:
+          "bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]",
+        outline:
+          "bg-transparent text-foreground shadow-ring",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+function Badge({
+  className,
+  variant,
+  asChild = false,
+  ...props
+}: React.ComponentProps<"span"> &
+  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot : "span"
+
+  return (
+    <Comp
+      data-slot="badge"
+      className={cn(badgeVariants({ variant }), className)}
+      {...props}
+    />
+  )
+}
+
+export { Badge, badgeVariants }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/badge.tsx
+git commit -m "style(ui): restyle Badge with full semantic variant set and inset-edge"
+```
+
+---
+
+## Task 24: Restyle `Alert`
+
+**Files:** `src/components/ui/alert.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const alertVariants = cva(
+  [
+    "relative w-full rounded-[var(--radius-card-lg)] px-5 py-4 text-body-sm",
+    "grid has-[>svg]:grid-cols-[20px_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-1 items-start",
+    "[&>svg]:size-[18px] [&>svg]:translate-y-0.5",
+    "shadow-outline-ring",
+  ].join(" "),
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-[color:var(--surface)] text-foreground [&>svg]:text-muted-foreground",
+        info:
+          "bg-[color:var(--info-soft)] text-foreground [&>svg]:text-[color:var(--info)] border-l-[3px] border-l-[color:var(--info)] pl-4",
+        warning:
+          "bg-[color:var(--warning-soft)] text-foreground [&>svg]:text-[color:var(--warning)] border-l-[3px] border-l-[color:var(--warning)] pl-4",
+        destructive:
+          "bg-[color:var(--danger-soft)] text-[color:var(--danger)] [&>svg]:text-[color:var(--danger)] border-l-[3px] border-l-[color:var(--danger)] pl-4 *:data-[slot=alert-description]:text-[color:var(--danger)]/85",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+function Alert({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+  return (
+    <div
+      data-slot="alert"
+      role="alert"
+      className={cn(alertVariants({ variant }), className)}
+      {...props}
+    />
+  )
+}
+
+function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-title"
+      className={cn(
+        "col-start-2 line-clamp-2 min-h-4 text-display-5",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-description"
+      className={cn(
+        "col-start-2 grid justify-items-start gap-1 text-body-sm text-muted-foreground [&_p]:leading-relaxed",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Alert, AlertTitle, AlertDescription }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/alert.tsx
+git commit -m "style(ui): restyle Alert with accent-bar variants (info/warning/destructive)"
+```
+
+---
+
+## Task 25: Restyle `Tabs` (structural — underline style)
+
+**Files:** `src/components/ui/tabs.tsx`.
+
+**What this does:** Replaces the existing segmented-pill style with an underline style. TabsList has no background, just a bottom border. Active TabsTrigger gets a 2px primary underline via `::after`. This is a structural visual change but additive at the API level — call-sites do not need edits.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as TabsPrimitive from "@radix-ui/react-tabs"
+
+import { cn } from "@/lib/utils"
+
+function Tabs({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  return (
+    <TabsPrimitive.Root
+      data-slot="tabs"
+      className={cn("flex flex-col gap-4", className)}
+      {...props}
+    />
+  )
+}
+
+function TabsList({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.List>) {
+  return (
+    <TabsPrimitive.List
+      data-slot="tabs-list"
+      className={cn(
+        "inline-flex items-end gap-1 w-full",
+        "border-b border-[color:var(--border-subtle)]",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TabsTrigger({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  return (
+    <TabsPrimitive.Trigger
+      data-slot="tabs-trigger"
+      className={cn(
+        "relative inline-flex items-center justify-center gap-2 whitespace-nowrap",
+        "text-ui text-muted-foreground",
+        "px-3 py-2.5",
+        "transition-colors outline-none",
+        "hover:text-foreground hover:bg-[color:var(--surface-muted)]/40 rounded-t-[6px]",
+        "focus-visible:shadow-focus",
+        "disabled:pointer-events-none disabled:opacity-50",
+        "data-[state=active]:text-foreground",
+        "data-[state=active]:after:content-['']",
+        "data-[state=active]:after:absolute data-[state=active]:after:left-3 data-[state=active]:after:right-3 data-[state=active]:after:-bottom-px",
+        "data-[state=active]:after:h-[2px] data-[state=active]:after:bg-[color:var(--primary)] data-[state=active]:after:rounded-full",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TabsContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  return (
+    <TabsPrimitive.Content
+      data-slot="tabs-content"
+      className={cn("flex-1 outline-none", className)}
+      {...props}
+    />
+  )
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Audit Tabs call-sites for layout dependencies**
+
+The old segmented TabsList had a specific height (36px) and inner `bg-muted` + `p-[3px]`. The new underline TabsList is border-based. Grep for every `<Tabs` call-site:
+
+```bash
+grep -rn "from ['\"]@/components/ui/tabs['\"]" src/app src/components | cut -d: -f1 | sort -u
+```
+
+Open each listed file. Look for wrappers around `<Tabs>` or `<TabsList>` that assume a specific pixel height or fixed width. If found, note the file + line range — do NOT fix here. Fixes belong in the phase PR that owns that page. Pass the list to Task 32's "page-level issues logged for phase PRs" summary.
+
+- [ ] **Step 3: Build + lint**
+```bash
+npm run build && npm run lint
+```
+
+- [ ] **Step 4: Commit**
+```bash
+git add src/components/ui/tabs.tsx
+git commit -m "style(ui): switch Tabs to underline style
+
+Structural visual change: TabsList is a flex with border-b; active
+TabsTrigger gets a 2px primary underline via ::after. API unchanged;
+call-sites do not require edits. Any layout-dependent call-site is
+logged for its owning phase PR."
+```
+
+---
+
+## Task 26: Restyle `Separator`
+
+**Files:** `src/components/ui/separator.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as SeparatorPrimitive from "@radix-ui/react-separator"
+
+import { cn } from "@/lib/utils"
+
+function Separator({
+  className,
+  orientation = "horizontal",
+  decorative = true,
+  ...props
+}: React.ComponentProps<typeof SeparatorPrimitive.Root>) {
+  return (
+    <SeparatorPrimitive.Root
+      data-slot="separator"
+      decorative={decorative}
+      orientation={orientation}
+      className={cn(
+        "shrink-0 bg-[color:var(--border-subtle)]",
+        "data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full",
+        "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Separator }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/separator.tsx
+git commit -m "style(ui): restyle Separator to border-subtle token"
+```
+
+---
+
+## Task 27: Restyle `ScrollArea`
+
+**Files:** `src/components/ui/scroll-area.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
+
+import { cn } from "@/lib/utils"
+
+function ScrollArea({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+  return (
+    <ScrollAreaPrimitive.Root
+      data-slot="scroll-area"
+      className={cn("relative", className)}
+      {...props}
+    >
+      <ScrollAreaPrimitive.Viewport
+        data-slot="scroll-area-viewport"
+        className="size-full rounded-[inherit] transition-shadow outline-none focus-visible:shadow-focus"
+      >
+        {children}
+      </ScrollAreaPrimitive.Viewport>
+      <ScrollBar />
+      <ScrollAreaPrimitive.Corner />
+    </ScrollAreaPrimitive.Root>
+  )
+}
+
+function ScrollBar({
+  className,
+  orientation = "vertical",
+  ...props
+}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+  return (
+    <ScrollAreaPrimitive.ScrollAreaScrollbar
+      data-slot="scroll-area-scrollbar"
+      orientation={orientation}
+      className={cn(
+        "flex touch-none select-none p-px transition-colors",
+        orientation === "vertical" && "h-full w-1.5",
+        orientation === "horizontal" && "h-1.5 flex-col",
+        className
+      )}
+      {...props}
+    >
+      <ScrollAreaPrimitive.ScrollAreaThumb
+        data-slot="scroll-area-thumb"
+        className="relative flex-1 rounded-full bg-[color:var(--ink-muted)]/30 hover:bg-[color:var(--ink-muted)]/50 transition-colors"
+      />
+    </ScrollAreaPrimitive.ScrollAreaScrollbar>
+  )
+}
+
+export { ScrollArea, ScrollBar }
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/scroll-area.tsx
+git commit -m "style(ui): restyle ScrollArea scrollbar to 6px ink-muted thumb"
+```
+
+---
+
+## Task 28: Restyle `Form`
+
+**Files:** `src/components/ui/form.tsx`.
+
+- [ ] **Step 1: Replace entire contents with:**
+
+```tsx
+"use client"
+
+import * as React from "react"
+import type * as LabelPrimitive from "@radix-ui/react-label"
+import { Slot } from "@radix-ui/react-slot"
+import {
+  Controller,
+  FormProvider,
+  useFormContext,
+  useFormState,
+  type ControllerProps,
+  type FieldPath,
+  type FieldValues,
+} from "react-hook-form"
+
+import { cn } from "@/lib/utils"
+import { Label } from "@/components/ui/label"
+
+const Form = FormProvider
+
+type FormFieldContextValue<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+> = {
+  name: TName
+}
+
+const FormFieldContext = React.createContext<FormFieldContextValue>(
+  {} as FormFieldContextValue
+)
+
+const FormField = <
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+>({
+  ...props
+}: ControllerProps<TFieldValues, TName>) => {
+  return (
+    <FormFieldContext.Provider value={{ name: props.name }}>
+      <Controller {...props} />
+    </FormFieldContext.Provider>
+  )
+}
+
+const useFormField = () => {
+  const fieldContext = React.useContext(FormFieldContext)
+  const itemContext = React.useContext(FormItemContext)
+  const { getFieldState } = useFormContext()
+  const formState = useFormState({ name: fieldContext.name })
+  const fieldState = getFieldState(fieldContext.name, formState)
+
+  if (!fieldContext) {
+    throw new Error("useFormField should be used within <FormField>")
+  }
+
+  const { id } = itemContext
+
+  return {
+    id,
+    name: fieldContext.name,
+    formItemId: `${id}-form-item`,
+    formDescriptionId: `${id}-form-item-description`,
+    formMessageId: `${id}-form-item-message`,
+    ...fieldState,
+  }
+}
+
+type FormItemContextValue = {
+  id: string
+}
+
+const FormItemContext = React.createContext<FormItemContextValue>(
+  {} as FormItemContextValue
+)
+
+function FormItem({ className, ...props }: React.ComponentProps<"div">) {
+  const id = React.useId()
+
+  return (
+    <FormItemContext.Provider value={{ id }}>
+      <div
+        data-slot="form-item"
+        className={cn("grid gap-1.5", className)}
+        {...props}
+      />
+    </FormItemContext.Provider>
+  )
+}
+
+function FormLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+  const { error, formItemId } = useFormField()
+
+  return (
+    <Label
+      data-slot="form-label"
+      data-error={!!error}
+      className={cn("data-[error=true]:text-[color:var(--danger)]", className)}
+      htmlFor={formItemId}
+      {...props}
+    />
+  )
+}
+
+function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+
+  return (
+    <Slot
+      data-slot="form-control"
+      id={formItemId}
+      aria-describedby={
+        !error
+          ? `${formDescriptionId}`
+          : `${formDescriptionId} ${formMessageId}`
+      }
+      aria-invalid={!!error}
+      {...props}
+    />
+  )
+}
+
+function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
+  const { formDescriptionId } = useFormField()
+
+  return (
+    <p
+      data-slot="form-description"
+      id={formDescriptionId}
+      className={cn("text-caption text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
+  const { error, formMessageId } = useFormField()
+  const body = error ? String(error?.message ?? "") : props.children
+
+  if (!body) {
+    return null
+  }
+
+  return (
+    <p
+      data-slot="form-message"
+      id={formMessageId}
+      className={cn("text-caption text-[color:var(--danger)]", className)}
+      {...props}
+    >
+      {body}
+    </p>
+  )
+}
+
+export {
+  useFormField,
+  Form,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormDescription,
+  FormMessage,
+  FormField,
+}
+// Created by Swapnil Bapat © 2026
+```
+
+- [ ] **Step 2: Build + lint + commit**
+```bash
+npm run build && npm run lint
+git add src/components/ui/form.tsx
+git commit -m "style(ui): restyle Form — caption typography for description + error message"
+```
 
 ---
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     ArrowLeft,
     Plus,
@@ -98,6 +109,10 @@ export default function ProjectHomePage({ params }: PageProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [isDescriptionOpen, setIsDescriptionOpen] = useState(false); // New Dialog State
 
+    // Delete workspace state
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
     useEffect(() => {
         fetchProject();
     }, [projectId]);
@@ -119,11 +134,7 @@ export default function ProjectHomePage({ params }: PageProps) {
         }
     };
 
-    const deleteSubProject = async (subProjectId: string) => {
-        if (!confirm("Are you sure you want to delete this workspace? All guides and simulations will be deleted.")) {
-            return;
-        }
-
+    const confirmDelete = async (subProjectId: string) => {
         try {
             const res = await fetch(`/api/sub-projects/${subProjectId}`, {
                 method: "DELETE",
@@ -135,7 +146,7 @@ export default function ProjectHomePage({ params }: PageProps) {
 
             fetchProject(); // Refresh
         } catch (err) {
-            alert("Failed to delete workspace");
+            toast.error("Failed to delete workspace");
         }
     };
 
@@ -149,7 +160,7 @@ export default function ProjectHomePage({ params }: PageProps) {
 
     const handleSaveEdit = async () => {
         if (!editName.trim()) {
-            alert("Name is required");
+            toast.error("Name is required");
             return;
         }
 
@@ -171,7 +182,7 @@ export default function ProjectHomePage({ params }: PageProps) {
             await fetchProject();
             setIsEditOpen(false);
         } catch (err) {
-            alert("Failed to save changes");
+            toast.error("Failed to save changes");
         } finally {
             setIsSaving(false);
         }
@@ -211,7 +222,7 @@ export default function ProjectHomePage({ params }: PageProps) {
 
     return (
         <div className="relative">
-            <div className="py-8">
+            <div className="pt-6 pb-20">
                 {/* Header Section */}
                 <div className="mb-8">
                     <Link
@@ -225,7 +236,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex-1 max-w-3xl">
                             <div className="flex items-center gap-3 group">
-                                <h1 className="text-3xl font-semibold tracking-tight">
+                                <h1 className="text-display-2">
                                     {project.name}
                                 </h1>
                                 <Button
@@ -233,6 +244,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                                     size="icon"
                                     onClick={openEditDialog}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 text-muted-foreground"
+                                    aria-label="Edit project"
                                 >
                                     <Pencil className="h-3.5 w-3.5" />
                                 </Button>
@@ -256,7 +268,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                            <Button asChild variant="outline" className="border-[var(--color-knowledge)]/20 text-[var(--color-knowledge)] hover:bg-[var(--color-knowledge-muted)]">
+                            <Button asChild variant="knowledge">
                                 <Link href={`/projects/${projectId}/kb`}>
                                     <BookOpenText className="h-4 w-4 mr-1.5" />
                                     Knowledge Base
@@ -311,7 +323,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                                                                 onClick={(e) => {
                                                                     e.preventDefault();
                                                                     e.stopPropagation();
-                                                                    deleteSubProject(subProject.id);
+                                                                    setDeleteTarget({ id: subProject.id, name: subProject.name });
                                                                 }}
                                                             >
                                                                 <Trash2 className="h-3.5 w-3.5" />
@@ -410,7 +422,42 @@ export default function ProjectHomePage({ params }: PageProps) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div >
+
+            {/* Delete Workspace Dialog */}
+            <AlertDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Workspace</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete &quot;{deleteTarget?.name}&quot;?
+                            All guides and simulations within it will be permanently deleted. This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={deleting}
+                            onClick={async () => {
+                                if (!deleteTarget) return;
+                                setDeleting(true);
+                                try {
+                                    await confirmDelete(deleteTarget.id);
+                                    setDeleteTarget(null);
+                                } finally {
+                                    setDeleting(false);
+                                }
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            {deleting ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     );
 }
 // Created by Swapnil Bapat © 2026

@@ -168,7 +168,7 @@ function LensCardExploration({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2.5 rounded-[12px] bg-[color:var(--surface-muted)] shadow-inset-edge px-[18px] py-4 min-w-0 overflow-hidden",
+        "flex flex-col gap-2.5 rounded-[12px] bg-[#f1f1f1] shadow-inset-edge px-[18px] py-4 min-w-0 overflow-hidden",
         className,
       )}
     >
@@ -210,15 +210,9 @@ function LensCardExploration({
             : null}
 
           {needsWork ? (
-            <>
-              <span className="inline-flex w-fit items-center gap-1 rounded-[4px] bg-[color:var(--primary-soft)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary)] shadow-inset-edge">
-                <AlertTriangle className="size-3" strokeWidth={2} />
-                Needs work
-              </span>
-              <p className="text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)]">
-                {needsWork}
-              </p>
-            </>
+            <p className="text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)]">
+              {needsWork}
+            </p>
           ) : null}
 
           {research ? (

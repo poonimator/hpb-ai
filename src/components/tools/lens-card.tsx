@@ -105,7 +105,6 @@ function isLegacyProps(p: LensCardProps): p is LensCardLegacyProps {
 // ─── Primary (exploration-style) renderer ────────────────────────────────
 
 function LensCardExploration({
-  bg,
   accent = "var(--primary)",
   fragment,
   body,
@@ -121,34 +120,27 @@ function LensCardExploration({
   const initial = defaultExpanded ?? !isPass
   const [expanded, setExpanded] = React.useState(initial)
 
-  // Header label: the first PASS tag, or "Needs Work" if the card has a chip.
-  const statusLabel = needsWork
-    ? "Needs Work"
-    : tags.length > 0
-      ? tags[0]
-      : "Pass"
-
   const header = (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2.5">
       <Lightbulb
-        size={16}
+        size={15}
         style={{ color: accent }}
-        strokeWidth={1.5}
+        strokeWidth={1.75}
         className="shrink-0"
       />
       {fragment ? (
         <span
-          className="flex-1 truncate text-body-sm font-medium"
+          className="flex-1 min-w-0 truncate italic text-[12.5px] font-medium"
           style={{ color: accent }}
         >
-          <span className="italic">{fragment}</span>
+          {fragment}
         </span>
       ) : (
-        <span className="flex-1 text-body-sm font-medium text-foreground" />
+        <span className="flex-1 min-w-0" />
       )}
       <span
         className={cn(
-          "inline-flex shrink-0 items-center gap-1 text-[11px]",
+          "inline-flex shrink-0 items-center gap-1 text-[11px] font-medium",
           needsWork
             ? "text-[color:var(--primary)]"
             : "text-[color:var(--ink-muted)]",
@@ -159,7 +151,7 @@ function LensCardExploration({
         ) : (
           <CheckCircle2 className="size-3" strokeWidth={1.75} />
         )}
-        <span className="font-medium">{statusLabel}</span>
+        {needsWork ? "Needs work" : "Pass"}
       </span>
       {collapsible ? (
         <ChevronDown
@@ -173,13 +165,12 @@ function LensCardExploration({
     </div>
   )
 
-  const inner = (
+  return (
     <div
       className={cn(
-        "flex flex-col gap-2.5 rounded-[12px] px-[18px] py-4",
+        "flex flex-col gap-2.5 rounded-[12px] bg-[color:var(--surface-muted)] shadow-inset-edge px-[18px] py-4 min-w-0 overflow-hidden",
         className,
       )}
-      style={{ background: bg }}
     >
       {collapsible ? (
         <button
@@ -203,20 +194,26 @@ function LensCardExploration({
           ) : null}
 
           {tags.length > 0
-            ? tags.map((t) => (
-                <div
-                  key={t}
-                  className="rounded-[8px] bg-white px-[10px] py-[6px] text-[11.5px] text-[color:var(--ink-secondary)] shadow-inset-edge"
-                >
-                  ✓ {t}
-                </div>
-              ))
+            ? (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1 rounded-[8px] bg-white px-[10px] py-[6px] text-[11.5px] text-[color:var(--ink-secondary)] shadow-inset-edge"
+                  >
+                    <CheckCircle2 className="size-3 text-[color:var(--ink-muted)]" strokeWidth={1.75} />
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )
             : null}
 
           {needsWork ? (
             <>
               <span className="inline-flex w-fit items-center gap-1 rounded-[4px] bg-[color:var(--primary-soft)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary)] shadow-inset-edge">
-                ⚠ NEEDS WORK
+                <AlertTriangle className="size-3" strokeWidth={2} />
+                Needs work
               </span>
               <p className="text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)]">
                 {needsWork}
@@ -241,8 +238,6 @@ function LensCardExploration({
       )}
     </div>
   )
-
-  return inner
 }
 
 // ─── Legacy (verdict-badge) renderer — kept for fallback sections ────────

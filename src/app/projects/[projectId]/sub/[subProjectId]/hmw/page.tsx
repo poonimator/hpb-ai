@@ -415,7 +415,7 @@ function AnnotatedHMW({ statement, annotations }: {
             </div>
 
             {/* Lens-card grid — 2 cols, gap 12, matches exploration. */}
-            <div className="grid grid-cols-2 gap-3 items-start">
+            <div className="columns-2 gap-3 [&>*]:mb-3 [&>*]:break-inside-avoid">
                 {annotations.map((ann, i) => {
                     const hasLens = typeof ann.lensCritique === "object" && ann.lensCritique !== null;
                     const lensKey = annotationLensKey(ann, i);

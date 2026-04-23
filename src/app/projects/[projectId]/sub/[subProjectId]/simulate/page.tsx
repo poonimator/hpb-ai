@@ -3,14 +3,8 @@
 import { useState, useEffect, useRef, use, Suspense, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIFeedback } from "@/components/ai/feedback";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -28,10 +22,7 @@ import {
     User,
     Bot,
     Loader2,
-    Sliders,
-    ChevronRight,
     CheckCircle2,
-    Briefcase,
     Sparkles,
     Heart,
     AlertCircle,
@@ -40,17 +31,18 @@ import {
     Mic,
     MicOff,
     Lightbulb,
-    MessageSquare,
-    Target,
-    Eye,
     SlidersHorizontal,
     X,
     ChevronDown,
     Zap,
     Users,
-    MessageCircle,
     ImagePlus
 } from "lucide-react";
+import { PageBar } from "@/components/layout/page-bar";
+import { ChatBubble } from "@/components/tools/chat-bubble";
+import { OpportunityCard } from "@/components/tools/opportunity-card";
+import { ModeratorGuidePanel } from "@/components/tools/moderator-guide-panel";
+import { cn } from "@/lib/utils";
 
 interface ParsedPersona {
     name?: string;
@@ -332,7 +324,7 @@ function SimulationPageContent({ params }: PageProps) {
             setDefaultSettings(meta.recommendedSettings);
             // Optional: Add toast here
         } else {
-            // Reset to default if no recommendations? Or keep previous? 
+            // Reset to default if no recommendations? Or keep previous?
             // Usually reset or keep default
             setMixer(DEFAULT_MIXER);
             setDefaultSettings(DEFAULT_MIXER);
@@ -926,8 +918,8 @@ function SimulationPageContent({ params }: PageProps) {
 
     if (loading) {
         return (
-            <div className="h-screen flex items-center justify-center bg-accent">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className="h-screen flex items-center justify-center bg-[color:var(--canvas)]">
+                <Loader2 className="h-12 w-12 animate-spin text-[color:var(--primary)]" />
             </div>
         );
     }
@@ -939,23 +931,38 @@ function SimulationPageContent({ params }: PageProps) {
         : selectedPersona ? parsePersonaMeta(selectedPersona)
             : resumedPersonaDetails;
 
+    const activeGuide = guides.find(g => g.id === selectedGuideId);
+    const hasActiveGuide = isStarted && selectedGuideId && selectedGuideId !== "none" && !!activeGuide;
+
+    // Build crumbs for PageBar (setup mode)
+    const setupCrumbs = subProject?.name
+        ? [
+            { label: subProject.project?.name || "Project", href: `/projects/${projectId}` },
+            { label: subProject.name, href: `/projects/${projectId}/sub/${subProjectId}?tab=simulations` },
+            { label: "New Simulation" },
+        ]
+        : undefined;
+
     return (
-        <div className="min-h-screen">
-            {/* When simulation is STARTED - Fixed header + sidebar layout */}
+        <div className="flex flex-col flex-1 min-h-0">
             {isStarted ? (
                 <>
-                    {/* Fixed header bar — matches edge-to-edge white-bar style */}
-                    <div className="fixed top-16 left-0 right-0 bg-white z-30 border-b border-border">
-                        <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                            <div className="flex items-center gap-3 min-w-0">
+                    {/* Session header — dedicated live chrome, rebuilt with design tokens */}
+                    <div
+                        data-slot="session-header"
+                        className="w-screen ml-[calc(50%_-_50vw)] bg-[color:var(--surface)] border-b border-[color:var(--border-subtle)]"
+                    >
+                        <div className="flex items-center justify-between gap-4 py-[14px] px-8">
+                            <div className="flex items-center gap-3.5 min-w-0">
                                 <Link
                                     href={`/projects/${projectId}/sub/${subProjectId}?tab=simulations`}
-                                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                    className="inline-flex items-center gap-1.5 text-ui-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
                                     aria-label={`Back to ${subProject?.name || "Workspace"}`}
                                 >
                                     <ArrowLeft className="h-4 w-4" />
                                     <span>Back</span>
                                 </Link>
+                                <div className="w-px h-[22px] bg-[color:var(--border)]" />
                                 {isFocusGroup && focusGroupArchetypes.length > 0 ? (
                                     <>
                                         <div className="flex items-center -space-x-1.5 shrink-0">
@@ -964,7 +971,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                 return (
                                                     <div
                                                         key={arch.id}
-                                                        className={`h-8 w-8 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} font-bold text-xs ring-2 ring-white shadow-sm`}
+                                                        className={`h-8 w-8 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} font-semibold text-[11px] shadow-inset-edge ring-2 ring-[color:var(--surface)]`}
                                                     >
                                                         {getInitial(arch.name)}
                                                     </div>
@@ -972,22 +979,22 @@ function SimulationPageContent({ params }: PageProps) {
                                             })}
                                         </div>
                                         <div className="min-w-0">
-                                            <h1 className="text-base font-bold text-foreground">Focus Group</h1>
-                                            <p className="text-[11px] text-muted-foreground truncate">
+                                            <h1 className="text-display-4 text-foreground leading-tight">Focus Group</h1>
+                                            <p className="text-caption text-muted-foreground truncate">
                                                 {focusGroupArchetypes.map(a => a.name).join(" · ")}
                                             </p>
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
+                                        <div className="h-9 w-9 rounded-full bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center font-semibold text-[13px] shrink-0">
                                             {(selectedPersonaDetails?.name || "P").charAt(0).toUpperCase()}
                                         </div>
                                         <div className="min-w-0">
-                                            <h1 className="text-base font-bold text-foreground truncate">
+                                            <h1 className="text-display-4 text-foreground leading-tight truncate">
                                                 {selectedPersonaDetails?.name || "Interview Simulation"}
                                             </h1>
-                                            <p className="text-[11px] text-muted-foreground truncate">
+                                            <p className="text-caption text-muted-foreground truncate">
                                                 {selectedPersonaDetails?.occupation || subProject?.name || "Workspace"}
                                             </p>
                                         </div>
@@ -996,16 +1003,19 @@ function SimulationPageContent({ params }: PageProps) {
                             </div>
 
                             <div className="flex items-center gap-2 shrink-0">
-                                <Badge variant="secondary" className="text-[10px] px-2 py-0.5" style={{ backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)', borderColor: 'var(--color-info-muted)' }}>
-                                    <span className="w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse" style={{ backgroundColor: 'var(--color-info)' }} />
+                                <span
+                                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider"
+                                    style={{ backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)' }}
+                                >
+                                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-info)' }} />
                                     In Progress
-                                </Badge>
+                                </span>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={endSimulation}
                                     disabled={isEnding}
-                                    className="gap-1.5 bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700"
+                                    className="gap-1.5 border-[color:var(--border)] text-[color:var(--destructive)] hover:bg-[color:var(--destructive)]/10 hover:text-[color:var(--destructive)]"
                                 >
                                     {isEnding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" />}
                                     End Session
@@ -1014,817 +1024,463 @@ function SimulationPageContent({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* Fixed LEFT Sidebar - Moderator Guide */}
-                    {selectedGuideId && selectedGuideId !== "none" && guides.find(g => g.id === selectedGuideId) && (
-                        <div className="fixed top-[150px] left-4 md:left-6 lg:left-[calc((100vw-1280px)/2+24px)] w-[300px] z-30 hidden lg:block">
-                            <Card className="relative flex flex-col bg-white/90 backdrop-blur-md border-border/60 overflow-hidden py-0 gap-0 h-[calc(100vh-250px)] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)]">
-                                {/* Subtle gradient accent line at top */}
-                                <div className="absolute top-0 left-4 right-4 h-[2px] bg-border rounded-full" />
-
-                                {/* Header */}
-                                <div className="py-3 px-4 flex-shrink-0 border-b border-border/60">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-6 w-6 rounded-lg bg-accent flex items-center justify-center">
-                                            <BookOpen className="h-3.5 w-3.5 text-primary" />
-                                        </div>
-                                        <span className="text-sm font-semibold text-primary">Moderator Guide</span>
+                    {/* Live workspace grid — guide rail (if any) · chat · opportunities */}
+                    <div
+                        data-slot="session-workspace"
+                        className={cn(
+                            "grid flex-1 min-h-0 w-screen ml-[calc(50%_-_50vw)] bg-[color:var(--canvas)]",
+                            hasActiveGuide
+                                ? "grid-cols-[300px_1fr_380px]"
+                                : "grid-cols-[1fr_380px]"
+                        )}
+                    >
+                        {/* LEFT rail — Moderator Guide */}
+                        {hasActiveGuide && (
+                            <aside
+                                data-slot="guide-rail"
+                                className="bg-[color:var(--surface)] border-r border-[color:var(--border-subtle)] flex flex-col min-h-0 overflow-hidden"
+                            >
+                                <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:var(--border-subtle)] shrink-0">
+                                    <div className="h-6 w-6 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center">
+                                        <BookOpen className="h-3.5 w-3.5" />
                                     </div>
+                                    <span className="text-ui-sm font-semibold text-foreground">Moderator Guide</span>
                                 </div>
+                                <div ref={guideScrollAreaRef} className="flex-1 min-h-0 overflow-y-auto p-4">
+                                    <ModeratorGuidePanel
+                                        sections={(activeGuide?.guideSets || []).map((set) => ({
+                                            id: set.id,
+                                            title: set.title,
+                                            questions: (set.questions || []).map((q) => ({
+                                                id: q.id,
+                                                text: q.text,
+                                                subQuestions: q.subQuestions,
+                                            })),
+                                        }))}
+                                        coveredQuestionIds={coveredQuestionIds}
+                                        highlightedQuestionId={highlightedQuestionId}
+                                        highlightedQuestionReason={highlightedQuestionReason}
+                                        registerRef={(id, el) => {
+                                            if (el) questionRefs.current.set(id, el);
+                                            else questionRefs.current.delete(id);
+                                        }}
+                                        onPickQuestion={(text) => {
+                                            setInputMessage(text);
+                                            inputRef.current?.focus();
+                                        }}
+                                        onPickSubQuestion={(text) => {
+                                            setInputMessage(text);
+                                            inputRef.current?.focus();
+                                        }}
+                                    />
+                                </div>
+                            </aside>
+                        )}
 
-                                {/* Guide Content */}
-                                <div className="flex-1 overflow-hidden min-h-0">
-                                    <ScrollArea className="h-[calc(100vh-310px)]">
-                                        <div className="p-4 space-y-5">
-                                            {/* Covered Questions Badge */}
-                                            {coveredQuestionIds.size > 0 && (
-                                                <div className="flex items-center gap-2 px-3 py-2 bg-accent rounded-lg border border-border">
-                                                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                                                    <span className="text-xs text-primary font-medium">
-                                                        {coveredQuestionIds.size} question{coveredQuestionIds.size !== 1 ? 's' : ''} covered
-                                                    </span>
-                                                </div>
-                                            )}
+                        {/* CENTER — chat + composer */}
+                        <main
+                            data-slot="chat-main"
+                            className="relative flex flex-col min-h-0 overflow-hidden"
+                        >
+                            <div className="flex-1 min-h-0 overflow-y-auto px-6 md:px-10 pt-8 pb-40">
+                                <div className="mx-auto w-full max-w-[760px] flex flex-col gap-5">
+                                    {messages.length === 0 && (
+                                        <div className="text-center py-16">
+                                            <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                            <p className="text-body-sm text-muted-foreground">Start the conversation by sending a message...</p>
+                                        </div>
+                                    )}
 
-                                            {guides.find(g => g.id === selectedGuideId)?.guideSets?.map((set, i) => (
-                                                <div key={set.id} className="space-y-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-5 w-5 rounded bg-muted text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                                                            {i + 1}
-                                                        </div>
-                                                        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider leading-tight">
-                                                            {set.title}
-                                                        </h4>
-                                                    </div>
-                                                    <div className="space-y-3 pl-2 border-l-2 border-border ml-2.5">
-                                                        {set.questions?.map((q) => {
-                                                            const isCovered = coveredQuestionIds.has(q.id);
-                                                            const isHighlighted = highlightedQuestionId === q.id;
-                                                            return (
-                                                                <div
-                                                                    key={q.id}
-                                                                    ref={(el) => {
-                                                                        if (el) questionRefs.current.set(q.id, el);
-                                                                    }}
-                                                                    className={`transition-all duration-300 ${isHighlighted
-                                                                        ? 'bg-violet-50/80 backdrop-blur-sm ml-2 px-4 py-4 rounded-2xl border border-violet-200/50'
-                                                                        : isCovered
-                                                                            ? 'opacity-50 pl-4'
-                                                                            : 'cursor-pointer hover:bg-accent/50 -ml-2 pl-6 py-1.5 rounded-lg'
-                                                                        }`}
-                                                                    onClick={() => {
-                                                                        if (!isCovered) {
-                                                                            setInputMessage(q.text);
-                                                                            inputRef.current?.focus();
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    {/* Suggested badge for highlighted question */}
-                                                                    {isHighlighted && (
-                                                                        <div className="flex items-center gap-2 mb-3">
-                                                                            <div className="h-5 w-5 rounded-lg bg-gradient-to-br from-violet-100 to-violet-200/80 flex items-center justify-center">
-                                                                                <Sparkles className="h-3 w-3 text-violet-600" />
-                                                                            </div>
-                                                                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-violet-600/80">
-                                                                                Coach Suggests
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-                                                                    <p className={`text-sm leading-relaxed font-medium transition-all ${isHighlighted
-                                                                        ? 'text-foreground'
-                                                                        : isCovered
-                                                                            ? 'text-muted-foreground line-through decoration-primary decoration-2'
-                                                                            : 'text-foreground group-hover:text-primary'
-                                                                        }`}>
-                                                                        {q.text}
-                                                                        {isCovered && !isHighlighted && (
-                                                                            <Badge className="ml-2 bg-muted text-primary text-[10px] px-1.5 py-0 border-input">
-                                                                                <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-                                                                                Covered
-                                                                            </Badge>
-                                                                        )}
-                                                                    </p>
-                                                                    {/* Show reason when highlighted */}
-                                                                    {isHighlighted && highlightedQuestionReason && (
-                                                                        <div className="flex items-start gap-2 mt-3 pt-3 border-t border-violet-100">
-                                                                            <Lightbulb className="h-3.5 w-3.5 text-violet-500 mt-0.5 shrink-0" />
-                                                                            <p className="text-xs text-violet-600 italic leading-relaxed">
-                                                                                {highlightedQuestionReason}
-                                                                            </p>
-                                                                        </div>
-                                                                    )}
-                                                                    {q.subQuestions && q.subQuestions.length > 0 && !isCovered && !isHighlighted && (
-                                                                        <ul className="mt-2 space-y-1.5">
-                                                                            {q.subQuestions.map(sq => (
-                                                                                <li
-                                                                                    key={sq.id}
-                                                                                    className="text-xs text-muted-foreground grid grid-cols-[auto_1fr] gap-2 hover:text-primary cursor-pointer"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        setInputMessage(sq.text);
-                                                                                        inputRef.current?.focus();
-                                                                                    }}
-                                                                                >
-                                                                                    <span className="w-1 h-1 rounded-full bg-border mt-1.5" />
-                                                                                    <span>{sq.text}</span>
-                                                                                </li>
-                                                                            ))}
-                                                                        </ul>
-                                                                    )}
-                                                                </div>
+                                    {messages.map((msg) => {
+                                        // Collect all quotes from opportunities for highlighting
+                                        const highlightsForMessage = coachNudges
+                                            .filter(n => {
+                                                if (n.messageId === msg.id) return true;
+                                                // Check if any opportunity quote appears literally in this message (key for focus groups)
+                                                if (isFocusGroup && n.opportunities) {
+                                                    return n.opportunities.some(opp => opp.quote && msg.content.toLowerCase().includes(opp.quote.toLowerCase()));
+                                                }
+                                                return false;
+                                            })
+                                            .flatMap(n => {
+                                                // Get quotes from opportunities array
+                                                const oppQuotes = (n.opportunities || [])
+                                                    .map(opp => opp.quote)
+                                                    .filter(quote => quote && msg.content.toLowerCase().includes(quote.toLowerCase()));
+                                                // Fall back to legacy highlightQuote if no opportunities
+                                                if (oppQuotes.length === 0 && n.highlightQuote && msg.content.toLowerCase().includes(n.highlightQuote.toLowerCase())) {
+                                                    return [n.highlightQuote];
+                                                }
+                                                return oppQuotes as string[];
+                                            });
+
+                                        const renderContentWithHighlights = (content: string, highlights: string[]) => {
+                                            if (highlights.length === 0) return content;
+                                            let parts: (string | React.ReactNode)[] = [content];
+                                            highlights.forEach((highlight, idx) => {
+                                                const newParts: (string | React.ReactNode)[] = [];
+                                                parts.forEach((part) => {
+                                                    if (typeof part === 'string') {
+                                                        const lowerPart = part.toLowerCase();
+                                                        const lowerHighlight = highlight.toLowerCase();
+                                                        const index = lowerPart.indexOf(lowerHighlight);
+                                                        if (index !== -1) {
+                                                            const before = part.slice(0, index);
+                                                            const match = part.slice(index, index + highlight.length);
+                                                            const after = part.slice(index + highlight.length);
+                                                            if (before) newParts.push(before);
+                                                            newParts.push(
+                                                                <span key={`highlight-${idx}-${index}`} className="bg-[color:var(--primary-soft)] text-foreground rounded px-0.5">
+                                                                    {match}
+                                                                </span>
                                                             );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {(!guides.find(g => g.id === selectedGuideId)?.guideSets || guides.find(g => g.id === selectedGuideId)?.guideSets?.length === 0) && (
-                                                <div className="text-center py-10 text-muted-foreground italic text-sm">
-                                                    No questions in this guide
-                                                </div>
-                                            )}
-                                        </div>
-                                    </ScrollArea>
-                                </div>
-                            </Card>
-                        </div>
-                    )}
-
-                    {/* Scrollable Chat Area - Two column layout: Chat on left, Opportunities on right */}
-                    <div className="pt-24 pb-24 px-4 md:px-6 lg:pl-[340px]">
-                        <div className="max-w-5xl mx-auto">
-                            {/* Chat Messages - Two column grid */}
-                            <div className="space-y-5">
-                                {messages.length === 0 && (
-                                    <div className="text-center py-16">
-                                        <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                        <p className="text-muted-foreground">Start the conversation by sending a message...</p>
-                                    </div>
-                                )}
-
-                                {messages.map((msg, msgIndex) => {
-                                    // Check if this is the last persona message (for showing coach loading state)
-                                    const isLastPersonaMessage = msg.role === "persona" &&
-                                        !messages.slice(msgIndex + 1).some(m => m.role === "persona");
-                                    // Collect all quotes from opportunities for highlighting
-                                    const highlightsForMessage = coachNudges
-                                        .filter(n => {
-                                            if (n.messageId === msg.id) return true;
-                                            // Check if any opportunity quote appears literally in this message (key for focus groups)
-                                            if (isFocusGroup && n.opportunities) {
-                                                return n.opportunities.some(opp => opp.quote && msg.content.toLowerCase().includes(opp.quote.toLowerCase()));
-                                            }
-                                            return false;
-                                        })
-                                        .flatMap(n => {
-                                            // Get quotes from opportunities array
-                                            const oppQuotes = (n.opportunities || [])
-                                                .map(opp => opp.quote)
-                                                .filter(quote => quote && msg.content.toLowerCase().includes(quote.toLowerCase()));
-                                            // Fall back to legacy highlightQuote if no opportunities
-                                            if (oppQuotes.length === 0 && n.highlightQuote && msg.content.toLowerCase().includes(n.highlightQuote.toLowerCase())) {
-                                                return [n.highlightQuote];
-                                            }
-                                            return oppQuotes as string[];
-                                        });
-
-                                    // Get coaching nudges for this message (with opportunities or legacy coachingNudge)
-                                    const nudgesForMessage = coachNudges.filter(n => {
-                                        if (n.messageId === msg.id && ((n.opportunities && n.opportunities.length > 0) || n.coachingNudge)) return true;
-                                        // Also show the nudge card if the quote matches this specific focus group message
-                                        if (isFocusGroup && n.opportunities) {
-                                            return n.opportunities.some(opp => opp.quote && msg.content.toLowerCase().includes(opp.quote.toLowerCase()));
-                                        }
-                                        return false;
-                                    });
-
-                                    const renderContentWithHighlights = (content: string, highlights: string[]) => {
-                                        if (highlights.length === 0) return content;
-                                        let parts: (string | React.ReactNode)[] = [content];
-                                        highlights.forEach((highlight, idx) => {
-                                            const newParts: (string | React.ReactNode)[] = [];
-                                            parts.forEach((part) => {
-                                                if (typeof part === 'string') {
-                                                    const lowerPart = part.toLowerCase();
-                                                    const lowerHighlight = highlight.toLowerCase();
-                                                    const index = lowerPart.indexOf(lowerHighlight);
-                                                    if (index !== -1) {
-                                                        const before = part.slice(0, index);
-                                                        const match = part.slice(index, index + highlight.length);
-                                                        const after = part.slice(index + highlight.length);
-                                                        if (before) newParts.push(before);
-                                                        newParts.push(
-                                                            <span key={`highlight-${idx}-${index}`} className="bg-amber-100 text-amber-900 px-0.5 rounded">
-                                                                {match}
-                                                            </span>
-                                                        );
-                                                        if (after) newParts.push(after);
+                                                            if (after) newParts.push(after);
+                                                        } else {
+                                                            newParts.push(part);
+                                                        }
                                                     } else {
                                                         newParts.push(part);
                                                     }
-                                                } else {
-                                                    newParts.push(part);
-                                                }
+                                                });
+                                                parts = newParts;
                                             });
-                                            parts = newParts;
-                                        });
-                                        return parts;
-                                    };
+                                            return parts;
+                                        };
 
-                                    // Persona message with potential coaching nudge
-                                    if (msg.role === "persona") {
-                                        const hasNudge = nudgesForMessage.length > 0;
-                                        const fgColor = isFocusGroup && msg.archetypeId ? getArchetypeColor(msg.archetypeId) : null;
-                                        return (
-                                            <div key={msg.id} className="grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_minmax(0,280px)] gap-4 items-start">
-                                                {/* LEFT COLUMN: Chat message */}
-                                                <div className="flex items-start gap-3 relative z-20">
-                                                    {/* Persona Avatar */}
-                                                    {fgColor ? (
-                                                        <div className={`w-8 h-8 rounded-full ${fgColor.avatar} flex items-center justify-center ${fgColor.avatarText} text-xs font-bold mt-1 shadow-sm shrink-0`}>
-                                                            {getInitial(msg.archetypeName || "P")}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-8 h-8 rounded-full bg-muted border border-input flex items-center justify-center text-primary text-xs font-bold mt-1 shadow-sm shrink-0">
-                                                            {(selectedPersonaDetails?.name || "P").charAt(0).toUpperCase()}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Chat Bubble */}
-                                                    <div
-                                                        id={`chat-bubble-${msg.id}`}
-                                                        className="flex-1 max-w-full px-5 py-3 rounded-2xl text-sm leading-relaxed backdrop-blur-sm rounded-tl-none group/message bg-white/95 border border-border/60 text-foreground"
-                                                    >
-                                                        {/* Archetype name label for focus group */}
-                                                        {fgColor && msg.archetypeName && (
-                                                            <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${fgColor.text}`}>{msg.archetypeName}</p>
-                                                        )}
-                                                        {/* Show typewriter animation for currently typing message */}
-                                                        {typingMessageId === msg.id ? (
-                                                            <TypewriterText
-                                                                text={msg.content}
-                                                                onComplete={() => setTypingMessageId(null)}
-                                                                wordsPerSecond={20}
-                                                            />
-                                                        ) : (
-                                                            renderContentWithHighlights(msg.content, highlightsForMessage)
-                                                        )}
-                                                        {/* Feedback buttons - appear on hover, hide during typing */}
-                                                        {typingMessageId !== msg.id && (
-                                                            <div className="mt-2 pt-2 border-t border-border opacity-0 group-hover/message:opacity-100 transition-opacity">
-                                                                <AIFeedback
-                                                                    entityType="simulation_message"
-                                                                    entityId={msg.id}
-                                                                    simulationId={simulationId || undefined}
-                                                                    messageContent={msg.content}
-                                                                    size="sm"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* RIGHT COLUMN: Opportunity Identified card - vertically centered with chat bubble */}
-                                                {/* Only show opportunity cards after typewriter completes (typingMessageId is null) */}
-                                                <div className="hidden lg:flex items-center justify-end relative overflow-visible">
-                                                    {hasNudge && typingMessageId === null ? (
-                                                        <>
-                                                            {/* Horizontal dotted connector line with gradient fade */}
-                                                            <div className="absolute -left-16 top-1/2 -translate-y-1/2 z-0">
-                                                                <div
-                                                                    className="w-24 h-[2px]"
-                                                                    style={{
-                                                                        background: 'repeating-linear-gradient(to right, rgb(209 213 219 / 0.6) 0, rgb(209 213 219 / 0.6) 6px, transparent 6px, transparent 12px)',
-                                                                        maskImage: 'linear-gradient(to right, black, transparent)',
-                                                                        WebkitMaskImage: 'linear-gradient(to right, black, transparent)'
-                                                                    }}
-                                                                />
-                                                            </div>
-
-                                                            {/* AI Coach Nudge cards - Show each opportunity (collapsed by default) */}
-                                                            <div className="w-[90%] relative z-10 space-y-2">
-                                                                {nudgesForMessage.flatMap((nudge) =>
-                                                                    nudge.opportunities && nudge.opportunities.length > 0
-                                                                        ? nudge.opportunities.map((opp, oppIdx) => {
-                                                                            const opportunityId = `${nudge.id}-opp-${oppIdx}`;
-                                                                            const isExpanded = expandedOpportunityId === opportunityId;
-                                                                            // Hide all collapsed cards when ANY opportunity is expanded
-                                                                            const isAnyExpanded = expandedOpportunityId !== null;
-
-                                                                            return (
-                                                                                <div
-                                                                                    key={opportunityId}
-                                                                                    className="relative"
-                                                                                    style={{ animationDelay: `${oppIdx * 100}ms` }}
-                                                                                >
-                                                                                    {/* Collapsed Card - Hidden when ANY card is expanded */}
-                                                                                    <button
-                                                                                        onClick={() => setExpandedOpportunityId(isExpanded ? null : opportunityId)}
-                                                                                        className={`w-full text-left px-3 py-2.5 rounded-xl bg-white/90 backdrop-blur-md border transition-all duration-200 animate-in fade-in slide-in-from-left-3 ${isAnyExpanded
-                                                                                            ? 'opacity-0 invisible pointer-events-none'
-                                                                                            : 'border-border/60 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.06)] hover:border-amber-200 hover:shadow-[0_4px_15px_-4px_rgba(245,158,11,0.15)]'
-                                                                                            }`}
-                                                                                    >
-                                                                                        <div className="flex items-center gap-2.5">
-                                                                                            {/* Icon */}
-                                                                                            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                                                                                                <Lightbulb className="h-3.5 w-3.5" />
-                                                                                            </div>
-                                                                                            {/* Content */}
-                                                                                            <div className="flex-1 min-w-0">
-                                                                                                <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-amber-600/70 mb-0.5">
-                                                                                                    Opportunity
-                                                                                                </p>
-                                                                                                <p className="text-[11px] text-muted-foreground truncate">
-                                                                                                    {opp.quote ? `"${opp.quote}"` : opp.surfacedContext?.slice(0, 50) + '...'}
-                                                                                                </p>
-                                                                                            </div>
-                                                                                            {/* Expand indicator */}
-                                                                                            <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
-                                                                                        </div>
-                                                                                    </button>
-
-                                                                                    {/* Expanded Overlay - Positioned absolutely */}
-                                                                                    {isExpanded && (
-                                                                                        <>
-                                                                                            {/* Backdrop to close on click outside */}
-                                                                                            <div
-                                                                                                className="fixed inset-0 z-[100]"
-                                                                                                onClick={() => setExpandedOpportunityId(null)}
-                                                                                            />
-                                                                                            {/* Expanded Card - fixed, vertically centered */}
-                                                                                            <div className="fixed right-[8%] w-[300px] z-[110] animate-in fade-in zoom-in-95 duration-200" style={{ top: '50%', transform: 'translateY(-50%)' }}>
-                                                                                                <div className="p-4 rounded-2xl bg-white border border-amber-200 shadow-[0_8px_30px_-4px_rgba(245,158,11,0.25)] max-h-[70vh] overflow-y-auto">
-                                                                                                    {/* Close button */}
-                                                                                                    <button
-                                                                                                        onClick={() => setExpandedOpportunityId(null)}
-                                                                                                        className="absolute top-2 right-2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                                                                                    >
-                                                                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                                                        </svg>
-                                                                                                    </button>
-
-                                                                                                    <div className="flex items-start gap-3">
-                                                                                                        {/* Icon */}
-                                                                                                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-sm">
-                                                                                                            <Lightbulb className="h-4 w-4" />
-                                                                                                        </div>
-                                                                                                        <div className="flex-1 min-w-0 pt-0.5 space-y-2.5 pr-4">
-                                                                                                            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-amber-600/80">
-                                                                                                                Opportunity Identified
-                                                                                                            </p>
-
-                                                                                                            {/* Quote highlight */}
-                                                                                                            {opp.quote && (
-                                                                                                                <p className="text-[11px] text-amber-800/70 italic border-l-2 border-amber-200 pl-2 py-0.5 bg-amber-50/50 rounded-r">
-                                                                                                                    &ldquo;{opp.quote}&rdquo;
-                                                                                                                </p>
-                                                                                                            )}
-
-                                                                                                            {/* Surfaced Context - Main insight */}
-                                                                                                            {opp.surfacedContext && (
-                                                                                                                <p className="text-xs text-foreground leading-relaxed font-medium">
-                                                                                                                    {opp.surfacedContext}
-                                                                                                                </p>
-                                                                                                            )}
-
-                                                                                                            {/* Testable Assumption - Hypothesis angle with validation status */}
-                                                                                                            {opp.testableAssumption && (() => {
-                                                                                                                // Parse validation status from the response
-                                                                                                                const assumption = opp.testableAssumption;
-                                                                                                                const isAlreadyValidated = assumption.startsWith('[ALREADY VALIDATED]');
-                                                                                                                const isPartiallyValidated = assumption.startsWith('[PARTIALLY VALIDATED]');
-                                                                                                                const isNewHypothesis = assumption.startsWith('[NEW HYPOTHESIS]');
-
-                                                                                                                // Strip prefix for display
-                                                                                                                let displayText = assumption
-                                                                                                                    .replace('[ALREADY VALIDATED]', '')
-                                                                                                                    .replace('[PARTIALLY VALIDATED]', '')
-                                                                                                                    .replace('[NEW HYPOTHESIS]', '')
-                                                                                                                    .trim();
-
-                                                                                                                return (
-                                                                                                                    <div className="space-y-1.5">
-                                                                                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                                                                                            <span className="text-violet-600/80 font-medium text-[11px]">Worth validating:</span>
-                                                                                                                            {isAlreadyValidated && (
-                                                                                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200/60 text-[9px] font-bold text-amber-700 uppercase tracking-wide">
-                                                                                                                                    ⚠️ Already Validated
-                                                                                                                                </span>
-                                                                                                                            )}
-                                                                                                                            {isPartiallyValidated && (
-                                                                                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 border border-blue-200/60 text-[9px] font-bold text-blue-700 uppercase tracking-wide">
-                                                                                                                                    🔄 Partially Validated
-                                                                                                                                </span>
-                                                                                                                            )}
-                                                                                                                            {isNewHypothesis && (
-                                                                                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-green-50 border border-green-200/60 text-[9px] font-bold text-green-700 uppercase tracking-wide">
-                                                                                                                                    ✨ New Hypothesis
-                                                                                                                                </span>
-                                                                                                                            )}
-                                                                                                                        </div>
-                                                                                                                        <p className={`text-[11px] leading-relaxed ${isAlreadyValidated ? 'text-amber-600/80 italic' : 'text-muted-foreground'}`}>
-                                                                                                                            {displayText}
-                                                                                                                        </p>
-                                                                                                                    </div>
-                                                                                                                );
-                                                                                                            })()}
-
-                                                                                                            {/* Exploration Direction - Next step */}
-                                                                                                            {opp.explorationDirection && (
-                                                                                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                                                                                    <span className="text-primary/80 font-medium">Consider exploring:</span>{' '}
-                                                                                                                    {opp.explorationDirection}
-                                                                                                                </p>
-                                                                                                            )}
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </>
-                                                                                    )}
-                                                                                </div>
-                                                                            );
-                                                                        })
-                                                                        : nudge.coachingNudge ? [
-                                                                            // Fallback for legacy nudges - also make collapsible
-                                                                            (() => {
-                                                                                const legacyId = nudge.id;
-                                                                                const isExpanded = expandedOpportunityId === legacyId;
-                                                                                const isAnyExpanded = expandedOpportunityId !== null;
-                                                                                return (
-                                                                                    <div key={legacyId} className="relative">
-                                                                                        <button
-                                                                                            onClick={() => setExpandedOpportunityId(isExpanded ? null : legacyId)}
-                                                                                            className={`w-full text-left px-3 py-2.5 rounded-xl bg-white/90 backdrop-blur-md border transition-all duration-200 ${isAnyExpanded
-                                                                                                ? 'opacity-0 invisible pointer-events-none'
-                                                                                                : 'border-border/60 shadow-[0_2px_10px_-2px_rgba(0,0,0,0.06)] hover:border-amber-200'
-                                                                                                }`}
-                                                                                        >
-                                                                                            <div className="flex items-center gap-2.5">
-                                                                                                <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                                                                                                    <Lightbulb className="h-3.5 w-3.5" />
-                                                                                                </div>
-                                                                                                <div className="flex-1 min-w-0">
-                                                                                                    <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-amber-600/70 mb-0.5">
-                                                                                                        Opportunity
-                                                                                                    </p>
-                                                                                                    <p className="text-[11px] text-muted-foreground truncate">
-                                                                                                        {nudge.coachingNudge?.slice(0, 50)}...
-                                                                                                    </p>
-                                                                                                </div>
-                                                                                                <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
-                                                                                            </div>
-                                                                                        </button>
-                                                                                        {isExpanded && (
-                                                                                            <>
-                                                                                                <div className="fixed inset-0 z-[100]" onClick={() => setExpandedOpportunityId(null)} />
-                                                                                                <div className="fixed right-[8%] w-[300px] z-[110] animate-in fade-in zoom-in-95 duration-200" style={{ top: '50%', transform: 'translateY(-50%)' }}>
-                                                                                                    <div className="p-4 rounded-2xl bg-white border border-amber-200 shadow-[0_8px_30px_-4px_rgba(245,158,11,0.25)] max-h-[70vh] overflow-y-auto">
-                                                                                                        <button
-                                                                                                            onClick={() => setExpandedOpportunityId(null)}
-                                                                                                            className="absolute top-2 right-2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                                                                                        >
-                                                                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                                                            </svg>
-                                                                                                        </button>
-                                                                                                        <div className="flex items-start gap-3">
-                                                                                                            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-sm">
-                                                                                                                <Lightbulb className="h-4 w-4" />
-                                                                                                            </div>
-                                                                                                            <div className="flex-1 min-w-0 pt-0.5 pr-4">
-                                                                                                                <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-1.5 text-amber-600/80">
-                                                                                                                    Opportunity Identified
-                                                                                                                </p>
-                                                                                                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                                                                                                    {nudge.coachingNudge}
-                                                                                                                </p>
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </>
-                                                                                        )}
-                                                                                    </div>
-                                                                                );
-                                                                            })()
-                                                                        ] : []
-                                                                )}
-                                                            </div>
-                                                        </>
-                                                    ) : isCoachLoading && isLastPersonaMessage ? (
-                                                        /* AI Coach Loading State - Sleek, tech-inspired skeleton */
-                                                        <>
-                                                            {/* Horizontal dotted connector line with gradient fade */}
-                                                            <div className="absolute -left-16 top-1/2 -translate-y-1/2 z-0">
-                                                                <div
-                                                                    className="w-24 h-[2px] animate-pulse"
-                                                                    style={{
-                                                                        background: 'repeating-linear-gradient(to right, rgb(139 92 246 / 0.4) 0, rgb(139 92 246 / 0.4) 6px, transparent 6px, transparent 12px)',
-                                                                        maskImage: 'linear-gradient(to right, black, transparent)',
-                                                                        WebkitMaskImage: 'linear-gradient(to right, black, transparent)'
-                                                                    }}
-                                                                />
-                                                            </div>
-
-                                                            {/* AI Thinking Card */}
-                                                            <div className="w-[90%] relative z-10">
-                                                                <div className="relative overflow-hidden px-4 py-4 rounded-xl bg-gradient-to-br from-violet-50/90 via-white/95 to-amber-50/80 backdrop-blur-md border border-violet-200/50 shadow-[0_4px_20px_-4px_rgba(139,92,246,0.15)]">
-                                                                    {/* Animated gradient shimmer overlay */}
-                                                                    <div className="absolute inset-0 overflow-hidden">
-                                                                        <div
-                                                                            className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite]"
-                                                                            style={{
-                                                                                background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.08), transparent)',
-                                                                            }}
-                                                                        />
-                                                                    </div>
-
-                                                                    {/* Content */}
-                                                                    <div className="relative z-10 flex items-start gap-3">
-                                                                        {/* Animated AI Icon */}
-                                                                        <div className="relative">
-                                                                            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-amber-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
-                                                                                <svg className="h-4 w-4 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                                                                </svg>
-                                                                            </div>
-                                                                            {/* Subtle glow ring */}
-                                                                            <div className="absolute inset-0 rounded-lg bg-violet-400/20 blur-md animate-pulse" />
-                                                                        </div>
-
-                                                                        <div className="flex-1 min-w-0 space-y-2.5">
-                                                                            {/* Header */}
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-violet-600/90">
-                                                                                    Coach Analysing
-                                                                                </span>
-                                                                                <div className="flex gap-1">
-                                                                                    <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                                                                                    <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                                                                                    <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" />
-                                                                                </div>
-                                                                            </div>
-
-                                                                            {/* Status text - cycling through phases */}
-                                                                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                                                <span className="inline-flex items-center gap-1.5">
-                                                                                    <svg className="h-3 w-3 text-violet-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                                                                    </svg>
-                                                                                    Reviewing research & identifying opportunities...
-                                                                                </span>
-                                                                            </p>
-
-                                                                            {/* Skeleton lines */}
-                                                                            <div className="space-y-2 pt-1">
-                                                                                <div className="h-2 bg-gradient-to-r from-violet-100 via-muted to-transparent rounded-full animate-pulse w-[85%]" />
-                                                                                <div className="h-2 bg-gradient-to-r from-amber-100/70 via-muted to-transparent rounded-full animate-pulse w-[60%] [animation-delay:150ms]" />
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        /* Empty placeholder to maintain column */
-                                                        <div />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-
-                                    // User message - also uses grid but content is in left column, right-aligned
-                                    return (
-                                        <div
-                                            key={msg.id}
-                                            className="grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_minmax(0,280px)] gap-4"
-                                        >
-                                            {/* LEFT COLUMN: User message */}
-                                            <div className="flex gap-3 justify-end">
-                                                <div
-                                                    className="max-w-[85%] px-5 py-3 rounded-2xl text-sm leading-relaxed bg-muted/70 backdrop-blur-sm border border-input/50 text-foreground rounded-tr-none"
-                                                >
-                                                    {msg.imageBase64 && (
-                                                        <img
-                                                            src={msg.imageBase64}
-                                                            alt="Shared image"
-                                                            className="max-w-full max-h-[240px] rounded-xl mb-2 object-contain"
+                                        // Persona message — rendered with shared ChatBubble
+                                        if (msg.role === "persona") {
+                                            const fgColor = isFocusGroup && msg.archetypeId ? getArchetypeColor(msg.archetypeId) : null;
+                                            const isTyping = typingMessageId === msg.id;
+                                            const bubbleContent = isTyping ? (
+                                                <TypewriterText
+                                                    text={msg.content}
+                                                    onComplete={() => setTypingMessageId(null)}
+                                                    wordsPerSecond={20}
+                                                />
+                                            ) : (
+                                                renderContentWithHighlights(msg.content, highlightsForMessage)
+                                            );
+                                            return (
+                                                <ChatBubble
+                                                    key={msg.id}
+                                                    id={`chat-bubble-${msg.id}`}
+                                                    role="persona"
+                                                    content={bubbleContent}
+                                                    archetypeName={fgColor ? msg.archetypeName : null}
+                                                    archetypeColor={fgColor?.text}
+                                                    avatarClassName={fgColor?.avatar}
+                                                    avatarTextClassName={fgColor?.avatarText}
+                                                    initial={
+                                                        fgColor
+                                                            ? getInitial(msg.archetypeName || "P")
+                                                            : (selectedPersonaDetails?.name || "P").charAt(0).toUpperCase()
+                                                    }
+                                                    typing={isTyping}
+                                                    feedbackSlot={
+                                                        <AIFeedback
+                                                            entityType="simulation_message"
+                                                            entityId={msg.id}
+                                                            simulationId={simulationId || undefined}
+                                                            messageContent={msg.content}
+                                                            size="sm"
                                                         />
-                                                    )}
-                                                    {msg.content && msg.content !== "[Shared an image]" && msg.content}
-                                                </div>
-                                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs mt-1 shrink-0">
-                                                    <User className="h-4 w-4" />
-                                                </div>
-                                            </div>
-                                            {/* RIGHT COLUMN: Empty for user messages */}
-                                            <div className="hidden lg:block" />
-                                        </div>
-                                    );
-                                })}
-                                {isSending && (
-                                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_minmax(0,280px)] gap-4">
-                                        <div className="flex gap-3 justify-start">
+                                                    }
+                                                />
+                                            );
+                                        }
+
+                                        // User message — rendered with shared ChatBubble
+                                        const userContent = msg.content && msg.content !== "[Shared an image]" ? msg.content : null;
+                                        return (
+                                            <ChatBubble
+                                                key={msg.id}
+                                                id={`chat-bubble-${msg.id}`}
+                                                role="user"
+                                                content={userContent}
+                                                imageBase64={msg.imageBase64}
+                                            />
+                                        );
+                                    })}
+                                    {isSending && (
+                                        <div className="flex gap-2.5 items-start">
                                             {isFocusGroup ? (
-                                                <div className="flex -space-x-2 mt-1">
+                                                <div className="flex -space-x-2 mt-0.5">
                                                     {focusGroupArchetypes.slice(0, 3).map((arch) => {
                                                         const color = getArchetypeColor(arch.id);
                                                         return (
-                                                            <div key={arch.id} className={`w-7 h-7 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-[10px] font-bold border-2 border-white`}>
+                                                            <div
+                                                                key={arch.id}
+                                                                className={`w-[30px] h-[30px] rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-[11px] font-semibold shadow-inset-edge ring-2 ring-[color:var(--surface)]`}
+                                                            >
                                                                 {getInitial(arch.name)}
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
                                             ) : (
-                                                <div className="w-8 h-8 rounded-full bg-muted border border-input/60 flex items-center justify-center text-primary text-xs font-bold mt-1 shrink-0">
+                                                <div className="w-[30px] h-[30px] rounded-full bg-[color:var(--surface-muted)] text-[color:var(--ink-secondary)] shadow-inset-edge flex items-center justify-center text-[11px] font-semibold shrink-0">
                                                     {(selectedPersonaDetails?.name || "P").charAt(0).toUpperCase()}
                                                 </div>
                                             )}
-                                            <div className="bg-white/95 backdrop-blur-sm border border-border/60 px-5 py-4 rounded-2xl rounded-tl-none flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></span>
-                                                {isFocusGroup && <span className="text-xs text-muted-foreground ml-2">Group is responding...</span>}
+                                            <div className="rounded-[var(--radius-chat)] rounded-tl-[4px] bg-[color:var(--surface)] shadow-outline-ring px-4 py-3 flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 bg-[color:var(--primary)] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                                <span className="w-1.5 h-1.5 bg-[color:var(--primary)] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                                <span className="w-1.5 h-1.5 bg-[color:var(--primary)] rounded-full animate-bounce" />
+                                                {isFocusGroup && <span className="text-caption text-muted-foreground ml-2">Group is responding...</span>}
                                             </div>
                                         </div>
-                                        <div className="hidden lg:block" />
-                                    </div>
-                                )}
-                                <div ref={messagesEndRef} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Fixed Input Bar at Bottom - Floating glass effect */}
-                    <div className={`fixed bottom-4 left-4 right-4 lg:right-8 z-50 ${selectedGuideId && selectedGuideId !== "none" ? 'lg:left-[360px]' : 'lg:left-4'}`}>
-                        <div className="max-w-3xl mx-auto">
-                            <div className="bg-white/90 backdrop-blur-xl border border-border/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)] rounded-2xl px-4 py-3">
-                                {/* Image Preview */}
-                                {attachedImage && (
-                                    <div className="mb-3 relative inline-block">
-                                        <img
-                                            src={attachedImage.previewUrl}
-                                            alt="Attached"
-                                            className="max-h-[120px] rounded-xl border border-border object-contain"
-                                        />
-                                        <button
-                                            onClick={() => setAttachedImage(null)}
-                                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </div>
-                                )}
-                                <div className="flex items-center gap-3">
-                                    <Button
-                                        variant={isListening ? "destructive" : "outline"}
-                                        size="icon"
-                                        onClick={toggleListening}
-                                        disabled={isSending || isEnding}
-                                        className={`shrink-0 h-11 w-11 rounded-xl transition-all mb-0 ${isListening ? "animate-pulse shadow-red-500/20 shadow-lg" : "hover:bg-accent hover:text-primary hover:border-input"}`}
-                                        title={isListening ? "Stop listening" : "Start voice dictation"}
-                                    >
-                                        {isListening ? (
-                                            <MicOff className="h-4 w-4" />
-                                        ) : (
-                                            <Mic className="h-4 w-4" />
-                                        )}
-                                    </Button>
-                                    {/* Image Attach Button - only when no mod guide */}
-                                    {(!selectedGuideId || selectedGuideId === "none") && (
-                                        <>
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageAttach}
-                                                className="hidden"
-                                            />
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                disabled={isSending || isEnding}
-                                                className={`shrink-0 h-11 w-11 rounded-xl transition-all mb-0 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 ${attachedImage ? 'bg-blue-50 text-blue-600 border-blue-200' : ''}`}
-                                                title="Attach an image"
-                                            >
-                                                <ImagePlus className="h-4 w-4" />
-                                            </Button>
-                                        </>
                                     )}
-                                    <div className="relative flex-1">
-                                        {/* @mention autocomplete dropdown */}
-                                        {showAtMention && isFocusGroup && focusGroupArchetypes.length > 0 && (
-                                            <div className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-xl border border-border shadow-lg z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150">
-                                                <div className="p-2 border-b border-border">
-                                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Tag an archetype</p>
-                                                </div>
-                                                {focusGroupArchetypes.map((arch) => {
-                                                    const color = getArchetypeColor(arch.id);
-                                                    return (
-                                                        <button
-                                                            key={arch.id}
-                                                            onClick={() => {
-                                                                const beforeAt = inputMessage.slice(0, inputMessage.lastIndexOf('@'));
-                                                                setInputMessage(`${beforeAt}@${arch.name} `);
-                                                                setShowAtMention(false);
-                                                                inputRef.current?.focus();
-                                                            }}
-                                                            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-accent transition-colors text-left"
-                                                        >
-                                                            <div className={`w-6 h-6 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-xs font-bold`}>
-                                                                {getInitial(arch.name)}
-                                                            </div>
-                                                            <span className="text-sm font-medium text-foreground">{arch.name}</span>
-                                                        </button>
-                                                    );
-                                                })}
-                                                <div className="p-2 border-t border-border bg-accent">
-                                                    <p className="text-[10px] text-muted-foreground">Tag to direct your message. No tag = all respond.</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <textarea
-                                            ref={inputRef}
-                                            value={inputMessage}
-                                            onChange={(e) => {
-                                                const value = e.target.value;
-                                                setInputMessage(value);
-                                                // Auto-resize
-                                                e.target.style.height = 'auto';
-                                                e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
-                                                // @mention trigger
-                                                if (isFocusGroup) {
-                                                    const lastChar = value.slice(-1);
-                                                    if (lastChar === '@') {
-                                                        setShowAtMention(true);
-                                                    } else if (showAtMention && (lastChar === ' ' || value === '')) {
-                                                        setShowAtMention(false);
-                                                    }
-                                                }
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Escape" && showAtMention) {
-                                                    setShowAtMention(false);
-                                                    return;
-                                                }
-                                                if (e.key === "Enter" && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    sendMessage();
-                                                    if (inputRef.current) {
-                                                        inputRef.current.style.height = 'auto';
-                                                    }
-                                                }
-                                            }}
-                                            placeholder={isFocusGroup ? "Type your message... (use @ to tag an archetype)" : "Type your message..."}
-                                            rows={1}
-                                            className="w-full min-h-[44px] max-h-[160px] py-2.5 px-4 bg-accent border border-border rounded-xl focus:ring-2 focus:ring-ring focus:border-input outline-none resize-none text-sm leading-relaxed"
-                                            disabled={isSending || isEnding}
-                                        />
-                                    </div>
-                                    <Button
-                                        onClick={sendMessage}
-                                        disabled={(!inputMessage.trim() && !attachedImage) || isSending || isEnding}
-                                        className="h-11 px-5 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-sm rounded-xl"
-                                    >
-                                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                    </Button>
+                                    <div ref={messagesEndRef} />
                                 </div>
                             </div>
-                        </div>
+
+                            {/* Composer — absolute inside the main column so it floats over the chat */}
+                            <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6 md:px-10 pointer-events-none">
+                                <div className="w-full max-w-[720px] pointer-events-auto">
+                                    <div className="rounded-[var(--radius-panel)] bg-[color:var(--surface)] shadow-composer px-4 py-3">
+                                        {/* Image Preview */}
+                                        {attachedImage && (
+                                            <div className="mb-3 relative inline-block">
+                                                <img
+                                                    src={attachedImage.previewUrl}
+                                                    alt="Attached"
+                                                    className="max-h-[120px] rounded-[var(--radius-md2)] border border-[color:var(--border-subtle)] object-contain"
+                                                />
+                                                <button
+                                                    onClick={() => setAttachedImage(null)}
+                                                    className="absolute -top-2 -right-2 w-6 h-6 bg-[color:var(--destructive)] hover:opacity-90 text-white rounded-full flex items-center justify-center shadow-card transition-opacity"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant={isListening ? "destructive" : "outline"}
+                                                size="icon"
+                                                onClick={toggleListening}
+                                                disabled={isSending || isEnding}
+                                                className={cn(
+                                                    "shrink-0 h-10 w-10 rounded-[var(--radius-md2)] transition-all",
+                                                    isListening && "animate-pulse"
+                                                )}
+                                                title={isListening ? "Stop listening" : "Start voice dictation"}
+                                            >
+                                                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                                            </Button>
+                                            {/* Image Attach Button — only when no mod guide */}
+                                            {(!selectedGuideId || selectedGuideId === "none") && (
+                                                <>
+                                                    <input
+                                                        ref={fileInputRef}
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleImageAttach}
+                                                        className="hidden"
+                                                    />
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        disabled={isSending || isEnding}
+                                                        className={cn(
+                                                            "shrink-0 h-10 w-10 rounded-[var(--radius-md2)] transition-all",
+                                                            attachedImage && "bg-[color:var(--info-soft)] text-[color:var(--info)]"
+                                                        )}
+                                                        title="Attach an image"
+                                                    >
+                                                        <ImagePlus className="h-4 w-4" />
+                                                    </Button>
+                                                </>
+                                            )}
+                                            <div className="relative flex-1">
+                                                {/* @mention autocomplete dropdown */}
+                                                {showAtMention && isFocusGroup && focusGroupArchetypes.length > 0 && (
+                                                    <div className="absolute bottom-full mb-2 left-0 right-0 bg-[color:var(--surface)] rounded-[var(--radius-md2)] shadow-card z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150">
+                                                        <div className="px-3 py-2 border-b border-[color:var(--border-subtle)]">
+                                                            <p className="text-caption text-muted-foreground font-medium uppercase tracking-wider">Tag an archetype</p>
+                                                        </div>
+                                                        {focusGroupArchetypes.map((arch) => {
+                                                            const color = getArchetypeColor(arch.id);
+                                                            return (
+                                                                <button
+                                                                    key={arch.id}
+                                                                    onClick={() => {
+                                                                        const beforeAt = inputMessage.slice(0, inputMessage.lastIndexOf('@'));
+                                                                        setInputMessage(`${beforeAt}@${arch.name} `);
+                                                                        setShowAtMention(false);
+                                                                        inputRef.current?.focus();
+                                                                    }}
+                                                                    className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[color:var(--surface-muted)] transition-colors text-left"
+                                                                >
+                                                                    <div className={`w-6 h-6 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-[11px] font-semibold shadow-inset-edge`}>
+                                                                        {getInitial(arch.name)}
+                                                                    </div>
+                                                                    <span className="text-ui-sm font-medium text-foreground">{arch.name}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                        <div className="px-3 py-2 border-t border-[color:var(--border-subtle)] bg-[color:var(--surface-muted)]">
+                                                            <p className="text-caption text-muted-foreground">Tag to direct your message. No tag = all respond.</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <textarea
+                                                    ref={inputRef}
+                                                    value={inputMessage}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setInputMessage(value);
+                                                        // Auto-resize
+                                                        e.target.style.height = 'auto';
+                                                        e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
+                                                        // @mention trigger
+                                                        if (isFocusGroup) {
+                                                            const lastChar = value.slice(-1);
+                                                            if (lastChar === '@') {
+                                                                setShowAtMention(true);
+                                                            } else if (showAtMention && (lastChar === ' ' || value === '')) {
+                                                                setShowAtMention(false);
+                                                            }
+                                                        }
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Escape" && showAtMention) {
+                                                            setShowAtMention(false);
+                                                            return;
+                                                        }
+                                                        if (e.key === "Enter" && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            sendMessage();
+                                                            if (inputRef.current) {
+                                                                inputRef.current.style.height = 'auto';
+                                                            }
+                                                        }
+                                                    }}
+                                                    placeholder={isFocusGroup ? "Type your message... (use @ to tag an archetype)" : "Type your message..."}
+                                                    rows={1}
+                                                    className="w-full min-h-[40px] max-h-[160px] py-2 px-3 bg-[color:var(--surface-muted)] shadow-inset-edge rounded-[var(--radius-md2)] focus:outline-none focus:shadow-outline-ring resize-none text-body-sm leading-relaxed"
+                                                    disabled={isSending || isEnding}
+                                                />
+                                            </div>
+                                            <Button
+                                                onClick={sendMessage}
+                                                disabled={(!inputMessage.trim() && !attachedImage) || isSending || isEnding}
+                                                className="h-10 px-4 rounded-[var(--radius-md2)]"
+                                            >
+                                                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </main>
+
+                        {/* RIGHT rail — Live Coach opportunities */}
+                        <aside
+                            data-slot="opportunity-rail"
+                            ref={liveCoachScrollRef}
+                            className="bg-[color:var(--surface)] border-l border-[color:var(--border-subtle)] flex flex-col min-h-0 overflow-y-auto"
+                        >
+                            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[color:var(--border-subtle)] shrink-0 bg-[color:var(--surface)] sticky top-0 z-10">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-6 w-6 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center">
+                                        <Lightbulb className="h-3.5 w-3.5" />
+                                    </div>
+                                    <span className="text-ui-sm font-semibold text-foreground">Live Coach</span>
+                                </div>
+                                {isCoachLoading && (
+                                    <span className="inline-flex items-center gap-1.5 text-caption text-[color:var(--knowledge)]">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Analysing
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex-1 min-h-0 p-4 flex flex-col gap-2.5">
+                                {coachNudges.length === 0 && !isCoachLoading && (
+                                    <div className="flex flex-col items-center justify-center text-center py-10 px-4 gap-2">
+                                        <div className="h-10 w-10 rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge flex items-center justify-center">
+                                            <Sparkles className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                        <p className="text-body-sm text-muted-foreground max-w-[220px]">
+                                            Opportunities will appear here as the conversation unfolds.
+                                        </p>
+                                    </div>
+                                )}
+                                {coachNudges.flatMap((nudge) => {
+                                    const rows: React.ReactNode[] = [];
+                                    if (nudge.opportunities && nudge.opportunities.length > 0) {
+                                        nudge.opportunities.forEach((opp, oppIdx) => {
+                                            const opportunityId = `${nudge.id}-opp-${oppIdx}`;
+                                            const isExpanded = expandedOpportunityId === opportunityId;
+                                            rows.push(
+                                                <OpportunityCard
+                                                    key={opportunityId}
+                                                    quote={opp.quote}
+                                                    surfacedContext={opp.surfacedContext}
+                                                    testableAssumption={opp.testableAssumption}
+                                                    explorationDirection={opp.explorationDirection}
+                                                    expanded={isExpanded}
+                                                    onToggle={() => setExpandedOpportunityId(isExpanded ? null : opportunityId)}
+                                                    onClose={() => setExpandedOpportunityId(null)}
+                                                />
+                                            );
+                                        });
+                                    } else if (nudge.coachingNudge) {
+                                        const legacyId = nudge.id;
+                                        const isExpanded = expandedOpportunityId === legacyId;
+                                        rows.push(
+                                            <OpportunityCard
+                                                key={legacyId}
+                                                quote={nudge.highlightQuote}
+                                                surfacedContext={nudge.coachingNudge}
+                                                expanded={isExpanded}
+                                                onToggle={() => setExpandedOpportunityId(isExpanded ? null : legacyId)}
+                                                onClose={() => setExpandedOpportunityId(null)}
+                                            />
+                                        );
+                                    }
+                                    return rows;
+                                })}
+                                {isCoachLoading && (
+                                    <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-4 flex items-start gap-3">
+                                        <div className="h-8 w-8 rounded-[10px] bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] shadow-inset-edge flex items-center justify-center shrink-0">
+                                            <Sparkles className="h-4 w-4 animate-pulse" />
+                                        </div>
+                                        <div className="flex-1 min-w-0 space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[color:var(--knowledge)]">
+                                                    Coach Analysing
+                                                </span>
+                                                <div className="flex gap-1">
+                                                    <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                                    <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                                    <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce" />
+                                                </div>
+                                            </div>
+                                            <p className="text-caption text-muted-foreground leading-relaxed">
+                                                Reviewing research &amp; identifying opportunities...
+                                            </p>
+                                            <div className="space-y-1.5 pt-1">
+                                                <div className="h-2 bg-[color:var(--surface-muted)] rounded-full animate-pulse w-[85%]" />
+                                                <div className="h-2 bg-[color:var(--surface-muted)] rounded-full animate-pulse w-[60%]" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </aside>
                     </div>
                 </>
             ) : (
                 /* When simulation is NOT STARTED - Setup View */
-                <div className="flex flex-col">
-                    {/* Edge-to-edge header bar */}
-                    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
-                        <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                            <div className="flex items-center gap-3">
-                                <Link
-                                    href={`/projects/${projectId}/sub/${subProjectId}?tab=simulations`}
-                                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                    aria-label={`Back to ${subProject?.name || "Workspace"}`}
-                                >
-                                    <ArrowLeft className="h-4 w-4" />
-                                    <span>Back</span>
-                                </Link>
-                                <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                                    <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <div>
-                                    <h1 className="text-base font-bold text-foreground">New Simulation Session</h1>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Select a persona and start your simulation
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
+                <>
+                    <PageBar
+                        sticky={false}
+                        back={{ href: `/projects/${projectId}/sub/${subProjectId}?tab=simulations`, label: "Back" }}
+                        crumbs={setupCrumbs}
+                        action={
+                            <>
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -1853,20 +1509,18 @@ function SimulationPageContent({ params }: PageProps) {
                                         </>
                                     )}
                                 </Button>
-                            </div>
-                        </div>
-                    </div>
+                            </>
+                        }
+                    />
 
-                    <div className="py-8">
-
-                    {/* Collapsible Configuration Panel */}
-                    {showConfig && (
-                        <div className="mb-6 animate-in slide-in-from-top-2 fade-in duration-200">
-                            <Card className="bg-white/80 backdrop-blur-xl border-border/60 shadow-sm rounded-2xl overflow-hidden">
-                                <CardContent className="p-5">
+                    <div className="flex-1 min-h-0 py-8">
+                        {/* Collapsible Configuration Panel */}
+                        {showConfig && (
+                            <div className="mb-6 animate-in slide-in-from-top-2 fade-in duration-200">
+                                <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-5">
                                     {/* Focus Group Toggle — only show when archetypes exist */}
                                     {archetypes.length > 0 && (
-                                        <div className="mb-5 pb-4 border-b border-border">
+                                        <div className="mb-5 pb-4 border-b border-[color:var(--border-subtle)]">
                                             <label className="flex items-center gap-3 cursor-pointer group">
                                                 <div className="relative">
                                                     <input
@@ -1882,12 +1536,12 @@ function SimulationPageContent({ params }: PageProps) {
                                                         }}
                                                         className="sr-only peer"
                                                     />
-                                                    <div className="w-9 h-5 bg-muted peer-checked:bg-accent0 rounded-full transition-colors duration-200" />
-                                                    <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 peer-checked:translate-x-4" />
+                                                    <div className="w-9 h-5 bg-[color:var(--surface)] shadow-inset-edge peer-checked:bg-[color:var(--primary)] rounded-full transition-colors duration-200" />
+                                                    <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-[color:var(--surface)] rounded-full shadow-card transition-transform duration-200 peer-checked:translate-x-4" />
                                                 </div>
                                                 <div>
-                                                    <span className="text-sm font-semibold text-foreground group-hover:text-foreground">Focus Group Mode</span>
-                                                    <p className="text-[11px] text-muted-foreground">Simulate a group discussion with 2-4 archetypes</p>
+                                                    <span className="text-body-sm font-semibold text-foreground">Focus Group Mode</span>
+                                                    <p className="text-caption text-muted-foreground">Simulate a group discussion with 2-4 archetypes</p>
                                                 </div>
                                             </label>
                                         </div>
@@ -1895,21 +1549,20 @@ function SimulationPageContent({ params }: PageProps) {
 
                                     {isFocusGroup ? (
                                         <div className="text-center py-4">
-                                            <p className="text-xs text-muted-foreground italic">In Focus Group mode, each archetype uses its own personality profile. No additional settings needed — select 2-5 archetypes below.</p>
+                                            <p className="text-caption text-muted-foreground italic">In Focus Group mode, each archetype uses its own personality profile. No additional settings needed — select 2-5 archetypes below.</p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
                                             {/* Left: Guide Selection */}
                                             <div className="space-y-3">
-                                                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Moderator Guide</Label>
+                                                <Label className="text-caption font-bold text-muted-foreground uppercase tracking-widest">Moderator Guide</Label>
                                                 {guides.length > 0 ? (
                                                     <div>
                                                         <Select
                                                             value={selectedGuideId}
                                                             onValueChange={(v) => setSelectedGuideId(v)}
                                                         >
-                                                            <SelectTrigger className="h-10 bg-white border-border hover:border-input shadow-sm transition-all text-sm rounded-xl">
+                                                            <SelectTrigger className="h-10 bg-[color:var(--surface)] shadow-inset-edge text-ui-sm rounded-[var(--radius-md2)]">
                                                                 <SelectValue placeholder="Select a guide..." />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -1928,16 +1581,16 @@ function SimulationPageContent({ params }: PageProps) {
                                                                 })}
                                                             </SelectContent>
                                                         </Select>
-                                                        <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                                                        <p className="text-caption text-muted-foreground mt-2 leading-relaxed">
                                                             {selectedGuideId !== "none"
                                                                 ? "Questions from this guide will be used by the AI coach to evaluate your session."
                                                                 : "No guide selected. The AI coach will not track question coverage during the session."}
                                                         </p>
                                                     </div>
                                                 ) : (
-                                                    <div className="bg-accent border border-dashed border-border rounded-xl p-4 text-center">
-                                                        <p className="text-xs text-muted-foreground mb-2">No guides available</p>
-                                                        <Link href={`/projects/${projectId}/sub/${subProjectId}`} className="text-xs font-semibold text-primary hover:underline">
+                                                    <div className="bg-[color:var(--surface)] shadow-inset-edge rounded-[var(--radius-md2)] p-4 text-center">
+                                                        <p className="text-caption text-muted-foreground mb-2">No guides available</p>
+                                                        <Link href={`/projects/${projectId}/sub/${subProjectId}`} className="text-caption font-semibold text-[color:var(--primary)] hover:underline">
                                                             Create a Guide &rarr;
                                                         </Link>
                                                     </div>
@@ -1947,9 +1600,9 @@ function SimulationPageContent({ params }: PageProps) {
                                             {/* Right: Persona Settings */}
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
-                                                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Persona Settings</Label>
+                                                    <Label className="text-caption font-bold text-muted-foreground uppercase tracking-widest">Persona Settings</Label>
                                                     {defaultSettings && !isModified && selectedPersonaId && (
-                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-semibold">
+                                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[color:var(--info-soft)] text-[color:var(--info)] text-caption font-semibold">
                                                             <Sparkles className="h-3 w-3" />
                                                             Optimized
                                                         </span>
@@ -1959,58 +1612,55 @@ function SimulationPageContent({ params }: PageProps) {
                                                 <div className="space-y-4">
                                                     {/* Tone */}
                                                     <div className="space-y-2">
-                                                        <div className="flex justify-between items-center text-xs">
+                                                        <div className="flex justify-between items-center text-caption">
                                                             <span className="text-muted-foreground font-medium">Emotional Tone</span>
-                                                            <span className="text-primary font-semibold">{getMixerLabel(mixer.emotionalTone, "tone")}</span>
+                                                            <span className="text-[color:var(--primary)] font-semibold">{getMixerLabel(mixer.emotionalTone, "tone")}</span>
                                                         </div>
                                                         <Slider
                                                             value={[mixer.emotionalTone]}
                                                             onValueChange={([v]) => setMixer(m => ({ ...m, emotionalTone: snapToStop(v) }))}
                                                             max={100}
                                                             step={1}
-                                                            className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary [&_[role=slider]]:border-2 [&_[role=slider]]:ring-offset-2 [&_[role=slider]]:ring-ring"
                                                         />
                                                     </div>
 
                                                     {/* Singlish */}
                                                     <div className="space-y-2">
-                                                        <div className="flex justify-between items-center text-xs">
+                                                        <div className="flex justify-between items-center text-caption">
                                                             <span className="text-muted-foreground font-medium">Singlish Level</span>
-                                                            <span className="text-primary font-semibold">{getMixerLabel(mixer.singlishLevel, "singlish")}</span>
+                                                            <span className="text-[color:var(--primary)] font-semibold">{getMixerLabel(mixer.singlishLevel, "singlish")}</span>
                                                         </div>
                                                         <Slider
                                                             value={[mixer.singlishLevel]}
                                                             onValueChange={([v]) => setMixer(m => ({ ...m, singlishLevel: snapToStop(v) }))}
                                                             max={100}
                                                             step={1}
-                                                            className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary [&_[role=slider]]:border-2 [&_[role=slider]]:ring-offset-2 [&_[role=slider]]:ring-ring"
                                                         />
                                                     </div>
 
                                                     {/* Mood */}
                                                     <div className="space-y-2">
-                                                        <div className="flex justify-between items-center text-xs">
+                                                        <div className="flex justify-between items-center text-caption">
                                                             <span className="text-muted-foreground font-medium">Mood Variability</span>
-                                                            <span className="text-primary font-semibold">{getMixerLabel(mixer.moodSwings, "mood")}</span>
+                                                            <span className="text-[color:var(--primary)] font-semibold">{getMixerLabel(mixer.moodSwings, "mood")}</span>
                                                         </div>
                                                         <Slider
                                                             value={[mixer.moodSwings]}
                                                             onValueChange={([v]) => setMixer(m => ({ ...m, moodSwings: snapToStop(v) }))}
                                                             max={100}
                                                             step={1}
-                                                            className="[&_[role=slider]]:bg-white [&_[role=slider]]:border-primary [&_[role=slider]]:border-2 [&_[role=slider]]:ring-offset-2 [&_[role=slider]]:ring-ring"
                                                         />
                                                     </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div className="space-y-1.5">
-                                                        <Label className="text-xs text-muted-foreground font-medium">Response Length</Label>
+                                                        <Label className="text-caption text-muted-foreground font-medium">Response Length</Label>
                                                         <Select
                                                             value={mixer.responseLength}
                                                             onValueChange={(v) => setMixer(m => ({ ...m, responseLength: v as "short" | "medium" | "long" }))}
                                                         >
-                                                            <SelectTrigger className="h-9 text-xs bg-white border-border rounded-lg">
+                                                            <SelectTrigger className="h-9 text-caption bg-[color:var(--surface)] shadow-inset-edge rounded-[var(--radius-sm2)]">
                                                                 <SelectValue />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -2021,12 +1671,12 @@ function SimulationPageContent({ params }: PageProps) {
                                                         </Select>
                                                     </div>
                                                     <div className="space-y-1.5">
-                                                        <Label className="text-xs text-muted-foreground font-medium">Thinking Style</Label>
+                                                        <Label className="text-caption text-muted-foreground font-medium">Thinking Style</Label>
                                                         <Select
                                                             value={mixer.thinkingStyle}
                                                             onValueChange={(v) => setMixer(m => ({ ...m, thinkingStyle: v as "concrete" | "abstract" }))}
                                                         >
-                                                            <SelectTrigger className="h-9 text-xs bg-white border-border rounded-lg">
+                                                            <SelectTrigger className="h-9 text-caption bg-[color:var(--surface)] shadow-inset-edge rounded-[var(--radius-sm2)]">
                                                                 <SelectValue />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -2043,7 +1693,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            className="w-full text-xs text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200/50 h-8"
+                                                            className="w-full text-caption text-[color:var(--primary)] bg-[color:var(--primary-soft)] hover:bg-[color:var(--primary-soft)]/80 h-8"
                                                             onClick={saveRecommendedSettings}
                                                             disabled={isSavingSettings}
                                                         >
@@ -2055,404 +1705,416 @@ function SimulationPageContent({ params }: PageProps) {
                                             </div>
                                         </div>
                                     )}
-                                </CardContent>
-                            </Card>
-                        </div>
-                    )}
-
-                    {/* Main Content — Persona List + Persona Detail */}
-                    {personas.length === 0 && archetypes.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-border">
-                            <div className="h-16 w-16 bg-accent rounded-full flex items-center justify-center mb-4">
-                                <User className="h-8 w-8 text-border" />
+                                </div>
                             </div>
-                            <p className="text-foreground font-semibold mb-1">No personas or archetypes found</p>
-                            <p className="text-muted-foreground text-sm mb-6 max-w-xs">Upload a persona to the project Knowledge Base or generate profiles to get started.</p>
-                            <Link href={`/projects/${projectId}/kb`}>
-                                <Button variant="outline" className="border-input text-primary hover:bg-accent">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Upload Persona
-                                </Button>
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        )}
 
-                            {/* Left Column: Persona + Archetype List (4 cols) */}
-                            <div className="lg:col-span-4 space-y-2">
-                                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 pl-1">
-                                    {isFocusGroup ? "Select Archetypes (2-5)" : "Select Persona"}
-                                </h3>
-                                <div className="space-y-1.5">
+                        {/* Main Content — Persona List + Persona Detail */}
+                        {personas.length === 0 && archetypes.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-center rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge">
+                                <div className="h-16 w-16 bg-[color:var(--surface)] rounded-full shadow-inset-edge flex items-center justify-center mb-4">
+                                    <User className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <p className="text-foreground font-semibold mb-1">No personas or archetypes found</p>
+                                <p className="text-muted-foreground text-body-sm mb-6 max-w-xs">Upload a persona to the project Knowledge Base or generate profiles to get started.</p>
+                                <Link href={`/projects/${projectId}/kb`}>
+                                    <Button variant="outline">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Upload Persona
+                                    </Button>
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                                    {/* Personas section — hidden in focus group mode */}
-                                    {!isFocusGroup && personas.length > 0 && (
-                                        <>
-                                            {archetypes.length > 0 && (
-                                                <p className="text-[10px] font-bold text-border uppercase tracking-widest px-1 pt-1">Personas</p>
-                                            )}
-                                            {personas.map((persona) => {
-                                                const details = parsePersonaMeta(persona);
-                                                const isSelected = selectedPersonaId === persona.id && selectionType === "persona";
+                                {/* Left Column: Persona + Archetype List (4 cols) */}
+                                <div className="lg:col-span-4 space-y-2">
+                                    <h3 className="text-caption font-bold text-muted-foreground uppercase tracking-widest mb-3 pl-1">
+                                        {isFocusGroup ? "Select Archetypes (2-5)" : "Select Persona"}
+                                    </h3>
+                                    <div className="space-y-1.5">
 
-                                                return (
-                                                    <div
-                                                        key={persona.id}
-                                                        onClick={() => { setSelectedPersonaId(persona.id); setSelectionType("persona"); }}
-                                                        className={`group relative p-3.5 rounded-xl cursor-pointer transition-all duration-200 border ${isSelected
-                                                            ? "bg-white border-primary/30 shadow-sm"
-                                                            : "bg-white/60 border-border hover:border-border hover:bg-white"
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-all duration-200 shrink-0 ${isSelected
-                                                                ? "bg-primary text-white"
-                                                                : "bg-muted text-muted-foreground group-hover:bg-accent group-hover:text-primary"
-                                                                }`}>
-                                                                {(details.name || persona.title).charAt(0).toUpperCase()}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <h4 className={`text-sm font-semibold truncate transition-colors ${isSelected ? "text-foreground" : "text-foreground"}`}>
-                                                                    {details.name || persona.title}
-                                                                </h4>
-                                                                {details.age && (
-                                                                    <p className="text-[11px] text-muted-foreground truncate">
-                                                                        {details.age}{details.occupation ? ` · ${details.occupation}` : ""}
-                                                                    </p>
+                                        {/* Personas section — hidden in focus group mode */}
+                                        {!isFocusGroup && personas.length > 0 && (
+                                            <>
+                                                {archetypes.length > 0 && (
+                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1 pt-1">Personas</p>
+                                                )}
+                                                {personas.map((persona) => {
+                                                    const details = parsePersonaMeta(persona);
+                                                    const isSelected = selectedPersonaId === persona.id && selectionType === "persona";
+
+                                                    return (
+                                                        <div
+                                                            key={persona.id}
+                                                            onClick={() => { setSelectedPersonaId(persona.id); setSelectionType("persona"); }}
+                                                            className={cn(
+                                                                "group rounded-[14px] p-3.5 cursor-pointer transition-shadow duration-200",
+                                                                isSelected
+                                                                    ? "bg-[color:var(--surface)] shadow-card"
+                                                                    : "bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={cn(
+                                                                    "w-9 h-9 rounded-[10px] flex items-center justify-center text-body-sm font-bold shadow-inset-edge transition-all duration-200 shrink-0",
+                                                                    isSelected
+                                                                        ? "bg-[color:var(--primary)] text-white"
+                                                                        : "bg-[color:var(--surface-muted)] text-[color:var(--ink-secondary)]"
+                                                                )}>
+                                                                    {(details.name || persona.title).charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h4 className="text-body-sm font-semibold truncate text-foreground">
+                                                                        {details.name || persona.title}
+                                                                    </h4>
+                                                                    {details.age && (
+                                                                        <p className="text-caption text-muted-foreground truncate">
+                                                                            {details.age}{details.occupation ? ` · ${details.occupation}` : ""}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                                {isSelected && (
+                                                                    <div className="h-5 w-5 rounded-full bg-[color:var(--primary)] text-white flex items-center justify-center shrink-0">
+                                                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            {isSelected && (
-                                                                <div className="h-5 w-5 rounded-full bg-accent0 text-white flex items-center justify-center shrink-0">
-                                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </>
+                                        )}
+
+                                        {/* Archetypes section */}
+                                        {archetypes.length > 0 && (
+                                            <>
+                                                {!isFocusGroup && <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1 pt-3">Profiles</p>}
+                                                {isFocusGroup && (
+                                                    <p className="text-caption font-medium text-muted-foreground px-1 pb-1">
+                                                        {selectedArchetypeIds.length}/5 selected {selectedArchetypeIds.length < 2 && "· minimum 2"}
+                                                    </p>
+                                                )}
+                                                {archetypes.map((arch, idx) => {
+                                                    const isSelected = isFocusGroup
+                                                        ? selectedArchetypeIds.includes(arch.id)
+                                                        : (selectedPersonaId === arch.id && selectionType === "archetype");
+                                                    const demographic = arch.demographicJson ? (() => { try { return JSON.parse(arch.demographicJson!); } catch { return null; } })() : null;
+                                                    const fgColor = isFocusGroup ? ARCHETYPE_COLORS[idx % ARCHETYPE_COLORS.length] : null;
+
+                                                    return (
+                                                        <div
+                                                            key={arch.id}
+                                                            onClick={() => {
+                                                                if (isFocusGroup) {
+                                                                    setSelectedArchetypeIds(prev => {
+                                                                        if (prev.includes(arch.id)) {
+                                                                            return prev.filter(id => id !== arch.id);
+                                                                        }
+                                                                        if (prev.length >= 5) return prev; // Cap at 5
+                                                                        return [...prev, arch.id];
+                                                                    });
+                                                                } else {
+                                                                    setSelectedPersonaId(arch.id);
+                                                                    setSelectionType("archetype");
+                                                                }
+                                                            }}
+                                                            className={cn(
+                                                                "group rounded-[14px] p-3.5 cursor-pointer transition-shadow duration-200",
+                                                                isSelected && isFocusGroup && fgColor
+                                                                    ? `${fgColor.bg} shadow-card`
+                                                                    : isSelected
+                                                                        ? "bg-[color:var(--surface)] shadow-card"
+                                                                        : "bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={cn(
+                                                                    "w-9 h-9 rounded-[10px] flex items-center justify-center text-body-sm font-bold shadow-inset-edge transition-all duration-200 shrink-0",
+                                                                    isSelected && isFocusGroup && fgColor
+                                                                        ? `${fgColor.avatar} ${fgColor.avatarText}`
+                                                                        : isSelected
+                                                                            ? "bg-[color:var(--primary)] text-white"
+                                                                            : "bg-[color:var(--surface-muted)] text-[color:var(--primary)]"
+                                                                )}>
+                                                                    <Zap className="h-4 w-4" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h4 className="text-body-sm font-semibold truncate text-foreground">
+                                                                        {arch.name}
+                                                                    </h4>
+                                                                    {demographic?.ageRange && (
+                                                                        <p className="text-caption text-muted-foreground truncate">
+                                                                            {demographic.ageRange}{demographic.occupation ? ` · ${demographic.occupation}` : ""}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                                {isSelected && (
+                                                                    <div className={cn(
+                                                                        "h-5 w-5 rounded-full flex items-center justify-center shrink-0",
+                                                                        isFocusGroup && fgColor
+                                                                            ? `${fgColor.avatar} ${fgColor.avatarText}`
+                                                                            : "bg-[color:var(--primary)] text-white"
+                                                                    )}>
+                                                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Right Column: Selected Detail (8 cols) */}
+                                <div className="lg:col-span-8 lg:pt-[28px]">
+                                    {selectedPersonaId ? (() => {
+                                        // PERSONA detail view
+                                        if (selectionType === "persona") {
+                                            const persona = personas.find(p => p.id === selectedPersonaId);
+                                            if (!persona) return null;
+                                            const d = parsePersonaMeta(persona);
+
+                                            return (
+                                                <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 animate-in fade-in duration-200">
+                                                    <div className="flex items-start gap-4 mb-5">
+                                                        <div className="w-12 h-12 rounded-[14px] bg-[color:var(--primary)] text-white shadow-inset-edge flex items-center justify-center text-lg font-bold shrink-0">
+                                                            {(d.name || persona.title).charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h2 className="text-display-3 text-foreground mb-0.5">
+                                                                {d.name || persona.title}
+                                                            </h2>
+                                                            <div className="flex flex-wrap items-center gap-x-3 text-caption text-muted-foreground">
+                                                                {d.age && <span>{d.age}</span>}
+                                                                {d.occupation && (
+                                                                    <span className="flex items-center gap-1.5">
+                                                                        <span className="w-0.5 h-0.5 rounded-full bg-[color:var(--border)]" />
+                                                                        {d.occupation}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {(d.summary || d.bio) && (
+                                                        <p className="text-body-sm text-muted-foreground leading-relaxed mb-5">{d.summary || d.bio}</p>
+                                                    )}
+                                                    {(d.gains || d.pains) && (
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            {d.gains && (
+                                                                <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                                    <div className="flex items-center gap-1.5 mb-2.5">
+                                                                        <Heart className="h-3.5 w-3.5 text-[color:var(--primary)]" />
+                                                                        <span className="text-caption font-bold text-[color:var(--primary)] uppercase tracking-wider">Motivations</span>
+                                                                    </div>
+                                                                    <p className="text-caption text-muted-foreground leading-relaxed whitespace-pre-line">{d.gains}</p>
+                                                                </div>
+                                                            )}
+                                                            {d.pains && (
+                                                                <div className="rounded-[14px] shadow-inset-edge p-4" style={{ backgroundColor: 'var(--color-destructive)' + '10' }}>
+                                                                    <div className="flex items-center gap-1.5 mb-2.5">
+                                                                        <AlertCircle className="h-3.5 w-3.5 text-[color:var(--destructive)]" />
+                                                                        <span className="text-caption font-bold text-[color:var(--destructive)] uppercase tracking-wider">Frustrations</span>
+                                                                    </div>
+                                                                    <p className="text-caption text-muted-foreground leading-relaxed whitespace-pre-line">{d.pains}</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+
+                                        // ARCHETYPE detail view
+                                        if (selectionType === "archetype") {
+                                            const arch = archetypes.find(a => a.id === selectedPersonaId);
+                                            if (!arch) return null;
+
+                                            const parse = (json: string | null) => { try { return json ? JSON.parse(json) : null; } catch { return null; } };
+                                            const demographic = parse(arch.demographicJson);
+                                            const full = parse(arch.fullContentJson);
+                                            const influences = full?.influences || [];
+                                            const livedExperience = full?.livedExperience || "";
+                                            const behaviours = full?.behaviours || [];
+                                            const barriers = full?.barriers || [];
+                                            const motivations = full?.motivations || [];
+                                            const goals = full?.goals || [];
+                                            const habits = full?.habits || [];
+                                            const spiral = full?.spiral;
+
+                                            return (
+                                                <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 animate-in fade-in duration-200 space-y-5">
+                                                    {/* Header */}
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="w-12 h-12 rounded-[14px] bg-[color:var(--primary)] text-white shadow-inset-edge flex items-center justify-center shrink-0">
+                                                            <Zap className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h2 className="text-display-3 text-foreground mb-0.5">{arch.name}</h2>
+                                                            {arch.kicker && (
+                                                                <p className="text-caption text-[color:var(--primary)] font-medium italic">{arch.kicker}</p>
+                                                            )}
+                                                            {demographic && (
+                                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                                    {demographic.ageRange && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[color:var(--surface-muted)] text-[color:var(--primary)] shadow-inset-edge">
+                                                                            {demographic.ageRange}
+                                                                        </span>
+                                                                    )}
+                                                                    {demographic.occupation && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[color:var(--surface-muted)] text-muted-foreground shadow-inset-edge">
+                                                                            {demographic.occupation}
+                                                                        </span>
+                                                                    )}
+                                                                    {demographic.livingSetup && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[color:var(--surface-muted)] text-muted-foreground shadow-inset-edge">
+                                                                            {demographic.livingSetup}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </>
-                                    )}
 
-                                    {/* Archetypes section */}
-                                    {archetypes.length > 0 && (
-                                        <>
-                                            {!isFocusGroup && <p className="text-[10px] font-bold text-border uppercase tracking-widest px-1 pt-3">Profiles</p>}
-                                            {isFocusGroup && (
-                                                <p className="text-[10px] font-medium text-muted-foreground px-1 pb-1">
-                                                    {selectedArchetypeIds.length}/5 selected {selectedArchetypeIds.length < 2 && "· minimum 2"}
-                                                </p>
-                                            )}
-                                            {archetypes.map((arch, idx) => {
-                                                const isSelected = isFocusGroup
-                                                    ? selectedArchetypeIds.includes(arch.id)
-                                                    : (selectedPersonaId === arch.id && selectionType === "archetype");
-                                                const demographic = arch.demographicJson ? (() => { try { return JSON.parse(arch.demographicJson); } catch { return null; } })() : null;
-                                                const fgColor = isFocusGroup ? ARCHETYPE_COLORS[idx % ARCHETYPE_COLORS.length] : null;
+                                                    {/* Description */}
+                                                    <p className="text-body-sm text-muted-foreground leading-relaxed">{arch.description}</p>
 
-                                                return (
-                                                    <div
-                                                        key={arch.id}
-                                                        onClick={() => {
-                                                            if (isFocusGroup) {
-                                                                setSelectedArchetypeIds(prev => {
-                                                                    if (prev.includes(arch.id)) {
-                                                                        return prev.filter(id => id !== arch.id);
-                                                                    }
-                                                                    if (prev.length >= 5) return prev; // Cap at 5
-                                                                    return [...prev, arch.id];
-                                                                });
-                                                            } else {
-                                                                setSelectedPersonaId(arch.id);
-                                                                setSelectionType("archetype");
-                                                            }
-                                                        }}
-                                                        className={`group relative p-3.5 rounded-xl cursor-pointer transition-all duration-200 border ${isSelected
-                                                            ? isFocusGroup && fgColor
-                                                                ? `${fgColor.bg} ${fgColor.border} shadow-sm`
-                                                                : "bg-white border-primary/30 shadow-sm"
-                                                            : "bg-white/60 border-border hover:border-border hover:bg-white"
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-all duration-200 shrink-0 ${isSelected
-                                                                ? isFocusGroup && fgColor
-                                                                    ? `${fgColor.avatar} ${fgColor.avatarText}`
-                                                                    : "bg-primary text-white"
-                                                                : "bg-accent text-primary group-hover:bg-muted group-hover:text-primary"
-                                                                }`}>
-                                                                <Zap className="h-4 w-4" />
+                                                    {/* Lived Experience */}
+                                                    {livedExperience && (
+                                                        <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                            <h4 className="text-caption font-bold text-[color:var(--primary)] uppercase tracking-wider mb-2">Lived Experience</h4>
+                                                            <p className="text-caption text-foreground leading-relaxed">{livedExperience}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Grid sections */}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {influences.length > 0 && (
+                                                            <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-muted-foreground uppercase tracking-wider mb-2">Influences</h4>
+                                                                <ul className="space-y-1.5">
+                                                                    {influences.map((item: string, i: number) => (
+                                                                        <li key={i} className="flex items-start gap-2 text-caption text-muted-foreground leading-relaxed">
+                                                                            <span className="w-1 h-1 rounded-full bg-[color:var(--border)] mt-1.5 shrink-0" />
+                                                                            {item}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <h4 className={`text-sm font-semibold truncate transition-colors ${isSelected ? "text-foreground" : "text-foreground"}`}>
-                                                                    {arch.name}
-                                                                </h4>
-                                                                {demographic?.ageRange && (
-                                                                    <p className="text-[11px] text-muted-foreground truncate">
-                                                                        {demographic.ageRange}{demographic.occupation ? ` · ${demographic.occupation}` : ""}
-                                                                    </p>
-                                                                )}
+                                                        )}
+                                                        {behaviours.length > 0 && (
+                                                            <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-muted-foreground uppercase tracking-wider mb-2">Behaviours</h4>
+                                                                <ul className="space-y-1.5">
+                                                                    {behaviours.map((item: string, i: number) => (
+                                                                        <li key={i} className="flex items-start gap-2 text-caption text-muted-foreground leading-relaxed">
+                                                                            <span className="w-1 h-1 rounded-full bg-[color:var(--border)] mt-1.5 shrink-0" />
+                                                                            {item}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
                                                             </div>
-                                                            {isSelected && (
-                                                                <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${isFocusGroup && fgColor ? `${fgColor.avatar} ${fgColor.avatarText}` : "bg-accent0 text-white"
-                                                                    }`}>
-                                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                        )}
+                                                        {barriers.length > 0 && (
+                                                            <div className="rounded-[14px] shadow-inset-edge p-4" style={{ backgroundColor: 'var(--color-destructive)' + '10' }}>
+                                                                <h4 className="text-caption font-bold text-[color:var(--destructive)] uppercase tracking-wider mb-2">Barriers</h4>
+                                                                <ul className="space-y-1.5">
+                                                                    {barriers.map((item: string, i: number) => (
+                                                                        <li key={i} className="flex items-start gap-2 text-caption text-muted-foreground leading-relaxed">
+                                                                            <span className="w-1 h-1 rounded-full bg-[color:var(--destructive)] mt-1.5 shrink-0" />
+                                                                            {item}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {motivations.length > 0 && (
+                                                            <div className="rounded-[14px] bg-[color:var(--primary-soft)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-[color:var(--primary)] uppercase tracking-wider mb-2">Motivations</h4>
+                                                                <ul className="space-y-1.5">
+                                                                    {motivations.map((item: string, i: number) => (
+                                                                        <li key={i} className="flex items-start gap-2 text-caption text-muted-foreground leading-relaxed">
+                                                                            <span className="w-1 h-1 rounded-full bg-[color:var(--primary)] mt-1.5 shrink-0" />
+                                                                            {item}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {goals.length > 0 && (
+                                                            <div className="rounded-[14px] bg-[color:var(--info-soft)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-[color:var(--info)] uppercase tracking-wider mb-2">Goals</h4>
+                                                                <ul className="space-y-1.5">
+                                                                    {goals.map((item: string, i: number) => (
+                                                                        <li key={i} className="flex items-start gap-2 text-caption text-muted-foreground leading-relaxed">
+                                                                            <span className="w-1 h-1 rounded-full bg-[color:var(--info)] mt-1.5 shrink-0" />
+                                                                            {item}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {habits.length > 0 && (
+                                                            <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-muted-foreground uppercase tracking-wider mb-2">Habits</h4>
+                                                                <ul className="space-y-1.5">
+                                                                    {habits.map((item: string, i: number) => (
+                                                                        <li key={i} className="flex items-start gap-2 text-caption text-muted-foreground leading-relaxed">
+                                                                            <span className="w-1 h-1 rounded-full bg-[color:var(--border)] mt-1.5 shrink-0" />
+                                                                            {item}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* The Spiral */}
+                                                    {spiral && (
+                                                        <div className="rounded-[14px] bg-[color:var(--knowledge-soft)] shadow-inset-edge p-4">
+                                                            <h4 className="text-caption font-bold text-[color:var(--knowledge)] uppercase tracking-wider mb-2">The Spiral</h4>
+                                                            {spiral.pattern && (
+                                                                <p className="text-caption text-foreground font-medium leading-relaxed mb-2">{spiral.pattern}</p>
+                                                            )}
+                                                            {spiral.avoidance && (
+                                                                <div>
+                                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">How They Avoid It:</p>
+                                                                    <p className="text-caption text-muted-foreground leading-relaxed">{spiral.avoidance}</p>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+
+                                        return null;
+                                    })() : (
+                                        <div className="flex flex-col items-center justify-center py-16 text-center rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge">
+                                            <div className="h-12 w-12 bg-[color:var(--surface)] rounded-full shadow-inset-edge flex items-center justify-center mb-3">
+                                                <User className="h-6 w-6 text-muted-foreground" />
+                                            </div>
+                                            <p className="text-body-sm font-medium text-muted-foreground">Select a persona or archetype to view their profile</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
-
-                            {/* Right Column: Selected Detail (8 cols) */}
-                            <div className="lg:col-span-8 lg:pt-[28px]">
-                                {selectedPersonaId ? (() => {
-                                    // PERSONA detail view
-                                    if (selectionType === "persona") {
-                                        const persona = personas.find(p => p.id === selectedPersonaId);
-                                        if (!persona) return null;
-                                        const d = parsePersonaMeta(persona);
-
-                                        return (
-                                            <div className="bg-white rounded-2xl border border-border/60 shadow-sm p-6 animate-in fade-in duration-200">
-                                                <div className="flex items-start gap-4 mb-5">
-                                                    <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center text-lg font-bold shrink-0">
-                                                        {(d.name || persona.title).charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h2 className="text-xl font-bold text-foreground mb-0.5">
-                                                            {d.name || persona.title}
-                                                        </h2>
-                                                        <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-                                                            {d.age && <span>{d.age}</span>}
-                                                            {d.occupation && (
-                                                                <span className="flex items-center gap-1.5">
-                                                                    <span className="w-0.5 h-0.5 rounded-full bg-border" />
-                                                                    {d.occupation}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                {(d.summary || d.bio) && (
-                                                    <p className="text-sm text-muted-foreground leading-relaxed mb-5">{d.summary || d.bio}</p>
-                                                )}
-                                                {(d.gains || d.pains) && (
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        {d.gains && (
-                                                            <div className="bg-accent/50 rounded-xl border border-border/50 p-4">
-                                                                <div className="flex items-center gap-1.5 mb-2.5">
-                                                                    <Heart className="h-3.5 w-3.5 text-primary" />
-                                                                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Motivations</span>
-                                                                </div>
-                                                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{d.gains}</p>
-                                                            </div>
-                                                        )}
-                                                        {d.pains && (
-                                                            <div className="bg-red-50/50 rounded-xl border border-red-100/50 p-4">
-                                                                <div className="flex items-center gap-1.5 mb-2.5">
-                                                                    <AlertCircle className="h-3.5 w-3.5 text-red-600" />
-                                                                    <span className="text-[10px] font-bold text-red-700 uppercase tracking-wider">Frustrations</span>
-                                                                </div>
-                                                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{d.pains}</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    }
-
-                                    // ARCHETYPE detail view
-                                    if (selectionType === "archetype") {
-                                        const arch = archetypes.find(a => a.id === selectedPersonaId);
-                                        if (!arch) return null;
-
-                                        const parse = (json: string | null) => { try { return json ? JSON.parse(json) : null; } catch { return null; } };
-                                        const demographic = parse(arch.demographicJson);
-                                        const full = parse(arch.fullContentJson);
-                                        const influences = full?.influences || [];
-                                        const livedExperience = full?.livedExperience || "";
-                                        const behaviours = full?.behaviours || [];
-                                        const barriers = full?.barriers || [];
-                                        const motivations = full?.motivations || [];
-                                        const goals = full?.goals || [];
-                                        const habits = full?.habits || [];
-                                        const spiral = full?.spiral;
-
-                                        return (
-                                            <div className="bg-white rounded-2xl border border-border/60 shadow-sm p-6 animate-in fade-in duration-200 space-y-5">
-                                                {/* Header */}
-                                                <div className="flex items-start gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center text-lg font-bold shrink-0">
-                                                        <Zap className="h-5 w-5" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h2 className="text-xl font-bold text-foreground mb-0.5">{arch.name}</h2>
-                                                        {arch.kicker && (
-                                                            <p className="text-xs text-primary font-medium italic">{arch.kicker}</p>
-                                                        )}
-                                                        {demographic && (
-                                                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                                                {demographic.ageRange && (
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent text-primary border border-border">
-                                                                        {demographic.ageRange}
-                                                                    </span>
-                                                                )}
-                                                                {demographic.occupation && (
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent text-muted-foreground border border-border">
-                                                                        {demographic.occupation}
-                                                                    </span>
-                                                                )}
-                                                                {demographic.livingSetup && (
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent text-muted-foreground border border-border">
-                                                                        {demographic.livingSetup}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Description */}
-                                                <p className="text-sm text-muted-foreground leading-relaxed">{arch.description}</p>
-
-                                                {/* Lived Experience */}
-                                                {livedExperience && (
-                                                    <div className="bg-accent/50 rounded-xl border border-border/50 p-4">
-                                                        <h4 className="text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Lived Experience</h4>
-                                                        <p className="text-xs text-foreground leading-relaxed">{livedExperience}</p>
-                                                    </div>
-                                                )}
-
-                                                {/* Grid sections */}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                    {influences.length > 0 && (
-                                                        <div className="bg-accent/50 rounded-xl border border-border p-4">
-                                                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Influences</h4>
-                                                            <ul className="space-y-1.5">
-                                                                {influences.map((item: string, i: number) => (
-                                                                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                                                                        <span className="w-1 h-1 rounded-full bg-border mt-1.5 shrink-0" />
-                                                                        {item}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                    {behaviours.length > 0 && (
-                                                        <div className="bg-accent/50 rounded-xl border border-border p-4">
-                                                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Behaviours</h4>
-                                                            <ul className="space-y-1.5">
-                                                                {behaviours.map((item: string, i: number) => (
-                                                                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                                                                        <span className="w-1 h-1 rounded-full bg-border mt-1.5 shrink-0" />
-                                                                        {item}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                    {barriers.length > 0 && (
-                                                        <div className="bg-red-50/50 rounded-xl border border-red-100/50 p-4">
-                                                            <h4 className="text-[10px] font-bold text-red-600 uppercase tracking-wider mb-2">Barriers</h4>
-                                                            <ul className="space-y-1.5">
-                                                                {barriers.map((item: string, i: number) => (
-                                                                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                                                                        <span className="w-1 h-1 rounded-full bg-red-300 mt-1.5 shrink-0" />
-                                                                        {item}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                    {motivations.length > 0 && (
-                                                        <div className="bg-accent/50 rounded-xl border border-border/50 p-4">
-                                                            <h4 className="text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Motivations</h4>
-                                                            <ul className="space-y-1.5">
-                                                                {motivations.map((item: string, i: number) => (
-                                                                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                                                                        <span className="w-1 h-1 rounded-full bg-border mt-1.5 shrink-0" />
-                                                                        {item}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                    {goals.length > 0 && (
-                                                        <div className="bg-sky-50/50 rounded-xl border border-sky-100/50 p-4">
-                                                            <h4 className="text-[10px] font-bold text-sky-600 uppercase tracking-wider mb-2">Goals</h4>
-                                                            <ul className="space-y-1.5">
-                                                                {goals.map((item: string, i: number) => (
-                                                                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                                                                        <span className="w-1 h-1 rounded-full bg-sky-300 mt-1.5 shrink-0" />
-                                                                        {item}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                    {habits.length > 0 && (
-                                                        <div className="bg-accent/50 rounded-xl border border-border p-4">
-                                                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Habits</h4>
-                                                            <ul className="space-y-1.5">
-                                                                {habits.map((item: string, i: number) => (
-                                                                    <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                                                                        <span className="w-1 h-1 rounded-full bg-border mt-1.5 shrink-0" />
-                                                                        {item}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* The Spiral */}
-                                                {spiral && (
-                                                    <div className="bg-amber-50/50 rounded-xl border border-amber-100/50 p-4">
-                                                        <h4 className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-2">The Spiral</h4>
-                                                        {spiral.pattern && (
-                                                            <p className="text-xs text-foreground font-medium leading-relaxed mb-2">{spiral.pattern}</p>
-                                                        )}
-                                                        {spiral.avoidance && (
-                                                            <div>
-                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">How They Avoid It:</p>
-                                                                <p className="text-xs text-muted-foreground leading-relaxed">{spiral.avoidance}</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    }
-
-                                    return null;
-                                })() : (
-                                    <div className="flex flex-col items-center justify-center py-16 text-center bg-white/40 rounded-2xl border border-dashed border-border">
-                                        <div className="h-12 w-12 bg-accent rounded-full flex items-center justify-center mb-3">
-                                            <User className="h-6 w-6 text-border" />
-                                        </div>
-                                        <p className="text-sm font-medium text-muted-foreground">Select a persona or archetype to view their profile</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                        )}
                     </div>
-                </div>
-            )
-            }
-        </div >
+                </>
+            )}
+            {/* activePanel is preserved for future coach/guide tab-switching UX; reference to silence unused-var */}
+            {false && <span data-active-panel={activePanel} />}
+        </div>
     );
 }
 
 function SimulationLoading() {
     return (
-        <div className="h-screen flex items-center justify-center bg-accent">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="h-screen flex items-center justify-center bg-[color:var(--canvas)]">
+            <Loader2 className="h-12 w-12 animate-spin text-[color:var(--primary)]" />
         </div>
     );
 }

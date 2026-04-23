@@ -3,18 +3,11 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PageBar } from "@/components/layout/page-bar";
+import { PersonaPanel, type PersonaLike } from "@/components/tools/persona-panel";
 import {
     ArrowLeft,
     Loader2,
-    Users,
-    Target,
-    ShieldAlert,
-    Flame,
-    Eye,
-    Zap,
-    RefreshCw,
-    HeartCrack,
-    ChevronDown,
 } from "lucide-react";
 
 interface ArchetypeData {
@@ -44,43 +37,6 @@ function parse(json: string | null) {
     try { return JSON.parse(json); } catch { return null; }
 }
 
-// Muted color palette matching the tab cards
-const DETAIL_COLORS = [
-    { bg: "from-slate-400/90 to-slate-500/90", accent: "text-foreground", accentBg: "bg-muted", border: "border-border" },
-    { bg: "from-slate-400/85 to-slate-500/85", accent: "text-foreground", accentBg: "bg-muted", border: "border-border" },
-    { bg: "from-zinc-400/85 to-zinc-500/85", accent: "text-foreground", accentBg: "bg-muted", border: "border-border" },
-    { bg: "from-neutral-400/85 to-neutral-500/85", accent: "text-foreground", accentBg: "bg-muted", border: "border-border" },
-    { bg: "from-sky-400/85 to-cyan-500/85", accent: "text-sky-700", accentBg: "bg-sky-50", border: "border-sky-100" },
-    { bg: "from-violet-400/80 to-indigo-400/80", accent: "text-violet-700", accentBg: "bg-violet-50", border: "border-violet-100" },
-    { bg: "from-stone-400/80 to-stone-500/80", accent: "text-stone-700", accentBg: "bg-stone-50", border: "border-stone-100" },
-    { bg: "from-zinc-500/80 to-slate-600/80", accent: "text-foreground", accentBg: "bg-muted", border: "border-border" },
-];
-
-function BulletList({ items }: { items: string[] }) {
-    if (!items || items.length === 0) return null;
-    return (
-        <ul className="space-y-2.5">
-            {items.map((item, i) => (
-                <li key={i} className="flex items-start gap-3 text-[13px] text-muted-foreground leading-relaxed">
-                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-[7px] shrink-0" />
-                    {item}
-                </li>
-            ))}
-        </ul>
-    );
-}
-
-function SectionCard({ title, accentColor, children }: {
-    title: string; accentColor: string; children: React.ReactNode;
-}) {
-    return (
-        <div className="bg-white rounded-md border border-border p-5">
-            <h3 className={`text-sm font-bold ${accentColor} mb-4`}>{title}</h3>
-            {children}
-        </div>
-    );
-}
-
 export default function ArchetypeViewPage({ params }: PageProps) {
     const { projectId, subProjectId, sessionId: archetypeId } = use(params);
     const [archetype, setArchetype] = useState<ArchetypeData | null>(null);
@@ -107,7 +63,7 @@ export default function ArchetypeViewPage({ params }: PageProps) {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-[color:var(--primary)]" />
             </div>
         );
     }
@@ -116,7 +72,7 @@ export default function ArchetypeViewPage({ params }: PageProps) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <p className="text-red-500 mb-4">{error || "Not found"}</p>
+                    <p className="text-body-sm text-[color:var(--danger)] mb-4">{error || "Not found"}</p>
                     <Link href={`/projects/${projectId}/sub/${subProjectId}?tab=archetypes`}>
                         <Button variant="outline"><ArrowLeft className="h-4 w-4 mr-2" /> Back</Button>
                     </Link>
@@ -125,7 +81,6 @@ export default function ArchetypeViewPage({ params }: PageProps) {
         );
     }
 
-    const colorScheme = DETAIL_COLORS[archetype.order % DETAIL_COLORS.length];
     const fullContent = parse(archetype.fullContentJson);
     const demographic = parse(archetype.demographicJson);
 
@@ -139,161 +94,46 @@ export default function ArchetypeViewPage({ params }: PageProps) {
     const habits = fullContent?.habits || fullContent?.identity?.habits || [];
     const spiral = fullContent?.spiral || fullContent?.identity?.spiral;
 
-    const accentColor = colorScheme.accent;
+    const persona: PersonaLike = {
+        name: archetype.name,
+        kicker: archetype.kicker,
+        description: archetype.description,
+        demographics: demographic
+            ? {
+                ageRange: demographic.ageRange ?? null,
+                occupation: demographic.occupation ?? null,
+                livingSetup: demographic.livingSetup ?? null,
+            }
+            : null,
+        livedExperience,
+        influences,
+        behaviours,
+        barriers,
+        motivations,
+        goals,
+        habits,
+        spiral: spiral ?? null,
+    };
 
     return (
         <div className="flex flex-col">
-            {/* Edge-to-edge header bar */}
-            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
-                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={`/projects/${projectId}/sub/${subProjectId}?tab=archetypes`}
-                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label="Back to Workspace"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Back</span>
-                        </Link>
-                        <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-foreground">{archetype.name}</h1>
-                            <p className="text-[11px] text-muted-foreground">
-                                Archetype profile
-                                {archetype.kicker && (
-                                    <>
-                                        <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
-                                        <span>{archetype.kicker}</span>
-                                    </>
-                                )}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <PageBar
+                sticky={false}
+                back={{
+                    href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes`,
+                    label: "Back",
+                }}
+                crumbs={[
+                    { label: "Archetypes", href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes` },
+                    { label: archetype.name },
+                ]}
+            />
 
             <div className="py-8">
-                {/* Header — name, description */}
-                <div className="mb-8">
-                    {/* Name */}
-                    <h1 className={`text-3xl md:text-4xl font-extrabold ${accentColor} tracking-tight leading-tight mb-4`}>
-                        {archetype.name}
-                    </h1>
-
-                    {/* Description */}
-                    <p className="text-muted-foreground text-[15px] leading-relaxed max-w-3xl">
-                        {archetype.description}
-                    </p>
-
-                    {/* Demographic tags */}
-                    {demographic && (demographic.ageRange || demographic.occupation || demographic.livingSetup) && (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                            {demographic.ageRange && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-accent text-muted-foreground border border-border">
-                                    {demographic.ageRange}
-                                </span>
-                            )}
-                            {demographic.occupation && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-accent text-muted-foreground border border-border">
-                                    {demographic.occupation}
-                                </span>
-                            )}
-                            {demographic.livingSetup && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-accent text-muted-foreground border border-border">
-                                    {demographic.livingSetup}
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Divider */}
-                <div className="border-t border-border mb-8" />
-
-                {/* 2-Column Grid — matching sample layout */}
-                <div className="grid md:grid-cols-2 gap-4">
-
-                    {/* LEFT COLUMN: Influences, Behaviours, Barriers, Motivations */}
-
-                    {/* Influences */}
-                    {influences.length > 0 && (
-                        <SectionCard title="Influences" accentColor={accentColor}>
-                            <BulletList items={influences} />
-                        </SectionCard>
-                    )}
-
-                    {/* Behaviours */}
-                    {behaviours.length > 0 && (
-                        <SectionCard title="Behaviours" accentColor={accentColor}>
-                            <BulletList items={behaviours} />
-                        </SectionCard>
-                    )}
-
-                    {/* Barriers */}
-                    {barriers.length > 0 && (
-                        <SectionCard title="Barriers" accentColor={accentColor}>
-                            <BulletList items={barriers} />
-                        </SectionCard>
-                    )}
-
-                    {/* Motivations */}
-                    {motivations.length > 0 && (
-                        <SectionCard title="Motivations" accentColor={accentColor}>
-                            <BulletList items={motivations} />
-                        </SectionCard>
-                    )}
-
-                    {/* RIGHT COLUMN: Lived Experience, Goals, Habits, The Spiral */}
-
-                    {/* Their Lived Experience — tinted card */}
-                    {livedExperience && (
-                        <div className={`${colorScheme.accentBg} rounded-md border ${colorScheme.border} p-5`}>
-                            <h3 className={`text-sm font-bold ${accentColor} mb-3`}>Their Lived Experience</h3>
-                            <p className="text-[13px] text-foreground leading-relaxed">
-                                {livedExperience}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Goals */}
-                    {goals.length > 0 && (
-                        <SectionCard title="Goals" accentColor={accentColor}>
-                            <BulletList items={goals} />
-                        </SectionCard>
-                    )}
-
-                    {/* Habits */}
-                    {habits.length > 0 && (
-                        <SectionCard title="Habits" accentColor={accentColor}>
-                            <BulletList items={habits} />
-                        </SectionCard>
-                    )}
-
-                    {/* The Spiral — tinted card, spans full width on right or wherever it falls */}
-                    {spiral && (
-                        <div className={`${colorScheme.accentBg} rounded-md border ${colorScheme.border} p-5`}>
-                            <h3 className={`text-sm font-bold ${accentColor} mb-3`}>The Spiral</h3>
-                            {spiral.pattern && (
-                                <p className="text-[13px] text-foreground font-medium mb-4 leading-relaxed">
-                                    {spiral.pattern}
-                                </p>
-                            )}
-                            {spiral.avoidance && (
-                                <div>
-                                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">How They Avoid It:</p>
-                                    <p className="text-[13px] text-foreground leading-relaxed">
-                                        {spiral.avoidance}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                <PersonaPanel persona={persona} />
 
                 {/* Mode note */}
-                <p className="text-[11px] text-muted-foreground mt-8 italic">
+                <p className="mt-8 text-caption italic text-muted-foreground">
                     Archetype mode — a person may shift between different modes depending on situation and support.
                 </p>
             </div>

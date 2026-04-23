@@ -140,11 +140,12 @@ export default function DashboardPage() {
     }
 
     return (
-        // Symmetric padding: 153px on md+ matches the TopNav "Projects" nav item
-        // offset (px-7 + 72px logo + 24+1+28 spacer). Content stays centred in
-        // the remaining space so the page reads balanced, not right-shifted.
+        // Left-anchored layout matching the TopNav's frame. The dashboard's
+        // left edge (md:pl-[153px]) sits directly under the "Projects" nav
+        // item; the right edge (md:pr-7) matches the nav's own px-7 outer
+        // padding, so both bars share the same horizontal bounds.
         <div className="flex-1 min-h-0 w-full overflow-y-auto">
-          <div className="w-full flex flex-col pt-10 pb-20 px-4 sm:px-6 md:px-[153px]">
+          <div className="w-full flex flex-col pt-10 pb-20 pl-4 pr-4 sm:pl-6 sm:pr-6 md:pl-[153px] md:pr-7">
             {/* Page header — matches the display-heavy intro blocks on the rest of the app */}
             <header className="mb-10 flex items-end justify-between gap-6 border-b border-[color:var(--border-subtle)] pb-8">
                 <div className="flex flex-col gap-2">

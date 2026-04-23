@@ -429,10 +429,6 @@ function AnnotatedHMW({ statement, annotations }: {
                         verdict && verdict !== "PASS"
                             ? (lens?.suggestion || lens?.explanation || "")
                             : undefined;
-                    const tags =
-                        verdict === "PASS" && lens?.lens
-                            ? [lens.lens]
-                            : [];
 
                     // Research pointer → research card on this lens.
                     const rp = ann.researchPointer;
@@ -448,11 +444,10 @@ function AnnotatedHMW({ statement, annotations }: {
                     return (
                         <LensCard
                             key={i}
-                            bg={palette.bg}
                             accent={palette.accent}
+                            lensName={lens?.lens || "Lens"}
                             fragment={`"${ann.text}"`}
                             body={body}
-                            tags={tags}
                             needsWork={needsWork}
                             research={research}
                             researchTitle={researchTitle}

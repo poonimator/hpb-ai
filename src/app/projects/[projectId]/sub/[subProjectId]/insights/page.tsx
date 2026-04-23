@@ -291,19 +291,14 @@ function AnnotatedInsight({ statement, annotations }: {
                         verdict && verdict !== "PASS"
                             ? (cc?.suggestion || cc?.explanation || "")
                             : undefined;
-                    const tags =
-                        verdict === "PASS" && cc?.criterion
-                            ? [cc.criterion]
-                            : [];
 
                     return (
                         <LensCard
                             key={i}
-                            bg={palette.bg}
                             accent={palette.accent}
+                            lensName={cc?.criterion || "Criterion"}
                             fragment={`"${ann.text}"`}
                             body={body}
-                            tags={tags}
                             needsWork={needsWork}
                         />
                     );

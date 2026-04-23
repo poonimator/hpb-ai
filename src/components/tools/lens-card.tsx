@@ -63,9 +63,11 @@ interface LensLike {
 interface LensCardExplorationProps {
   /** Soft tint for the outer card (e.g. `rgba(14,165,233,0.06)`). */
   bg?: string
-  /** Accent colour for the bulb icon + italic fragment (e.g. `#0ea5e9`). */
+  /** Accent colour — used for the lens dot and (muted) bulb icon. */
   accent?: string
-  /** Italicised HMW fragment — usually a quoted slice (e.g. `"to take…"`). */
+  /** Lens / criterion name (e.g. "Intended Action"). Renders in the header. */
+  lensName?: string
+  /** HMW fragment — usually a quoted slice. Renders in neutral italic inside. */
   fragment?: string
   /** Body copy explaining the lens's take. */
   body?: string
@@ -106,6 +108,7 @@ function isLegacyProps(p: LensCardProps): p is LensCardLegacyProps {
 
 function LensCardExploration({
   accent = "var(--primary)",
+  lensName,
   fragment,
   body,
   tags = [],
@@ -122,22 +125,13 @@ function LensCardExploration({
 
   const header = (
     <div className="flex min-w-0 items-center gap-2.5">
-      <Lightbulb
-        size={15}
-        style={{ color: accent }}
-        strokeWidth={1.75}
-        className="shrink-0"
+      <span
+        className="inline-block size-2 shrink-0 rounded-full"
+        style={{ background: accent }}
       />
-      {fragment ? (
-        <span
-          className="flex-1 min-w-0 truncate italic text-[12.5px] font-medium"
-          style={{ color: accent }}
-        >
-          {fragment}
-        </span>
-      ) : (
-        <span className="flex-1 min-w-0" />
-      )}
+      <span className="flex-1 min-w-0 truncate text-[12.5px] font-semibold text-foreground">
+        {lensName || "Lens"}
+      </span>
       <span
         className={cn(
           "inline-flex shrink-0 items-center gap-1 text-[11px] font-medium",
@@ -187,6 +181,12 @@ function LensCardExploration({
 
       {(!collapsible || expanded) && (
         <>
+          {fragment ? (
+            <p className="text-[12px] italic leading-[1.5] text-[color:var(--ink-muted)]">
+              {fragment}
+            </p>
+          ) : null}
+
           {body ? (
             <p className="text-[12.5px] leading-[1.55] tracking-[0.01em] text-[color:var(--ink-secondary)]">
               {body}

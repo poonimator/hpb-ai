@@ -75,7 +75,7 @@ function WorkspaceRail({ subProject, projectId, subProjectId, children, hideEdit
       {children}
 
       {!hideEdit && (
-        <div className="px-6 py-4">
+        <div className="px-8 py-4">
           <Button asChild variant="outline" size="sm" className="w-full justify-center">
             <Link href={`/projects/${projectId}/sub/${subProjectId}/edit`}>
               <Pencil className="h-3.5 w-3.5" />

@@ -14,7 +14,7 @@ function RailSection({ title, last, className, children }: Props) {
     <div
       data-slot="rail-section"
       className={cn(
-        "px-6 py-5",
+        "px-8 py-6",
         !last && "border-b border-[color:var(--border-subtle)]",
         className
       )}

@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils"
 type Variant = "live" | "platform" | "review"
 
 const columns: Record<Variant, string> = {
-  live: "grid-cols-[260px_1fr_400px]",
-  platform: "grid-cols-[280px_1fr_400px]",
-  review: "grid-cols-[280px_1fr]",
+  live: "grid-cols-[300px_1fr_400px]",
+  platform: "grid-cols-[320px_1fr_400px]",
+  review: "grid-cols-[320px_1fr]",
 }
 
 type Props = {
@@ -43,7 +43,7 @@ function WorkspaceFrame({
   mainClassName,
 }: Props) {
   const hasRight = variant !== "review" && rightRail
-  const gridCols = hasRight ? columns[variant] : "grid-cols-[280px_1fr]"
+  const gridCols = hasRight ? columns[variant] : "grid-cols-[320px_1fr]"
 
   return (
     <div

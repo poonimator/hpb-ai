@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, use } from "react";
+import { useState, useRef, use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 
 interface PageProps {
     params: Promise<{ projectId: string; subProjectId: string }>;
@@ -61,6 +65,35 @@ export default function NewMappingPage({ params }: PageProps) {
 
     // Step 4 State
     const [isprocessing, setIsProcessing] = useState(false);
+
+    // Workspace rail data
+    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`/api/sub-projects/${subProjectId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (cancelled || !data?.data) return;
+                setSubProject({
+                    id: data.data.id,
+                    name: data.data.name,
+                    researchStatement: data.data.researchStatement ?? null,
+                    ageRange: data.data.ageRange ?? null,
+                    lifeStage: data.data.lifeStage ?? null,
+                    createdAt: data.data.createdAt ?? null,
+                    project: data.data.project ?? null,
+                });
+            } catch (err) {
+                console.error("Failed to fetch workspace for rail", err);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [subProjectId]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -185,6 +218,24 @@ export default function NewMappingPage({ params }: PageProps) {
         }
     };
 
+    const railExtras = (
+        <RailSection title="Session">
+            <MetaRow k="Files" v={files.length} />
+            <MetaRow k="Themes" v={themes.length} />
+        </RailSection>
+    );
+
+    const leftRail = subProject ? (
+        <WorkspaceRail
+            subProject={subProject}
+            projectId={projectId}
+            subProjectId={subProjectId}
+            hideEdit
+        >
+            {railExtras}
+        </WorkspaceRail>
+    ) : null;
+
     return (
         <div className="flex flex-col flex-1 min-h-0">
             <PageBar
@@ -199,7 +250,7 @@ export default function NewMappingPage({ params }: PageProps) {
                 ]}
             />
 
-            <div className="py-8 px-8">
+            <WorkspaceFrame variant="review" leftRail={leftRail} scrollContained>
                 <div className="max-w-3xl mx-auto w-full">
 
                     {/* STEPS */}
@@ -416,7 +467,7 @@ export default function NewMappingPage({ params }: PageProps) {
                         </div>
                     )}
                 </div>
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

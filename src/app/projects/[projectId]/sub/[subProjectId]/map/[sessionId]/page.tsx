@@ -15,6 +15,10 @@ import { PageBar } from "@/components/layout/page-bar";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Mono } from "@/components/ui/mono";
 import { QuoteCard } from "@/components/tools/quote-card";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 
 // --- Types ---
 interface PageProps {
@@ -379,6 +383,9 @@ export default function MappingSessionPage({ params }: PageProps) {
     const [insightsData, setInsightsData] = useState<InsightsData | null>(null);
     const [generatingInsights, setGeneratingInsights] = useState(false);
 
+    // Workspace rail data
+    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
+
     useEffect(() => {
         const animation = requestAnimationFrame(() => setEnabled(true));
         return () => {
@@ -386,6 +393,32 @@ export default function MappingSessionPage({ params }: PageProps) {
             setEnabled(false);
         };
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`/api/sub-projects/${subProjectId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (cancelled || !data?.data) return;
+                setSubProject({
+                    id: data.data.id,
+                    name: data.data.name,
+                    researchStatement: data.data.researchStatement ?? null,
+                    ageRange: data.data.ageRange ?? null,
+                    lifeStage: data.data.lifeStage ?? null,
+                    createdAt: data.data.createdAt ?? null,
+                    project: data.data.project ?? null,
+                });
+            } catch (err) {
+                console.error("Failed to fetch workspace for rail", err);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [subProjectId]);
 
     useEffect(() => {
         fetchSession();
@@ -681,6 +714,28 @@ export default function MappingSessionPage({ params }: PageProps) {
         </Button>
     );
 
+    const uniqueThemeCount = new Set(localClusters.map(c => c.themeName)).size;
+    const sourcesCount = session.transcripts?.length ?? 0;
+
+    const railExtras = (
+        <RailSection title="Batch">
+            <MetaRow k="Clusters" v={localClusters.length} />
+            <MetaRow k="Themes" v={uniqueThemeCount} />
+            <MetaRow k="Sources" v={sourcesCount} />
+            <MetaRow k="Status" v={session.status} />
+        </RailSection>
+    );
+
+    const leftRail = subProject ? (
+        <WorkspaceRail
+            subProject={subProject}
+            projectId={projectId}
+            subProjectId={subProjectId}
+        >
+            {railExtras}
+        </WorkspaceRail>
+    ) : null;
+
     return (
         <div className="flex flex-col flex-1 min-h-0">
             <PageBar
@@ -696,17 +751,16 @@ export default function MappingSessionPage({ params }: PageProps) {
                 action={viewToggle}
             />
 
-            {/* Sub-header with insight + theme counts */}
-            <div className="px-8 pt-4">
-                <Eyebrow>
-                    <span>{session.clusters.length} insights</span>
-                    <span className="opacity-40">/</span>
-                    <span>{themes.length} themes</span>
-                </Eyebrow>
-            </div>
+            <WorkspaceFrame variant="review" leftRail={leftRail} scrollContained>
+                {/* Sub-header with insight + theme counts */}
+                <div className="pb-4">
+                    <Eyebrow>
+                        <span>{session.clusters.length} insights</span>
+                        <span className="opacity-40">/</span>
+                        <span>{themes.length} themes</span>
+                    </Eyebrow>
+                </div>
 
-            {/* Main Content */}
-            <main className="flex-1 overflow-auto px-8 pt-4 pb-8 relative">
                 {viewMode === "insights" ? (
                     <InsightsView
                         data={insightsData}
@@ -797,7 +851,7 @@ export default function MappingSessionPage({ params }: PageProps) {
                         </div>
                     </DragDropContext>
                 )}
-            </main>
+            </WorkspaceFrame>
         </div>
     );
 }

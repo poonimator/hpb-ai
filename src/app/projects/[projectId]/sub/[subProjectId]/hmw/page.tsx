@@ -962,7 +962,7 @@ export default function HMWPage({ params }: PageProps) {
                             Your HMW statement
                         </label>
                         <div className="flex items-start gap-3">
-                            <span className="mt-1 flex-shrink-0 select-none text-display-4 font-bold text-[color:var(--primary)]">
+                            <span className="flex-shrink-0 select-none text-display-4 font-bold leading-[1.4] text-[color:var(--primary)]">
                                 HMW
                             </span>
                             <textarea
@@ -970,7 +970,7 @@ export default function HMWPage({ params }: PageProps) {
                                 value={hmwInput}
                                 onChange={(e) => setHmwInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                className="flex-1 resize-none border-0 bg-transparent text-display-4 leading-snug text-foreground placeholder:text-muted-foreground/50 focus:outline-none min-h-[80px]"
+                                className="flex-1 resize-none border-0 bg-transparent text-display-4 leading-[1.4] text-foreground placeholder:text-muted-foreground/50 focus:outline-none min-h-[80px] p-0"
                                 disabled={isChecking}
                                 rows={3}
                             />

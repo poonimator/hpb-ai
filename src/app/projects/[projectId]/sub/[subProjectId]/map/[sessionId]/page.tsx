@@ -16,9 +16,15 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Mono } from "@/components/ui/mono";
 import { QuoteCard } from "@/components/tools/quote-card";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
-import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
+
+interface SubProjectForRail {
+    id: string;
+    name: string;
+    researchStatement?: string | null;
+}
 
 // --- Types ---
 interface PageProps {
@@ -384,7 +390,7 @@ export default function MappingSessionPage({ params }: PageProps) {
     const [generatingInsights, setGeneratingInsights] = useState(false);
 
     // Workspace rail data
-    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
+    const [subProject, setSubProject] = useState<SubProjectForRail | null>(null);
 
     useEffect(() => {
         const animation = requestAnimationFrame(() => setEnabled(true));
@@ -406,10 +412,6 @@ export default function MappingSessionPage({ params }: PageProps) {
                     id: data.data.id,
                     name: data.data.name,
                     researchStatement: data.data.researchStatement ?? null,
-                    ageRange: data.data.ageRange ?? null,
-                    lifeStage: data.data.lifeStage ?? null,
-                    createdAt: data.data.createdAt ?? null,
-                    project: data.data.project ?? null,
                 });
             } catch (err) {
                 console.error("Failed to fetch workspace for rail", err);
@@ -717,24 +719,52 @@ export default function MappingSessionPage({ params }: PageProps) {
     const uniqueThemeCount = new Set(localClusters.map(c => c.themeName)).size;
     const sourcesCount = session.transcripts?.length ?? 0;
 
-    const railExtras = (
-        <RailSection title="Batch">
-            <MetaRow k="Clusters" v={localClusters.length} />
-            <MetaRow k="Themes" v={uniqueThemeCount} />
-            <MetaRow k="Sources" v={sourcesCount} />
-            <MetaRow k="Status" v={session.status} />
-        </RailSection>
-    );
+    const leftRail = (
+        <>
+            <RailHeader>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Synthesis</Badge>
+                </div>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    {session?.name || "Mapping"}
+                </h2>
+                {subProject?.researchStatement && (
+                    <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                        {subProject.researchStatement}
+                    </p>
+                )}
+            </RailHeader>
 
-    const leftRail = subProject ? (
-        <WorkspaceRail
-            subProject={subProject}
-            projectId={projectId}
-            subProjectId={subProjectId}
-        >
-            {railExtras}
-        </WorkspaceRail>
-    ) : null;
+            <RailSection title="Batch">
+                <MetaRow k="Clusters" v={localClusters.length} />
+                <MetaRow k="Themes" v={uniqueThemeCount} />
+                <MetaRow k="Sources" v={sourcesCount} />
+                <MetaRow k="Status" v={session?.status || "—"} />
+            </RailSection>
+
+            {session?.transcripts && session.transcripts.length > 0 && (
+                <RailSection title="Sources">
+                    <div className="flex flex-col gap-2">
+                        {session.transcripts.slice(0, 6).map((t: any) => (
+                            <div key={t.id} className="flex items-center gap-2.5 text-body-sm text-muted-foreground">
+                                <span className="w-6 h-6 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge inline-flex items-center justify-center text-[10px] font-semibold text-foreground shrink-0">
+                                    {(t.displayName || t.fileName || "T")[0].toUpperCase()}
+                                </span>
+                                <span className="truncate">{t.displayName || t.fileName || "Transcript"}</span>
+                            </div>
+                        ))}
+                        {session.transcripts.length > 6 && (
+                            <span className="text-caption text-muted-foreground">
+                                +{session.transcripts.length - 6} more
+                            </span>
+                        )}
+                    </div>
+                </RailSection>
+            )}
+
+            <div className="flex-1" />
+        </>
+    );
 
     return (
         <div className="flex flex-col flex-1 min-h-0">

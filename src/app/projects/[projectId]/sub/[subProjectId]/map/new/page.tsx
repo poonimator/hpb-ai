@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, use, useEffect } from "react";
+import { useState, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
     Upload,
     FileText,
@@ -16,12 +17,13 @@ import {
     Network,
     Sparkles
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { PageBar } from "@/components/layout/page-bar";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
-import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 
 interface PageProps {
     params: Promise<{ projectId: string; subProjectId: string }>;
@@ -65,35 +67,6 @@ export default function NewMappingPage({ params }: PageProps) {
 
     // Step 4 State
     const [isprocessing, setIsProcessing] = useState(false);
-
-    // Workspace rail data
-    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
-
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await fetch(`/api/sub-projects/${subProjectId}`);
-                if (!res.ok) return;
-                const data = await res.json();
-                if (cancelled || !data?.data) return;
-                setSubProject({
-                    id: data.data.id,
-                    name: data.data.name,
-                    researchStatement: data.data.researchStatement ?? null,
-                    ageRange: data.data.ageRange ?? null,
-                    lifeStage: data.data.lifeStage ?? null,
-                    createdAt: data.data.createdAt ?? null,
-                    project: data.data.project ?? null,
-                });
-            } catch (err) {
-                console.error("Failed to fetch workspace for rail", err);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [subProjectId]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -218,23 +191,68 @@ export default function NewMappingPage({ params }: PageProps) {
         }
     };
 
-    const railExtras = (
-        <RailSection title="Session">
-            <MetaRow k="Files" v={files.length} />
-            <MetaRow k="Themes" v={themes.length} />
-        </RailSection>
-    );
+    const leftRail = (
+        <>
+            <RailHeader>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Wizard</Badge>
+                    <span className="text-caption text-muted-foreground">
+                        Step {step} / 4
+                    </span>
+                </div>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    New Mapping Session
+                </h2>
+                <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                    Upload transcripts, suggest themes, and process clusters for thematic mapping.
+                </p>
+            </RailHeader>
 
-    const leftRail = subProject ? (
-        <WorkspaceRail
-            subProject={subProject}
-            projectId={projectId}
-            subProjectId={subProjectId}
-            hideEdit
-        >
-            {railExtras}
-        </WorkspaceRail>
-    ) : null;
+            <RailSection title="Session">
+                <MetaRow k="Name" v={name || "—"} />
+                <MetaRow k="Files" v={files.length} />
+                <MetaRow k="Themes" v={themes.length > 0 ? themes.length : "—"} />
+            </RailSection>
+
+            <RailSection title="Progress">
+                <div className="flex flex-col gap-1.5">
+                    {[
+                        { n: 1, label: "Upload & name" },
+                        { n: 2, label: "Analyse context" },
+                        { n: 3, label: "Select themes" },
+                        { n: 4, label: "Process map" },
+                    ].map(({ n, label }) => {
+                        const done = step > n;
+                        const active = step === n;
+                        return (
+                            <div key={n} className="flex items-center gap-2.5">
+                                <span
+                                    className={cn(
+                                        "inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold shadow-inset-edge",
+                                        done && "bg-[color:var(--primary)] text-[color:var(--on-primary,#fff)]",
+                                        active && "bg-[color:var(--primary-soft)] text-[color:var(--primary)]",
+                                        !done && !active && "bg-[color:var(--surface)] text-muted-foreground"
+                                    )}
+                                >
+                                    {done ? "✓" : n}
+                                </span>
+                                <span
+                                    className={cn(
+                                        "text-body-sm",
+                                        active ? "text-foreground font-medium" : "text-muted-foreground"
+                                    )}
+                                >
+                                    {label}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </RailSection>
+
+            <div className="flex-1" />
+        </>
+    );
 
     return (
         <div className="flex flex-col flex-1 min-h-0">

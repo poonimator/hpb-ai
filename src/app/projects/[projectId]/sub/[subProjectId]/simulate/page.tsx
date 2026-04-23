@@ -1217,31 +1217,49 @@ function SimulationPageContent({ params }: PageProps) {
                                             nudge.opportunities.forEach((opp, oppIdx) => {
                                                 const opportunityId = `${nudge.id}-opp-${oppIdx}`;
                                                 const isExpanded = expandedOpportunityId === opportunityId;
+                                                const isSelected = !!opp.quote && selectedQuote === normaliseQuote(opp.quote);
                                                 rows.push(
-                                                    <OpportunityCard
+                                                    <div
                                                         key={opportunityId}
-                                                        quote={opp.quote}
-                                                        surfacedContext={opp.surfacedContext}
-                                                        testableAssumption={opp.testableAssumption}
-                                                        explorationDirection={opp.explorationDirection}
-                                                        expanded={isExpanded}
-                                                        onToggle={() => setExpandedOpportunityId(isExpanded ? null : opportunityId)}
-                                                        onClose={() => setExpandedOpportunityId(null)}
-                                                    />
+                                                        ref={(el) => {
+                                                            if (el) opportunityRefs.current.set(opportunityId, el);
+                                                            else opportunityRefs.current.delete(opportunityId);
+                                                        }}
+                                                        className={`rounded-[14px] transition-shadow ${isSelected ? "ring-2 ring-[color:var(--primary)]" : ""}`}
+                                                    >
+                                                        <OpportunityCard
+                                                            quote={opp.quote}
+                                                            surfacedContext={opp.surfacedContext}
+                                                            testableAssumption={opp.testableAssumption}
+                                                            explorationDirection={opp.explorationDirection}
+                                                            expanded={isExpanded}
+                                                            onToggle={() => setExpandedOpportunityId(isExpanded ? null : opportunityId)}
+                                                            onClose={() => setExpandedOpportunityId(null)}
+                                                        />
+                                                    </div>
                                                 );
                                             });
                                         } else if (nudge.coachingNudge) {
                                             const legacyId = nudge.id;
                                             const isExpanded = expandedOpportunityId === legacyId;
+                                            const isSelected = !!nudge.highlightQuote && selectedQuote === normaliseQuote(nudge.highlightQuote);
                                             rows.push(
-                                                <OpportunityCard
+                                                <div
                                                     key={legacyId}
-                                                    quote={nudge.highlightQuote}
-                                                    surfacedContext={nudge.coachingNudge}
-                                                    expanded={isExpanded}
-                                                    onToggle={() => setExpandedOpportunityId(isExpanded ? null : legacyId)}
-                                                    onClose={() => setExpandedOpportunityId(null)}
-                                                />
+                                                    ref={(el) => {
+                                                        if (el) opportunityRefs.current.set(legacyId, el);
+                                                        else opportunityRefs.current.delete(legacyId);
+                                                    }}
+                                                    className={`rounded-[14px] transition-shadow ${isSelected ? "ring-2 ring-[color:var(--primary)]" : ""}`}
+                                                >
+                                                    <OpportunityCard
+                                                        quote={nudge.highlightQuote}
+                                                        surfacedContext={nudge.coachingNudge}
+                                                        expanded={isExpanded}
+                                                        onToggle={() => setExpandedOpportunityId(isExpanded ? null : legacyId)}
+                                                        onClose={() => setExpandedOpportunityId(null)}
+                                                    />
+                                                </div>
                                             );
                                         }
                                         return rows;
@@ -1329,10 +1347,24 @@ function SimulationPageContent({ params }: PageProps) {
                                                             const match = part.slice(index, index + highlight.length);
                                                             const after = part.slice(index + highlight.length);
                                                             if (before) newParts.push(before);
+                                                            const normalisedHighlight = normaliseQuote(highlight);
+                                                            const isSelected = selectedQuote === normalisedHighlight;
                                                             newParts.push(
-                                                                <span key={`highlight-${idx}-${index}`} className="bg-[color:var(--primary-soft)] text-foreground rounded px-0.5">
+                                                                <button
+                                                                    key={`highlight-${idx}-${index}`}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handlePickQuote(highlight);
+                                                                    }}
+                                                                    className={`inline rounded px-0.5 text-left text-foreground transition-colors cursor-pointer ${
+                                                                        isSelected
+                                                                            ? "bg-[color:var(--primary-soft)] ring-2 ring-[color:var(--primary)] ring-offset-1 brightness-95"
+                                                                            : "bg-[color:var(--primary-soft)] hover:brightness-95"
+                                                                    }`}
+                                                                >
                                                                     {match}
-                                                                </span>
+                                                                </button>
                                                             );
                                                             if (after) newParts.push(after);
                                                         } else {

@@ -140,11 +140,11 @@ export default function DashboardPage() {
     }
 
     return (
-        // Full-width frame matching the TopNav exactly: px-7 on both sides.
-        // Dashboard content starts at the logo's left edge and ends at the
-        // nav's right edge — the two bars share identical horizontal bounds.
+        // Left-anchored frame. md:pl-[153px] puts the dashboard's left edge
+        // directly under the TopNav's "Projects" nav item; md:pr-7 matches
+        // the nav's own right-edge padding.
         <div className="flex-1 min-h-0 w-full overflow-y-auto">
-          <div className="w-full flex flex-col pt-10 pb-20 px-7">
+          <div className="w-full flex flex-col pt-10 pb-20 px-4 sm:px-6 md:pl-[153px] md:pr-7">
             {/* Page header — matches the display-heavy intro blocks on the rest of the app */}
             <header className="mb-10 flex items-end justify-between gap-6 border-b border-[color:var(--border-subtle)] pb-8">
                 <div className="flex flex-col gap-2">
@@ -154,14 +154,12 @@ export default function DashboardPage() {
                         Organise research, run interview simulations, map insights, and drive synthesis across your HPB projects.
                     </p>
                 </div>
-                {projects.length > 0 && (
-                    <div className="shrink-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge px-3.5 py-1.5 text-body-sm text-muted-foreground">
-                        <FolderKanban className="h-3.5 w-3.5" />
-                        <span>
-                            <span className="text-foreground font-medium">{projects.length}</span> active
-                        </span>
-                    </div>
-                )}
+                <Button asChild className="shrink-0 gap-1.5 bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110">
+                    <Link href="/projects/new">
+                        <Plus className="h-4 w-4" />
+                        New project
+                    </Link>
+                </Button>
             </header>
 
             {/* Empty state — single prominent create tile */}
@@ -186,24 +184,6 @@ export default function DashboardPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {/* Create New Project Card — always first */}
-                    <Link
-                        href="/projects/new"
-                        className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
-                    >
-                        <div className="flex flex-col items-center gap-3 text-center">
-                            <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
-                                <Plus className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-semibold text-foreground mb-0.5">New Project</h3>
-                                <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
-                                    Start a new research project
-                                </p>
-                            </div>
-                        </div>
-                    </Link>
-
                     {/* Project Cards */}
                     {projects.map((project) => {
                         const createdLabel = new Date(project.createdAt).toLocaleDateString(undefined, {

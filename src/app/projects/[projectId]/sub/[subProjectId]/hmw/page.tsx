@@ -21,12 +21,15 @@ import {
     Trash2,
     FileText,
     ArrowRight,
+    Plus,
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
-import { MetaRow } from "@/components/layout/meta-row";
-import { WorkspaceRail } from "@/components/tools/workspace-rail";
+import { Badge } from "@/components/ui/badge";
+import { Mono } from "@/components/ui/mono";
+import { cn } from "@/lib/utils";
 import { LensCard, adaptLens } from "@/components/tools/lens-card";
 
 // ─── Types ───────────────────────────────────────────────────────────────
@@ -127,6 +130,13 @@ const VERDICT_CONFIG = {
     FAIL: { fg: "text-[color:var(--danger)]", bg: "bg-[color:var(--danger-soft)]", border: "border-[color:var(--danger-soft)]", icon: XCircle, label: "Fail" },
     NEEDS_WORK: { fg: "text-[color:var(--warning)]", bg: "bg-[color:var(--warning-soft)]", border: "border-[color:var(--warning-soft)]", icon: AlertTriangle, label: "Needs Work" },
 };
+
+function scoreFromVerdict(v: string | undefined) {
+    if (v === "PASS") return 5;
+    if (v === "NEEDS_WORK") return 3;
+    if (v === "FAIL") return 1;
+    return 0;
+}
 
 // ─── Helper Components ───────────────────────────────────────────────────
 
@@ -734,17 +744,97 @@ export default function HMWPage({ params }: PageProps) {
                 variant="review"
                 scrollContained
                 leftRail={
-                    subProject && (
-                        <WorkspaceRail
-                            subProject={subProject}
-                            projectId={projectId}
-                            subProjectId={subProjectId}
-                        >
-                            <RailSection title="History">
-                                <MetaRow k="Analyses" v={history.length} />
-                            </RailSection>
-                        </WorkspaceRail>
-                    )
+                    <>
+                        <RailHeader>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="secondary">Tool</Badge>
+                            </div>
+                            <h2 className="text-display-4 text-foreground leading-tight">
+                                How Might We Analyser
+                            </h2>
+                            <p className="text-body-sm text-muted-foreground leading-relaxed">
+                                Critique HMW statements against the NN/g 5-lens framework, enriched with project research.
+                            </p>
+                        </RailHeader>
+
+                        <RailSection title="History">
+                            {history.length === 0 ? (
+                                <p className="text-body-sm text-muted-foreground">No analyses yet.</p>
+                            ) : (
+                                <div className="flex flex-col">
+                                    {history.slice(0, 8).map((entry, i) => {
+                                        const score = scoreFromVerdict(entry.critique.overallVerdict);
+                                        const isActive = i === 0;
+                                        const isLast = i === Math.min(history.length, 8) - 1;
+                                        return (
+                                            <div key={entry.id} className="relative pl-[18px] pt-1 pb-3">
+                                                <span
+                                                    className={cn(
+                                                        "absolute left-1 top-2.5 w-[9px] h-[9px] rounded-full",
+                                                        isActive
+                                                            ? "bg-[color:var(--primary)] shadow-[0_0_0_3px_var(--primary-soft)]"
+                                                            : "bg-[color:var(--surface)] shadow-inset-edge"
+                                                    )}
+                                                />
+                                                {!isLast && (
+                                                    <span className="absolute left-[8px] top-[22px] bottom-0 w-px bg-[color:var(--border)]" />
+                                                )}
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <Mono className="text-[11px] text-muted-foreground">
+                                                        {new Date(entry.timestamp || entry.id).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                                    </Mono>
+                                                    {isActive && (
+                                                        <span className="text-[9.5px] font-bold tracking-[0.1em] text-[color:var(--primary)]">
+                                                            ACTIVE
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const el = document.getElementById(`hmw-critique-${entry.id}`);
+                                                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                                    }}
+                                                    className={cn(
+                                                        "text-left text-body-sm leading-snug line-clamp-2",
+                                                        isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
+                                                    )}
+                                                >
+                                                    {entry.hmwStatement}
+                                                </button>
+                                                <div className="flex gap-0.5 mt-1.5">
+                                                    {[1, 2, 3, 4, 5].map((n) => (
+                                                        <span
+                                                            key={n}
+                                                            className={cn(
+                                                                "h-[3px] w-3.5 rounded-full",
+                                                                n <= score ? "bg-[color:var(--primary)]" : "bg-[color:var(--border)]"
+                                                            )}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </RailSection>
+
+                        <div className="flex-1" />
+
+                        <div className="px-8 py-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-center"
+                                onClick={() => inputRef.current?.focus()}
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                                New HMW
+                            </Button>
+                        </div>
+                    </>
                 }
             >
                 <div className="animate-in fade-in duration-500">

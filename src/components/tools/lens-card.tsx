@@ -210,22 +210,32 @@ function LensCardExploration({
             : null}
 
           {needsWork ? (
-            <p className="text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)]">
-              {needsWork}
-            </p>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--ink-muted)]">
+                Suggested change
+              </span>
+              <p className="text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)]">
+                {needsWork}
+              </p>
+            </div>
           ) : null}
 
           {research ? (
-            <div className="rounded-[8px] bg-white px-3 py-2.5 text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)] shadow-inset-edge">
-              {research}
-              {researchTitle ? (
-                <>
-                  <br />
-                  <span className="italic text-[color:var(--ink-muted)]">
-                    {researchTitle}
-                  </span>
-                </>
-              ) : null}
+            <div className="mt-2 flex flex-col gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--ink-muted)]">
+                Source
+              </span>
+              <div className="rounded-[8px] bg-white px-3 py-2.5 text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)] shadow-inset-edge">
+                {research}
+                {researchTitle ? (
+                  <>
+                    <br />
+                    <span className="italic text-[color:var(--ink-muted)]">
+                      {researchTitle}
+                    </span>
+                  </>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </>

@@ -278,7 +278,7 @@ function AnnotatedInsight({ statement, annotations }: {
             </div>
 
             {/* Criterion-card grid — 2 cols, gap 12, matches exploration. */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 items-start">
                 {annotations.map((ann, i) => {
                     const hasCriteria = typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null;
                     const criterionKey = annotationCriterionKey(ann, i);
@@ -704,7 +704,7 @@ export default function InsightsPage({ params }: PageProps) {
                 }
             >
                 <div className="animate-in fade-in duration-500">
-                    <div className="mx-auto max-w-3xl">
+                    <div className="mx-auto max-w-5xl">
 
                     {/* Composer */}
                     <div className="mb-6 rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-5 shadow-composer">

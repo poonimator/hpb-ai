@@ -415,7 +415,7 @@ function AnnotatedHMW({ statement, annotations }: {
             </div>
 
             {/* Lens-card grid — 2 cols, gap 12, matches exploration. */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 items-start">
                 {annotations.map((ann, i) => {
                     const hasLens = typeof ann.lensCritique === "object" && ann.lensCritique !== null;
                     const lensKey = annotationLensKey(ann, i);
@@ -951,7 +951,7 @@ export default function HMWPage({ params }: PageProps) {
                 }
             >
                 <div className="animate-in fade-in duration-500">
-                    <div className="mx-auto max-w-3xl">
+                    <div className="mx-auto max-w-5xl">
 
                     {/* Composer */}
                     <div className="mb-6 rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-5 shadow-composer">

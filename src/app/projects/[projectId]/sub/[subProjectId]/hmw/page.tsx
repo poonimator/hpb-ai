@@ -414,46 +414,54 @@ function AnnotatedHMW({ statement, annotations }: {
                 })}
             </div>
 
-            {/* Lens-card grid — 2 cols, gap 12, matches exploration. */}
-            <div className="columns-2 gap-3 [&>*]:mb-3 [&>*]:break-inside-avoid">
-                {annotations.map((ann, i) => {
-                    const hasLens = typeof ann.lensCritique === "object" && ann.lensCritique !== null;
-                    const lensKey = annotationLensKey(ann, i);
-                    const palette = lensPalette(lensKey, i);
-                    const lens = hasLens ? (ann.lensCritique as LensCritiqueInline) : null;
+            {/* Lens-card grid — two parallel flex columns so cards don't
+                reflow between columns when expanded/collapsed. */}
+            <div className="grid grid-cols-2 gap-3 items-start">
+                {[0, 1].map((col) => (
+                    <div key={col} className="flex flex-col gap-3">
+                        {annotations
+                            .map((ann, i) => ({ ann, i }))
+                            .filter(({ i }) => i % 2 === col)
+                            .map(({ ann, i }) => {
+                                const hasLens = typeof ann.lensCritique === "object" && ann.lensCritique !== null;
+                                const lensKey = annotationLensKey(ann, i);
+                                const palette = lensPalette(lensKey, i);
+                                const lens = hasLens ? (ann.lensCritique as LensCritiqueInline) : null;
 
-                    // Body copy: prefer the lens explanation, fall back to rationale/note.
-                    const body = lens?.explanation || ann.rationale || ann.note || "";
-                    const verdict = lens?.verdict;
-                    const needsWork =
-                        verdict && verdict !== "PASS"
-                            ? (lens?.suggestion || lens?.explanation || "")
-                            : undefined;
+                                // Body copy: prefer the lens explanation, fall back to rationale/note.
+                                const body = lens?.explanation || ann.rationale || ann.note || "";
+                                const verdict = lens?.verdict;
+                                const needsWork =
+                                    verdict && verdict !== "PASS"
+                                        ? (lens?.suggestion || lens?.explanation || "")
+                                        : undefined;
 
-                    // Research pointer → research card on this lens.
-                    const rp = ann.researchPointer;
-                    const research =
-                        typeof rp === "string"
-                            ? rp
-                            : rp?.explanation;
-                    const researchTitle =
-                        typeof rp === "object" && rp?.source && rp.source !== "General Assessment"
-                            ? rp.source
-                            : undefined;
+                                // Research pointer → research card on this lens.
+                                const rp = ann.researchPointer;
+                                const research =
+                                    typeof rp === "string"
+                                        ? rp
+                                        : rp?.explanation;
+                                const researchTitle =
+                                    typeof rp === "object" && rp?.source && rp.source !== "General Assessment"
+                                        ? rp.source
+                                        : undefined;
 
-                    return (
-                        <LensCard
-                            key={i}
-                            accent={palette.accent}
-                            lensName={lens?.lens || "Lens"}
-                            fragment={`"${ann.text}"`}
-                            body={body}
-                            needsWork={needsWork}
-                            research={research}
-                            researchTitle={researchTitle}
-                        />
-                    );
-                })}
+                                return (
+                                    <LensCard
+                                        key={i}
+                                        accent={palette.accent}
+                                        lensName={lens?.lens || "Lens"}
+                                        fragment={`"${ann.text}"`}
+                                        body={body}
+                                        needsWork={needsWork}
+                                        research={research}
+                                        researchTitle={researchTitle}
+                                    />
+                                );
+                            })}
+                    </div>
+                ))}
             </div>
         </div>
     );

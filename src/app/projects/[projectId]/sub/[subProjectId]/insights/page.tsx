@@ -277,32 +277,40 @@ function AnnotatedInsight({ statement, annotations }: {
                 })}
             </div>
 
-            {/* Criterion-card grid — 2 cols, gap 12, matches exploration. */}
-            <div className="columns-2 gap-3 [&>*]:mb-3 [&>*]:break-inside-avoid">
-                {annotations.map((ann, i) => {
-                    const hasCriteria = typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null;
-                    const criterionKey = annotationCriterionKey(ann, i);
-                    const palette = criterionPalette(criterionKey, i);
-                    const cc = hasCriteria ? (ann.criteriaCritique as CriteriaCritiqueInline) : null;
+            {/* Criterion-card grid — two parallel flex columns so cards
+                don't reflow between columns when expanded/collapsed. */}
+            <div className="grid grid-cols-2 gap-3 items-start">
+                {[0, 1].map((col) => (
+                    <div key={col} className="flex flex-col gap-3">
+                        {annotations
+                            .map((ann, i) => ({ ann, i }))
+                            .filter(({ i }) => i % 2 === col)
+                            .map(({ ann, i }) => {
+                                const hasCriteria = typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null;
+                                const criterionKey = annotationCriterionKey(ann, i);
+                                const palette = criterionPalette(criterionKey, i);
+                                const cc = hasCriteria ? (ann.criteriaCritique as CriteriaCritiqueInline) : null;
 
-                    const body = cc?.explanation || ann.rationale || ann.note || "";
-                    const verdict = cc?.verdict;
-                    const needsWork =
-                        verdict && verdict !== "PASS"
-                            ? (cc?.suggestion || cc?.explanation || "")
-                            : undefined;
+                                const body = cc?.explanation || ann.rationale || ann.note || "";
+                                const verdict = cc?.verdict;
+                                const needsWork =
+                                    verdict && verdict !== "PASS"
+                                        ? (cc?.suggestion || cc?.explanation || "")
+                                        : undefined;
 
-                    return (
-                        <LensCard
-                            key={i}
-                            accent={palette.accent}
-                            lensName={cc?.criterion || "Criterion"}
-                            fragment={`"${ann.text}"`}
-                            body={body}
-                            needsWork={needsWork}
-                        />
-                    );
-                })}
+                                return (
+                                    <LensCard
+                                        key={i}
+                                        accent={palette.accent}
+                                        lensName={cc?.criterion || "Criterion"}
+                                        fragment={`"${ann.text}"`}
+                                        body={body}
+                                        needsWork={needsWork}
+                                    />
+                                );
+                            })}
+                    </div>
+                ))}
             </div>
         </div>
     );

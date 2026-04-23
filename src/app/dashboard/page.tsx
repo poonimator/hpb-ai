@@ -140,10 +140,11 @@ export default function DashboardPage() {
     }
 
     return (
-        // Full-width layout. Left padding is tuned so content aligns with the
-        // "Projects" nav item (TopNav: 28px px-7 + 72px logo + 24+1+28 spacer = 153px).
+        // Symmetric padding: 153px on md+ matches the TopNav "Projects" nav item
+        // offset (px-7 + 72px logo + 24+1+28 spacer). Content stays centred in
+        // the remaining space so the page reads balanced, not right-shifted.
         <div className="flex-1 min-h-0 w-full overflow-y-auto">
-          <div className="w-full flex flex-col pt-10 pb-20 pr-7 pl-4 sm:pl-6 md:pl-[153px]">
+          <div className="w-full flex flex-col pt-10 pb-20 px-4 sm:px-6 md:px-[153px]">
             {/* Page header — matches the display-heavy intro blocks on the rest of the app */}
             <header className="mb-10 flex items-end justify-between gap-6 border-b border-[color:var(--border-subtle)] pb-8">
                 <div className="flex flex-col gap-2">

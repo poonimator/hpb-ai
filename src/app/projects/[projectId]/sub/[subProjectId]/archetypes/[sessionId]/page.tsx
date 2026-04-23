@@ -5,9 +5,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
-import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
+import { Badge } from "@/components/ui/badge";
+import { type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 import { PersonaPanel, type PersonaLike } from "@/components/tools/persona-panel";
 import {
     ArrowLeft,
@@ -146,21 +148,37 @@ export default function ArchetypeViewPage({ params }: PageProps) {
 
     const demographicForRail = parse(archetype.demographicJson);
 
-    const railNode = subProject ? (
-        <WorkspaceRail
-            subProject={subProject}
-            projectId={projectId}
-            subProjectId={subProjectId}
-        >
-            <RailSection title="Archetype">
-                <MetaRow k="Name" v={archetype.name} />
-                {archetype.kicker && <MetaRow k="Kicker" v={archetype.kicker} />}
+    const railNode = (
+        <>
+            <RailHeader>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Archetype</Badge>
+                </div>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    {archetype?.name || "Loading..."}
+                </h2>
+                {archetype?.kicker && (
+                    <p className="text-body-sm text-muted-foreground leading-relaxed italic">
+                        &ldquo;{archetype.kicker}&rdquo;
+                    </p>
+                )}
+            </RailHeader>
+
+            <RailSection title="Profile">
                 {demographicForRail?.ageRange && <MetaRow k="Age" v={demographicForRail.ageRange} />}
                 {demographicForRail?.occupation && <MetaRow k="Occupation" v={demographicForRail.occupation} />}
-                {demographicForRail?.livingSetup && <MetaRow k="Living setup" v={demographicForRail.livingSetup} />}
+                {demographicForRail?.livingSetup && <MetaRow k="Living" v={demographicForRail.livingSetup} />}
             </RailSection>
-        </WorkspaceRail>
-    ) : null;
+
+            {subProject && (
+                <RailSection title="Workspace">
+                    <MetaRow k="Research" v={subProject.name} />
+                </RailSection>
+            )}
+
+            <div className="flex-1" />
+        </>
+    );
 
     return (
         <div className="flex flex-col flex-1 min-h-0">

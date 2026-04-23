@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
-import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
+import { Badge } from "@/components/ui/badge";
+import { type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 import {
     Loader2,
     Network,
@@ -192,23 +194,38 @@ export default function NewArchetypePage({ params }: PageProps) {
         }
     };
 
-    const railExtras = (
-        <RailSection title="Source">
-            <MetaRow k="Mappings selected" v={selectedMappingIds.length} />
-            <MetaRow k="Profiling" v={profileTarget.trim() || "—"} />
-        </RailSection>
-    );
+    const railNode = (
+        <>
+            <RailHeader>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Wizard</Badge>
+                    <span className="text-caption text-muted-foreground">
+                        Step {step} / 3
+                    </span>
+                </div>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    {subProject?.name || "Archetypes"}
+                </h2>
+                {subProject?.researchStatement && (
+                    <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                        {subProject.researchStatement}
+                    </p>
+                )}
+            </RailHeader>
 
-    const railNode = subProject ? (
-        <WorkspaceRail
-            subProject={subProject}
-            projectId={projectId}
-            subProjectId={subProjectId}
-            hideEdit
-        >
-            {railExtras}
-        </WorkspaceRail>
-    ) : null;
+            <RailSection title="Selections">
+                <MetaRow k="Mappings" v={selectedMappingIds.length > 0 ? selectedMappingIds.length : "—"} />
+                <MetaRow k="Profiling" v={profileTarget || "—"} />
+            </RailSection>
+
+            <RailSection title="Pipeline">
+                <MetaRow k="Mode" v="Archetype generation" />
+                <MetaRow k="Source" v="Mapping clusters" />
+            </RailSection>
+
+            <div className="flex-1" />
+        </>
+    );
 
     // Step 3: Reveal animation — must be full-viewport, chromeless. Render OUTSIDE the frame.
     if (step === 3) {

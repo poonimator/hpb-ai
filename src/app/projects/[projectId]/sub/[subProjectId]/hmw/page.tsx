@@ -151,6 +151,27 @@ function lensHighlightBg(key: string | undefined): string {
     return "bg-[color:var(--primary-soft)]";
 }
 
+// Lens-card tint + accent palette (matches exploration prototype).
+// Index maps to 5-lens ordering: intended-action, potential-user, timing, outcome, research.
+const LENS_PALETTE: { accent: string; bg: string }[] = [
+    { accent: "#0ea5e9", bg: "rgba(14,165,233,0.06)" },  // intended action — sky
+    { accent: "var(--primary)", bg: "var(--primary-soft)" }, // potential user — amber
+    { accent: "#059669", bg: "rgba(5,150,105,0.06)" },   // timing / moment — green
+    { accent: "#be185d", bg: "rgba(190,24,93,0.06)" },   // desired outcome — pink
+    { accent: "#7c3aed", bg: "rgba(124,58,237,0.06)" },  // research grounding — purple
+];
+
+function lensPalette(key: string | undefined, fallbackIdx: number) {
+    if (!key) return LENS_PALETTE[fallbackIdx % LENS_PALETTE.length];
+    const k = key.toLowerCase();
+    if (k.includes("action") || k.includes("intended")) return LENS_PALETTE[0];
+    if (k.includes("user") || k.includes("potential") || k.includes("audience") || k.includes("broad")) return LENS_PALETTE[1];
+    if (k.includes("timing") || k.includes("moment") || k.includes("grounded") || k.includes("real problem")) return LENS_PALETTE[2];
+    if (k.includes("outcome") || k.includes("desired")) return LENS_PALETTE[3];
+    if (k.includes("research") || k.includes("grounding") || k.includes("aligned")) return LENS_PALETTE[4];
+    return LENS_PALETTE[fallbackIdx % LENS_PALETTE.length];
+}
+
 // Extract the lens key from an annotation so we can pick a highlight color.
 function annotationLensKey(ann: StatementAnnotation, fallbackIdx: number): string {
     if (typeof ann.lensCritique === "object" && ann.lensCritique !== null) {
@@ -370,9 +391,12 @@ function AnnotatedHMW({ statement, annotations }: {
 
     return (
         <div>
-            {/* HMW Statement with subtle highlight underlay — each fragment tinted by lens */}
-            <p className="text-display-4 text-center leading-snug text-foreground mb-6">
-                <span className="text-[#059669] font-semibold">HMW </span>
+            {/* HMW Statement — display font, each fragment tinted by its lens. */}
+            <div
+                className="mb-[22px] font-light leading-[1.4] tracking-[-0.01em] text-foreground"
+                style={{ fontSize: 20 }}
+            >
+                <span className="font-semibold text-[#059669]">HMW </span>
                 {parts.map((part, i) => {
                     if (part.annIdx !== null) {
                         const ann = annotations[part.annIdx];
@@ -380,7 +404,7 @@ function AnnotatedHMW({ statement, annotations }: {
                         return (
                             <span
                                 key={i}
-                                className={cn("rounded-[3px] px-1 py-0.5", bg)}
+                                className={cn("rounded-[3px] px-1 py-px", bg)}
                             >
                                 {part.text}
                             </span>
@@ -388,39 +412,51 @@ function AnnotatedHMW({ statement, annotations }: {
                     }
                     return <span key={i}>{part.text}</span>;
                 })}
-                ?
-            </p>
+            </div>
 
-            {/* Annotation cards grid */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Lens-card grid — 2 cols, gap 12, matches exploration. */}
+            <div className="grid grid-cols-2 gap-3">
                 {annotations.map((ann, i) => {
                     const hasLens = typeof ann.lensCritique === "object" && ann.lensCritique !== null;
+                    const lensKey = annotationLensKey(ann, i);
+                    const palette = lensPalette(lensKey, i);
+                    const lens = hasLens ? (ann.lensCritique as LensCritiqueInline) : null;
+
+                    // Body copy: prefer the lens explanation, fall back to rationale/note.
+                    const body = lens?.explanation || ann.rationale || ann.note || "";
+                    const verdict = lens?.verdict;
+                    const needsWork =
+                        verdict && verdict !== "PASS"
+                            ? (lens?.suggestion || lens?.explanation || "")
+                            : undefined;
+                    const tags =
+                        verdict === "PASS" && lens?.lens
+                            ? [lens.lens]
+                            : [];
+
+                    // Research pointer → research card on this lens.
+                    const rp = ann.researchPointer;
+                    const research =
+                        typeof rp === "string"
+                            ? rp
+                            : rp?.explanation;
+                    const researchTitle =
+                        typeof rp === "object" && rp?.source && rp.source !== "General Assessment"
+                            ? rp.source
+                            : undefined;
+
                     return (
-                        <div
+                        <LensCard
                             key={i}
-                            className="flex flex-col gap-2 overflow-hidden rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-3 shadow-outline-ring"
-                        >
-                            {ann.rationale && (
-                                <div className="flex items-start gap-2 rounded-[10px] bg-[color:var(--surface-muted)] px-2.5 py-2 shadow-inset-edge">
-                                    <Lightbulb className="mt-0.5 size-3 shrink-0 text-[color:var(--primary)]" strokeWidth={1.5} />
-                                    <p className="text-caption leading-relaxed text-muted-foreground">
-                                        {ann.rationale}
-                                    </p>
-                                </div>
-                            )}
-                            <p className="text-body-sm font-semibold leading-snug text-foreground">
-                                &ldquo;{ann.text}&rdquo;
-                            </p>
-                            {hasLens && (
-                                <LensCard lens={adaptLens(ann.lensCritique as LensCritiqueInline)} />
-                            )}
-                            {ann.researchPointer && (
-                                <InlineResearchCard researchPointer={ann.researchPointer} />
-                            )}
-                            {!hasLens && !ann.researchPointer && ann.note && (
-                                <p className="text-caption leading-relaxed text-muted-foreground">{ann.note}</p>
-                            )}
-                        </div>
+                            bg={palette.bg}
+                            accent={palette.accent}
+                            fragment={`"${ann.text}"`}
+                            body={body}
+                            tags={tags}
+                            needsWork={needsWork}
+                            research={research}
+                            researchTitle={researchTitle}
+                        />
                     );
                 })}
             </div>
@@ -449,8 +485,8 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
 
     return (
         <div id={`hmw-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500 space-y-3">
-            {/* HMW Statement */}
-            <div className="rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-6 shadow-outline-ring">
+            {/* HMW Statement card — exploration layout: white, rounded-16, p-6, outline ring. */}
+            <div className="rounded-[16px] bg-[color:var(--surface)] p-6 shadow-outline-ring">
                 <div className="mb-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <VerdictBadge verdict={critique.overallVerdict} />
@@ -476,9 +512,15 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                     </p>
                 )}
 
-                <p className="mt-5 border-t border-[color:var(--border-subtle)] pt-4 text-body-sm leading-relaxed text-muted-foreground">
-                    {critique.overallSummary}
-                </p>
+                {/* Summary — stone-muted inset panel. */}
+                <div className="mt-[18px] rounded-[12px] bg-[color:var(--surface-muted)] px-4 py-[14px] shadow-inset-edge">
+                    <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[color:var(--ink-muted)]">
+                        Summary
+                    </div>
+                    <p className="text-[12.5px] leading-[1.65] tracking-[0.01em] text-[color:var(--ink-secondary)]">
+                        {critique.overallSummary}
+                    </p>
+                </div>
             </div>
 
             {/* Old-format critiques: show separate 5-lens and research sections */}

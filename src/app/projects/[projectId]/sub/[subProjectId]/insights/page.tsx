@@ -139,6 +139,27 @@ function criterionHighlightBg(key: string | undefined): string {
     return "bg-[color:var(--primary-soft)]";
 }
 
+// Criterion-card tint + accent palette (matches exploration prototype).
+// Index maps to ordering: Well-Informed, More Than Observation, So What?, Sticky, Actionable.
+const CRITERION_PALETTE: { accent: string; bg: string }[] = [
+    { accent: "#0ea5e9", bg: "rgba(14,165,233,0.06)" },  // Well-Informed — sky
+    { accent: "var(--primary)", bg: "var(--primary-soft)" }, // More Than Observation — amber
+    { accent: "#059669", bg: "rgba(5,150,105,0.06)" },   // So What? — green
+    { accent: "#be185d", bg: "rgba(190,24,93,0.06)" },   // Sticky — pink
+    { accent: "#7c3aed", bg: "rgba(124,58,237,0.06)" },  // Actionable — purple
+];
+
+function criterionPalette(key: string | undefined, fallbackIdx: number) {
+    if (!key) return CRITERION_PALETTE[fallbackIdx % CRITERION_PALETTE.length];
+    const k = key.toLowerCase();
+    if (k.includes("well-informed") || k.includes("well informed") || k.includes("informed")) return CRITERION_PALETTE[0];
+    if (k.includes("more than") || k.includes("observation")) return CRITERION_PALETTE[1];
+    if (k.includes("so what")) return CRITERION_PALETTE[2];
+    if (k.includes("sticky")) return CRITERION_PALETTE[3];
+    if (k.includes("actionable") || k.includes("action")) return CRITERION_PALETTE[4];
+    return CRITERION_PALETTE[fallbackIdx % CRITERION_PALETTE.length];
+}
+
 function annotationCriterionKey(ann: StatementAnnotation, fallbackIdx: number): string {
     if (typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null) {
         return ann.criteriaCritique.criterion || "";
@@ -234,8 +255,11 @@ function AnnotatedInsight({ statement, annotations }: {
 
     return (
         <div>
-            {/* Insight Statement with subtle highlight underlay — tinted by criterion */}
-            <p className="text-display-4 text-center leading-snug text-foreground mb-6">
+            {/* Insight Statement — display font, each fragment tinted by its criterion. */}
+            <div
+                className="mb-[22px] font-light leading-[1.4] tracking-[-0.01em] text-foreground"
+                style={{ fontSize: 20 }}
+            >
                 {parts.map((part, i) => {
                     if (part.annIdx !== null) {
                         const ann = annotations[part.annIdx];
@@ -243,7 +267,7 @@ function AnnotatedInsight({ statement, annotations }: {
                         return (
                             <span
                                 key={i}
-                                className={cn("rounded-[3px] px-1 py-0.5", bg)}
+                                className={cn("rounded-[3px] px-1 py-px", bg)}
                             >
                                 {part.text}
                             </span>
@@ -251,42 +275,37 @@ function AnnotatedInsight({ statement, annotations }: {
                     }
                     return <span key={i}>{part.text}</span>;
                 })}
-            </p>
+            </div>
 
-            {/* Annotation cards grid */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Criterion-card grid — 2 cols, gap 12, matches exploration. */}
+            <div className="grid grid-cols-2 gap-3">
                 {annotations.map((ann, i) => {
                     const hasCriteria = typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null;
+                    const criterionKey = annotationCriterionKey(ann, i);
+                    const palette = criterionPalette(criterionKey, i);
+                    const cc = hasCriteria ? (ann.criteriaCritique as CriteriaCritiqueInline) : null;
+
+                    const body = cc?.explanation || ann.rationale || ann.note || "";
+                    const verdict = cc?.verdict;
+                    const needsWork =
+                        verdict && verdict !== "PASS"
+                            ? (cc?.suggestion || cc?.explanation || "")
+                            : undefined;
+                    const tags =
+                        verdict === "PASS" && cc?.criterion
+                            ? [cc.criterion]
+                            : [];
+
                     return (
-                        <div
+                        <LensCard
                             key={i}
-                            className="flex flex-col gap-2 overflow-hidden rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-3 shadow-outline-ring"
-                        >
-                            {ann.rationale && (
-                                <div className="flex items-start gap-2 rounded-[10px] bg-[color:var(--surface-muted)] px-2.5 py-2 shadow-inset-edge">
-                                    <Lightbulb className="mt-0.5 size-3 shrink-0 text-[color:var(--primary)]" strokeWidth={1.5} />
-                                    <p className="text-caption leading-relaxed text-muted-foreground">
-                                        {ann.rationale}
-                                    </p>
-                                </div>
-                            )}
-                            <p className="text-body-sm font-semibold leading-snug text-foreground">
-                                &ldquo;{ann.text}&rdquo;
-                            </p>
-                            {hasCriteria ? (
-                                <LensCard
-                                    lens={adaptCriteria(ann.criteriaCritique as CriteriaCritiqueInline)}
-                                />
-                            ) : (
-                                ann.criteriaCritique ? (
-                                    <p className="text-caption leading-relaxed text-muted-foreground">
-                                        {ann.criteriaCritique as string}
-                                    </p>
-                                ) : (
-                                    ann.note && <p className="text-caption leading-relaxed text-muted-foreground">{ann.note}</p>
-                                )
-                            )}
-                        </div>
+                            bg={palette.bg}
+                            accent={palette.accent}
+                            fragment={`"${ann.text}"`}
+                            body={body}
+                            tags={tags}
+                            needsWork={needsWork}
+                        />
                     );
                 })}
             </div>
@@ -312,8 +331,8 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
 
     return (
         <div id={`insight-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500 space-y-3">
-            {/* Insight Statement + annotations */}
-            <div className="rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-6 shadow-outline-ring">
+            {/* Insight Statement card — exploration layout: white, rounded-16, p-6, outline ring. */}
+            <div className="rounded-[16px] bg-[color:var(--surface)] p-6 shadow-outline-ring">
                 <div className="mb-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <VerdictBadge verdict={critique.overallVerdict} />
@@ -338,9 +357,15 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                     </p>
                 )}
 
-                <p className="mt-5 border-t border-[color:var(--border-subtle)] pt-4 text-body-sm leading-relaxed text-muted-foreground">
-                    {critique.overallSummary}
-                </p>
+                {/* Summary — stone-muted inset panel. */}
+                <div className="mt-[18px] rounded-[12px] bg-[color:var(--surface-muted)] px-4 py-[14px] shadow-inset-edge">
+                    <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[color:var(--ink-muted)]">
+                        Summary
+                    </div>
+                    <p className="text-[12.5px] leading-[1.65] tracking-[0.01em] text-[color:var(--ink-secondary)]">
+                        {critique.overallSummary}
+                    </p>
+                </div>
             </div>
 
             {/* Fallback: show legacy 5-criteria cards if no inline annotations */}

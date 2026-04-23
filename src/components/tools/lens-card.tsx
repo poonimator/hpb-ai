@@ -12,19 +12,26 @@ import {
 import { cn } from "@/lib/utils"
 
 /**
- * LensCard — critique lens with a verdict badge.
+ * LensCard — critique lens rendered as a soft-tinted card that mirrors the
+ * exploration prototype in `claude design explorations/platform-screens.jsx`.
  *
- * One component serves BOTH call sites:
- *   - insights page    → passes a `CriteriaCritique` (criterion / verdict / …)
- *   - hmw page         → passes a `LensCritique`     (lens / verdict / …)
+ * Two calling conventions are supported:
  *
- * Both shapes normalise to `LensLike` below. Callers should feed the raw data
- * through the `adaptCriteria()` / `adaptLens()` helpers exported here, or
- * construct a `LensLike` themselves.
+ *   1. Exploration-style (primary):
+ *        <LensCard bg="rgba(…)" accent="#0ea5e9"
+ *                  fragment='"…"' body="…"
+ *                  tags={["Solution-Agnostic"]}
+ *                  needsWork="…"
+ *                  research="…" researchTitle="…" />
  *
- * Verdicts collapse to three display states: PASS / NEEDS_WORK / FAIL.
- * The page-level types have a "PARTIAL" state which is treated as NEEDS_WORK.
+ *   2. Legacy `{ lens: LensLike }`:
+ *        used by the fallback 5-lens / 5-criteria sections of the HMW +
+ *        Insights pages. Renders a verdict-badged variant.
+ *
+ * The `adaptCriteria()` / `adaptLens()` helpers exported at the bottom still
+ * return the `LensLike` shape for those legacy call sites.
  */
+
 type LensVerdict = "PASS" | "NEEDS_WORK" | "FAIL"
 
 interface LensLikeEvidence {
@@ -48,14 +55,120 @@ interface LensLike {
   fragment?: string | null
 }
 
-interface LensCardProps {
+/** Primary (exploration-style) props. */
+interface LensCardExplorationProps {
+  /** Soft tint for the outer card (e.g. `rgba(14,165,233,0.06)`). */
+  bg?: string
+  /** Accent colour for the bulb icon + italic fragment (e.g. `#0ea5e9`). */
+  accent?: string
+  /** Italicised HMW fragment — usually a quoted slice (e.g. `"to take…"`). */
+  fragment?: string
+  /** Body copy explaining the lens's take. */
+  body?: string
+  /** White pills rendered below the body (e.g. `['Solution-Agnostic']`). */
+  tags?: string[]
+  /** Amber "needs work" explanation. Adds a warning chip + prose. */
+  needsWork?: string
+  /** Research-context card body copy. */
+  research?: string
+  /** Italic secondary line under the research body (e.g. source). */
+  researchTitle?: string
+  className?: string
+}
+
+/** Legacy (verdict-badge) props. */
+interface LensCardLegacyProps {
   lens: LensLike
-  /** When true (default), card starts expanded unless verdict === PASS. */
   defaultExpanded?: boolean
-  /** Hide the collapsible chevron — always-open variant. */
   alwaysOpen?: boolean
   className?: string
 }
+
+type LensCardProps = LensCardExplorationProps | LensCardLegacyProps
+
+function isLegacyProps(p: LensCardProps): p is LensCardLegacyProps {
+  return typeof (p as LensCardLegacyProps).lens === "object"
+    && (p as LensCardLegacyProps).lens !== null
+}
+
+// ─── Primary (exploration-style) renderer ────────────────────────────────
+
+function LensCardExploration({
+  bg,
+  accent = "var(--primary)",
+  fragment,
+  body,
+  tags = [],
+  needsWork,
+  research,
+  researchTitle,
+  className,
+}: LensCardExplorationProps) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-2.5 rounded-[12px] px-[18px] py-4",
+        className,
+      )}
+      style={{ background: bg }}
+    >
+      <Lightbulb size={14} style={{ color: accent }} strokeWidth={1.5} />
+
+      {body ? (
+        <p className="text-[12.5px] leading-[1.55] tracking-[0.01em] text-[color:var(--ink-secondary)]">
+          {body}
+        </p>
+      ) : null}
+
+      {fragment ? (
+        <p
+          className="text-[12px] italic leading-[1.4]"
+          style={{ color: accent }}
+        >
+          {fragment}
+        </p>
+      ) : null}
+
+      {tags.length > 0
+        ? tags.map((t) => (
+            <div
+              key={t}
+              className="rounded-[8px] bg-white px-[10px] py-[6px] text-[11.5px] text-[color:var(--ink-secondary)] shadow-inset-edge"
+            >
+              ✓ {t}
+            </div>
+          ))
+        : null}
+
+      {needsWork ? (
+        <>
+          <span className="inline-flex w-fit items-center gap-1 rounded-[4px] bg-[color:var(--primary-soft)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary)] shadow-inset-edge">
+            ⚠ NEEDS WORK
+          </span>
+          <p className="text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)]">
+            {needsWork}
+          </p>
+        </>
+      ) : null}
+
+      {research ? (
+        <div className="rounded-[8px] bg-white px-3 py-2.5 text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)] shadow-inset-edge">
+          {research}
+          {researchTitle ? (
+            <>
+              <br />
+              <span className="italic text-[color:var(--ink-muted)]">
+                {researchTitle}
+              </span>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+// ─── Legacy (verdict-badge) renderer — kept for fallback sections ────────
 
 const VERDICT_CONFIG: Record<
   LensVerdict,
@@ -93,15 +206,15 @@ const VERDICT_CONFIG: Record<
 function normaliseVerdict(v: LensLike["verdict"]): LensVerdict {
   if (v === "PASS") return "PASS"
   if (v === "FAIL") return "FAIL"
-  return "NEEDS_WORK" // PARTIAL → NEEDS_WORK
+  return "NEEDS_WORK"
 }
 
-function LensCard({
+function LensCardLegacy({
   lens,
   defaultExpanded,
   alwaysOpen = false,
   className,
-}: LensCardProps) {
+}: LensCardLegacyProps) {
   const verdict = normaliseVerdict(lens.verdict)
   const config = VERDICT_CONFIG[verdict]
   const VIcon = config.icon
@@ -209,6 +322,13 @@ function LensCard({
       ) : null}
     </div>
   )
+}
+
+// ─── Public entry point ──────────────────────────────────────────────────
+
+function LensCard(props: LensCardProps) {
+  if (isLegacyProps(props)) return <LensCardLegacy {...props} />
+  return <LensCardExploration {...props} />
 }
 
 /**

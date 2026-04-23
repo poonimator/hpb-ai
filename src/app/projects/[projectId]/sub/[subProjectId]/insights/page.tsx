@@ -519,7 +519,7 @@ export default function InsightsPage({ params }: PageProps) {
             />
 
             <WorkspaceFrame
-                variant="review"
+                variant="platform"
                 scrollContained
                 leftRail={
                     <>
@@ -612,6 +612,45 @@ export default function InsightsPage({ params }: PageProps) {
                                 New insight
                             </Button>
                         </div>
+                    </>
+                }
+                rightRail={
+                    <>
+                        <RailSection title="The 5 criteria">
+                            <div className="flex flex-col gap-2.5">
+                                {[
+                                    { color: "#0ea5e9", label: "Well-Informed" },
+                                    { color: "#b45309", label: "More Than an Observation" },
+                                    { color: "#059669", label: "So What?" },
+                                    { color: "#be185d", label: "Sticky" },
+                                    { color: "#7c3aed", label: "Actionable" },
+                                ].map((c) => (
+                                    <div key={c.label} className="flex gap-2.5">
+                                        <span className="w-2 h-2 rounded-full mt-[6px] shrink-0" style={{ background: c.color }} />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-body-sm text-foreground font-medium">{c.label}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </RailSection>
+
+                        <RailSection title="Formula">
+                            <div className="text-body-sm text-foreground leading-[1.7] tracking-[0.01em]">
+                                <span className="text-[color:var(--primary)]">Observation</span> +{" "}
+                                <b>so what</b> +{" "}
+                                <span className="text-[#059669]">action</span>
+                            </div>
+                        </RailSection>
+
+                        <RailSection title="Sources">
+                            <div className="text-body-sm text-muted-foreground leading-relaxed">
+                                UX Research best practices · insight writing guides<br/>
+                                Project research corpus · aligned via RAG
+                            </div>
+                        </RailSection>
+
+                        <div className="flex-1" />
                     </>
                 }
             >

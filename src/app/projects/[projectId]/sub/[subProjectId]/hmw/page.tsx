@@ -741,7 +741,7 @@ export default function HMWPage({ params }: PageProps) {
             />
 
             <WorkspaceFrame
-                variant="review"
+                variant="platform"
                 scrollContained
                 leftRail={
                     <>
@@ -834,6 +834,51 @@ export default function HMWPage({ params }: PageProps) {
                                 New HMW
                             </Button>
                         </div>
+                    </>
+                }
+                rightRail={
+                    <>
+                        <RailSection title="The 5 lenses">
+                            <div className="flex flex-col gap-2.5">
+                                {[
+                                    { color: "#0ea5e9", label: "Intended Action",  pass: "Solution-Agnostic" },
+                                    { color: "#b45309", label: "Potential User",   pass: "Appropriately Broad" },
+                                    { color: "#059669", label: "Timing / Moment",  pass: "Grounded in Real Problem", warn: true },
+                                    { color: "#be185d", label: "Desired Outcome",  pass: "Outcome-Focused" },
+                                    { color: "#7c3aed", label: "Research Grounding", pass: "Research-Aligned" },
+                                ].map((l) => (
+                                    <div key={l.label} className="flex gap-2.5">
+                                        <span className="w-2 h-2 rounded-full mt-[6px] shrink-0" style={{ background: l.color }} />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-body-sm text-foreground font-medium">{l.label}</div>
+                                            <div className={cn("text-caption mt-0.5", l.warn ? "text-[color:var(--warning)]" : "text-muted-foreground")}>
+                                                {l.warn ? "⚠ " : "✓ "}{l.pass}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </RailSection>
+
+                        <RailSection title="Formula">
+                            <div className="text-body-sm text-foreground leading-[1.7] tracking-[0.01em]">
+                                <b>HMW</b> +{" "}
+                                <span className="text-[#059669]">action</span> +{" "}
+                                <b>for</b> +{" "}
+                                <span className="text-[color:var(--primary)]">user</span> +{" "}
+                                <b>so that</b> +{" "}
+                                <span className="text-[#be185d]">outcome</span>
+                            </div>
+                        </RailSection>
+
+                        <RailSection title="Sources">
+                            <div className="text-body-sm text-muted-foreground leading-relaxed">
+                                Nielsen Norman Group · 5-lens framework<br/>
+                                LUMA Institute · human-centred design principles
+                            </div>
+                        </RailSection>
+
+                        <div className="flex-1" />
                     </>
                 }
             >

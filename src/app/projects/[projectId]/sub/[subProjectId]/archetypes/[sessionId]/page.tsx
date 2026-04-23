@@ -4,6 +4,10 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 import { PersonaPanel, type PersonaLike } from "@/components/tools/persona-panel";
 import {
     ArrowLeft,
@@ -40,12 +44,17 @@ function parse(json: string | null) {
 export default function ArchetypeViewPage({ params }: PageProps) {
     const { projectId, subProjectId, sessionId: archetypeId } = use(params);
     const [archetype, setArchetype] = useState<ArchetypeData | null>(null);
+    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchArchetype();
     }, [archetypeId]);
+
+    useEffect(() => {
+        fetchSubProject();
+    }, [subProjectId]);
 
     const fetchArchetype = async () => {
         try {
@@ -57,6 +66,26 @@ export default function ArchetypeViewPage({ params }: PageProps) {
             setError(err instanceof Error ? err.message : "Failed to load");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchSubProject = async () => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}`);
+            const data = await res.json();
+            if (res.ok && data.data) {
+                setSubProject({
+                    id: data.data.id,
+                    name: data.data.name,
+                    researchStatement: data.data.researchStatement ?? null,
+                    ageRange: data.data.ageRange ?? null,
+                    lifeStage: data.data.lifeStage ?? null,
+                    createdAt: data.data.createdAt ?? null,
+                    project: data.data.project ?? null,
+                });
+            }
+        } catch (err) {
+            console.error("Failed to fetch workspace:", err);
         }
     };
 
@@ -115,8 +144,26 @@ export default function ArchetypeViewPage({ params }: PageProps) {
         spiral: spiral ?? null,
     };
 
+    const demographicForRail = parse(archetype.demographicJson);
+
+    const railNode = subProject ? (
+        <WorkspaceRail
+            subProject={subProject}
+            projectId={projectId}
+            subProjectId={subProjectId}
+        >
+            <RailSection title="Archetype">
+                <MetaRow k="Name" v={archetype.name} />
+                {archetype.kicker && <MetaRow k="Kicker" v={archetype.kicker} />}
+                {demographicForRail?.ageRange && <MetaRow k="Age" v={demographicForRail.ageRange} />}
+                {demographicForRail?.occupation && <MetaRow k="Occupation" v={demographicForRail.occupation} />}
+                {demographicForRail?.livingSetup && <MetaRow k="Living setup" v={demographicForRail.livingSetup} />}
+            </RailSection>
+        </WorkspaceRail>
+    ) : null;
+
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0">
             <PageBar
                 sticky={false}
                 back={{
@@ -129,14 +176,14 @@ export default function ArchetypeViewPage({ params }: PageProps) {
                 ]}
             />
 
-            <div className="py-8">
+            <WorkspaceFrame variant="review" leftRail={railNode} scrollContained>
                 <PersonaPanel persona={persona} />
 
                 {/* Mode note */}
                 <p className="mt-8 text-caption italic text-muted-foreground">
                     Archetype mode — a person may shift between different modes depending on situation and support.
                 </p>
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

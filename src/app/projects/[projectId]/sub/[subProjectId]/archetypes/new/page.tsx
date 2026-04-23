@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 import {
     Loader2,
     Network,
@@ -41,6 +45,7 @@ export default function NewArchetypePage({ params }: PageProps) {
     const [selectedMappingIds, setSelectedMappingIds] = useState<string[]>([]);
     const [loadingMappings, setLoadingMappings] = useState(true);
     const [profileTarget, setProfileTarget] = useState("");
+    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
 
     // Generation state
     const [generationPhase, setGenerationPhase] = useState(0);
@@ -111,11 +116,22 @@ export default function NewArchetypePage({ params }: PageProps) {
         try {
             const res = await fetch(`/api/sub-projects/${subProjectId}`);
             const data = await res.json();
-            if (res.ok && data.data?.mappingSessions) {
-                const completed = data.data.mappingSessions.filter(
-                    (s: MappingSessionInfo) => s.status === "COMPLETE"
-                );
-                setMappingSessions(completed);
+            if (res.ok && data.data) {
+                if (data.data.mappingSessions) {
+                    const completed = data.data.mappingSessions.filter(
+                        (s: MappingSessionInfo) => s.status === "COMPLETE"
+                    );
+                    setMappingSessions(completed);
+                }
+                setSubProject({
+                    id: data.data.id,
+                    name: data.data.name,
+                    researchStatement: data.data.researchStatement ?? null,
+                    ageRange: data.data.ageRange ?? null,
+                    lifeStage: data.data.lifeStage ?? null,
+                    createdAt: data.data.createdAt ?? null,
+                    project: data.data.project ?? null,
+                });
             }
         } catch (err) {
             console.error("Failed to fetch mappings:", err);
@@ -176,24 +192,99 @@ export default function NewArchetypePage({ params }: PageProps) {
         }
     };
 
-    return (
-        <div className={`flex flex-col transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
-            {/* Page bar — hidden during reveal animation (step 3) */}
-            {step !== 3 && (
-                <PageBar
-                    sticky={false}
-                    back={{
-                        href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes`,
-                        label: "Back",
-                    }}
-                    crumbs={[
-                        { label: "Archetypes", href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes` },
-                        { label: "Generate Profiles" },
-                    ]}
-                />
-            )}
+    const railExtras = (
+        <RailSection title="Source">
+            <MetaRow k="Mappings selected" v={selectedMappingIds.length} />
+            <MetaRow k="Profiling" v={profileTarget.trim() || "—"} />
+        </RailSection>
+    );
 
-            <div className="py-8">
+    const railNode = subProject ? (
+        <WorkspaceRail
+            subProject={subProject}
+            projectId={projectId}
+            subProjectId={subProjectId}
+            hideEdit
+        >
+            {railExtras}
+        </WorkspaceRail>
+    ) : null;
+
+    // Step 3: Reveal animation — must be full-viewport, chromeless. Render OUTSIDE the frame.
+    if (step === 3) {
+        return (
+            <div className={`flex flex-col flex-1 min-h-0 transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
+                <div className="py-8">
+                    <div className="flex flex-col items-center justify-center h-[75vh] relative">
+                        {/* Title */}
+                        <div className={`text-center mb-10 transition-all duration-700 ${stacking ? 'opacity-0 -translate-y-4' : 'opacity-100'}`}>
+                            <p className="text-caption font-medium tracking-widest text-[color:var(--primary)] uppercase mb-2">
+                                Profiles Generated
+                            </p>
+                            <h3 className="text-display-2 text-foreground">
+                                {generatedArchetypes.length} behavioural profiles identified
+                            </h3>
+                        </div>
+
+                        {/* Cards Container */}
+                        <div className="relative flex items-center justify-center" style={{ minHeight: 200 }}>
+                            {generatedArchetypes.map((archetype, index) => {
+                                const isRevealed = index < revealedCount;
+
+                                // Calculate card positions
+                                const totalCards = generatedArchetypes.length;
+                                const spread = Math.min(totalCards * 150, 640);
+                                const startX = -spread / 2;
+                                const normalX = startX + (index * (spread / (totalCards - 1 || 1)));
+
+                                // Stacking: cards move to center with slight rotation spread
+                                const stackRotation = (index - Math.floor(totalCards / 2)) * 3;
+                                const stackY = index * -3;
+
+                                return (
+                                    <div
+                                        key={archetype.id}
+                                        className={`absolute transition-all ${stacking ? 'duration-700' : 'duration-500'} ease-out`}
+                                        style={{
+                                            transform: stacking
+                                                ? `translate(0px, ${stackY}px) rotate(${stackRotation}deg) scale(0.95)`
+                                                : isRevealed
+                                                    ? `translate(${normalX}px, 0px) rotate(0deg) scale(1)`
+                                                    : `translate(0px, 40px) rotate(0deg) scale(0.8)`,
+                                            opacity: stacking && fadeOut ? 0 : isRevealed ? 1 : 0,
+                                            zIndex: stacking ? totalCards - index : index,
+                                        }}
+                                    >
+                                        <div className="w-[140px] h-[170px] rounded-[14px] bg-[color:var(--surface)] shadow-card flex flex-col items-start justify-end p-4">
+                                            <p className="text-display-4 text-foreground leading-tight line-clamp-3">
+                                                {archetype.name}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{
+                    href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes`,
+                    label: "Back",
+                }}
+                crumbs={[
+                    { label: "Archetypes", href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes` },
+                    { label: "Generate Profiles" },
+                ]}
+            />
+
+            <WorkspaceFrame variant="review" leftRail={railNode} scrollContained>
                 {/* Step 1: Setup */}
                 {step === 1 && (
                     <div className="mx-auto w-full max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -327,61 +418,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                     </div>
                 )}
 
-                {/* Step 3: Reveal Animation */}
-                {step === 3 && (
-                    <div className="flex flex-col items-center justify-center h-[75vh] relative">
-                        {/* Title */}
-                        <div className={`text-center mb-10 transition-all duration-700 ${stacking ? 'opacity-0 -translate-y-4' : 'opacity-100'}`}>
-                            <p className="text-caption font-medium tracking-widest text-[color:var(--primary)] uppercase mb-2">
-                                Profiles Generated
-                            </p>
-                            <h3 className="text-display-2 text-foreground">
-                                {generatedArchetypes.length} behavioural profiles identified
-                            </h3>
-                        </div>
-
-                        {/* Cards Container */}
-                        <div className="relative flex items-center justify-center" style={{ minHeight: 200 }}>
-                            {generatedArchetypes.map((archetype, index) => {
-                                const isRevealed = index < revealedCount;
-
-
-                                // Calculate card positions
-                                const totalCards = generatedArchetypes.length;
-                                const spread = Math.min(totalCards * 150, 640);
-                                const startX = -spread / 2;
-                                const normalX = startX + (index * (spread / (totalCards - 1 || 1)));
-
-                                // Stacking: cards move to center with slight rotation spread
-                                const stackRotation = (index - Math.floor(totalCards / 2)) * 3;
-                                const stackY = index * -3;
-
-                                return (
-                                    <div
-                                        key={archetype.id}
-                                        className={`absolute transition-all ${stacking ? 'duration-700' : 'duration-500'} ease-out`}
-                                        style={{
-                                            transform: stacking
-                                                ? `translate(0px, ${stackY}px) rotate(${stackRotation}deg) scale(0.95)`
-                                                : isRevealed
-                                                    ? `translate(${normalX}px, 0px) rotate(0deg) scale(1)`
-                                                    : `translate(0px, 40px) rotate(0deg) scale(0.8)`,
-                                            opacity: stacking && fadeOut ? 0 : isRevealed ? 1 : 0,
-                                            zIndex: stacking ? totalCards - index : index,
-                                        }}
-                                    >
-                                        <div className="w-[140px] h-[170px] rounded-[14px] bg-[color:var(--surface)] shadow-card flex flex-col items-start justify-end p-4">
-                                            <p className="text-display-4 text-foreground leading-tight line-clamp-3">
-                                                {archetype.name}
-                                            </p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

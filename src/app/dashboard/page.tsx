@@ -237,16 +237,14 @@ export default function DashboardPage() {
                                         <FolderKanban className="h-4.5 w-4.5" />
                                     </div>
 
-                                    {/* Content at bottom */}
+                                    {/* Content at bottom — mirrors project-detail workspace card */}
                                     <div className="mt-3">
-                                        <h3 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                        <h3 className="font-semibold text-foreground text-sm leading-tight line-clamp-1 mb-1">
                                             {project.name}
                                         </h3>
-                                        {project.description && (
-                                            <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2 mb-1">
-                                                {project.description}
-                                            </p>
-                                        )}
+                                        <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2 mb-2">
+                                            {project.description || "No description yet."}
+                                        </p>
                                         <p className="text-[12px] text-muted-foreground leading-snug">
                                             Created {createdLabel}
                                             {" · "}

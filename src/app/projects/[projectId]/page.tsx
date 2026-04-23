@@ -52,6 +52,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PageContainer } from "@/components/layout/page-container";
 
 interface SubProject {
     id: string;
@@ -221,7 +222,7 @@ export default function ProjectHomePage({ params }: PageProps) {
     const personaCount = approvedKbDocs.filter(d => d.docType === "PERSONA").length;
 
     return (
-        <div className="relative">
+        <PageContainer innerClassName="relative">
             <div className="pt-6 pb-20">
                 {/* Header Section */}
                 <div className="mb-8">
@@ -457,7 +458,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </PageContainer>
     );
 }
 // Created by Swapnil Bapat © 2026

@@ -11,6 +11,7 @@ import { Loader2, FolderPlus, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { BackLink } from "@/components/layout/back-link";
+import { PageContainer } from "@/components/layout/page-container";
 
 export default function NewProjectPage() {
     const router = useRouter();
@@ -57,7 +58,7 @@ export default function NewProjectPage() {
     };
 
     return (
-        <div className="pt-6 pb-20 flex flex-col items-center">
+        <PageContainer innerClassName="pt-6 pb-20 items-center">
 
             <div className="w-full max-w-2xl">
                 {/* Back Link */}
@@ -158,7 +159,7 @@ export default function NewProjectPage() {
                     </CardContent>
                 </Card>
             </div>
-        </div>
+        </PageContainer>
     );
 }
 // Created by Swapnil Bapat © 2026

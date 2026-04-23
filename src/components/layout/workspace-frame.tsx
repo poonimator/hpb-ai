@@ -53,8 +53,6 @@ function WorkspaceFrame({
         scrollContained
           ? "grid flex-1 min-h-0 overflow-hidden grid-rows-[1fr]"
           : "grid flex-1 min-h-[calc(100vh-120px)]",
-        // Edge-to-edge breakout: escape parent max-width/padding so rails meet viewport edges
-        "w-screen ml-[calc(50%_-_50vw)]",
         gridCols,
         "bg-[color:var(--canvas)]",
         className

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BackLink } from "@/components/layout/back-link";
+import { PageContainer } from "@/components/layout/page-container";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -272,7 +273,7 @@ export default function ProjectKbPage({ params }: PageProps) {
 
     return (
         <>
-            <div className="pt-6 pb-20">
+            <PageContainer innerClassName="pt-6 pb-20">
 
                     {/* Back Link */}
                     <BackLink href={`/projects/${projectId}`} label="Back to Project" />
@@ -581,7 +582,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                             })}
                         </div>
                     )}
-            </div>
+            </PageContainer>
 
             {/* View Dialog - Modernized */}
             <Dialog open={!!viewDoc} onOpenChange={(open) => !open && setViewDoc(null)}>

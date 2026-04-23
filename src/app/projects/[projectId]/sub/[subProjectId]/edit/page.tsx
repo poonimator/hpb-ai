@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBar } from "@/components/layout/page-bar";
+import { PageContainer } from "@/components/layout/page-container";
 import { toast } from "sonner";
 import {
     Loader2,
@@ -185,7 +186,7 @@ export default function EditSubProjectPage({ params }: PageProps) {
                 }
             />
 
-            <div className="pt-6 pb-20">
+            <PageContainer innerClassName="pt-6 pb-20">
                 <div className="max-w-[640px] mx-auto">
                     {/* Hero Section */}
                     <div className="flex flex-col gap-2 mb-8">
@@ -324,7 +325,7 @@ export default function EditSubProjectPage({ params }: PageProps) {
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+            </PageContainer>
         </div>
     );
 }

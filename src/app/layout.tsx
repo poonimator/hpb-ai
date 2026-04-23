@@ -36,9 +36,9 @@ export default function RootLayout({
         </div>
 
         {/* App shell — hidden on mobile */}
-        <div className="hidden md:flex min-h-screen flex-col bg-background text-foreground">
+        <div className="hidden md:flex h-screen overflow-hidden flex-col bg-background text-foreground">
           <TopNavbar />
-          <main className="flex-1 flex flex-col min-h-0 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <main className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
             {children}
           </main>
           <footer className="w-full border-t border-[color:var(--border-subtle)] bg-[color:var(--surface)]">

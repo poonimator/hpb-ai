@@ -36,6 +36,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageContainer } from "@/components/layout/page-container";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
     Upload,
@@ -260,7 +261,7 @@ export default function KnowledgeBasePage() {
     }
 
     return (
-        <div className="py-8">
+        <PageContainer innerClassName="py-8">
             <PageHeader
                 title="Global Knowledge Base"
                 description="Shared frameworks, policies, and research accessible across all projects."
@@ -707,7 +708,7 @@ export default function KnowledgeBasePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </PageContainer>
 
     );
 }

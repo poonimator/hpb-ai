@@ -18,6 +18,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageContainer } from "@/components/layout/page-container";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CenteredSpinner } from "@/components/ui/centered-spinner";
 
@@ -99,7 +100,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="pb-20">
+        <PageContainer innerClassName="pb-20">
             <PageHeader
                 eyebrow="Workspace"
                 title="My Projects"
@@ -209,7 +210,7 @@ export default function DashboardPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </PageContainer>
     );
 }
 // Created by Swapnil Bapat © 2026

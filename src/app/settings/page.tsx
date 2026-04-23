@@ -11,6 +11,7 @@ import {
     Sparkles
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageContainer } from "@/components/layout/page-container";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -30,7 +31,7 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto pt-6 pb-20">
+        <PageContainer innerClassName="max-w-4xl pt-6 pb-20">
             <PageHeader
                 eyebrow="Admin"
                 title="Settings"
@@ -135,7 +136,7 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
             </div>
-        </div>
+        </PageContainer>
     );
 }
 // Created by Swapnil Bapat © 2026

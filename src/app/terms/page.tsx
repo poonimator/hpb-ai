@@ -1,9 +1,10 @@
 import { BackLink } from "@/components/layout/back-link"
+import { PageContainer } from "@/components/layout/page-container"
 import { PageHeader } from "@/components/layout/page-header"
 
 export default function TermsPage() {
   return (
-    <div className="max-w-[720px] mx-auto pt-6 pb-20">
+    <PageContainer innerClassName="max-w-[720px] pt-6 pb-20">
       <BackLink href="/dashboard" label="Back to Dashboard" />
 
       <PageHeader
@@ -126,6 +127,6 @@ export default function TermsPage() {
           </p>
         </section>
       </article>
-    </div>
+    </PageContainer>
   )
 }

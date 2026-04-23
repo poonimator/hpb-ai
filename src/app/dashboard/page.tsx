@@ -140,12 +140,11 @@ export default function DashboardPage() {
     }
 
     return (
-        // Left-anchored layout matching the TopNav's frame. The dashboard's
-        // left edge (md:pl-[153px]) sits directly under the "Projects" nav
-        // item; the right edge (md:pr-7) matches the nav's own px-7 outer
-        // padding, so both bars share the same horizontal bounds.
+        // Full-width frame matching the TopNav exactly: px-7 on both sides.
+        // Dashboard content starts at the logo's left edge and ends at the
+        // nav's right edge — the two bars share identical horizontal bounds.
         <div className="flex-1 min-h-0 w-full overflow-y-auto">
-          <div className="w-full flex flex-col pt-10 pb-20 pl-4 pr-4 sm:pl-6 sm:pr-6 md:pl-[153px] md:pr-7">
+          <div className="w-full flex flex-col pt-10 pb-20 px-7">
             {/* Page header — matches the display-heavy intro blocks on the rest of the app */}
             <header className="mb-10 flex items-end justify-between gap-6 border-b border-[color:var(--border-subtle)] pb-8">
                 <div className="flex flex-col gap-2">

@@ -42,6 +42,12 @@ import { PageBar } from "@/components/layout/page-bar";
 import { ChatBubble } from "@/components/tools/chat-bubble";
 import { OpportunityCard } from "@/components/tools/opportunity-card";
 import { ModeratorGuidePanel } from "@/components/tools/moderator-guide-panel";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { WorkspaceRail } from "@/components/tools/workspace-rail";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { cn } from "@/lib/utils";
 
 interface ParsedPersona {
@@ -1024,63 +1030,230 @@ function SimulationPageContent({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* Live workspace grid — guide rail (if any) · chat · opportunities */}
-                    <div
-                        data-slot="session-workspace"
-                        className={cn(
-                            "grid flex-1 min-h-0 w-screen ml-[calc(50%_-_50vw)] bg-[color:var(--canvas)]",
-                            hasActiveGuide
-                                ? "grid-cols-[300px_1fr_380px]"
-                                : "grid-cols-[1fr_380px]"
-                        )}
-                    >
-                        {/* LEFT rail — Moderator Guide */}
-                        {hasActiveGuide && (
-                            <aside
-                                data-slot="guide-rail"
-                                className="bg-[color:var(--surface)] border-r border-[color:var(--border-subtle)] flex flex-col min-h-0 overflow-hidden"
-                            >
-                                <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:var(--border-subtle)] shrink-0">
-                                    <div className="h-6 w-6 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center">
-                                        <BookOpen className="h-3.5 w-3.5" />
-                                    </div>
-                                    <span className="text-ui-sm font-semibold text-foreground">Moderator Guide</span>
-                                </div>
-                                <div ref={guideScrollAreaRef} className="flex-1 min-h-0 overflow-y-auto p-4">
-                                    <ModeratorGuidePanel
-                                        sections={(activeGuide?.guideSets || []).map((set) => ({
-                                            id: set.id,
-                                            title: set.title,
-                                            questions: (set.questions || []).map((q) => ({
-                                                id: q.id,
-                                                text: q.text,
-                                                subQuestions: q.subQuestions,
-                                            })),
-                                        }))}
-                                        coveredQuestionIds={coveredQuestionIds}
-                                        highlightedQuestionId={highlightedQuestionId}
-                                        highlightedQuestionReason={highlightedQuestionReason}
-                                        registerRef={(id, el) => {
-                                            if (el) questionRefs.current.set(id, el);
-                                            else questionRefs.current.delete(id);
-                                        }}
-                                        onPickQuestion={(text) => {
-                                            setInputMessage(text);
-                                            inputRef.current?.focus();
-                                        }}
-                                        onPickSubQuestion={(text) => {
-                                            setInputMessage(text);
-                                            inputRef.current?.focus();
-                                        }}
-                                    />
-                                </div>
-                            </aside>
-                        )}
+                    {/* Live workspace — inline identity + optional guide · chat · opportunities */}
+                    <WorkspaceFrame
+                        variant="platform"
+                        scrollContained
+                        leftRail={
+                            <>
+                                {/* Inline workspace identity (mirrors WorkspaceRail look but without flex-1 spacer,
+                                    so the ModeratorGuidePanel can flow underneath in the same rail). */}
+                                {subProject && (
+                                    <>
+                                        <RailHeader>
+                                            <h2 className="text-display-4 text-foreground leading-tight">{subProject.name}</h2>
+                                            {subProject.researchStatement && (
+                                                <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                                    {subProject.researchStatement}
+                                                </p>
+                                            )}
+                                        </RailHeader>
+                                        <RailSection title="Session">
+                                            <MetaRow k="Mode" v={isFocusGroup ? "Focus group" : "1:1"} />
+                                            <MetaRow
+                                                k="Guide"
+                                                v={selectedGuideId && selectedGuideId !== "none" ? (activeGuide?.name || "Selected") : "None"}
+                                            />
+                                        </RailSection>
+                                        <RailSection title="Participants">
+                                            {isFocusGroup && focusGroupArchetypes.length > 0 ? (
+                                                <div className="flex flex-col gap-2">
+                                                    {focusGroupArchetypes.map((arch) => {
+                                                        const color = getArchetypeColor(arch.id);
+                                                        return (
+                                                            <div key={arch.id} className="flex items-center gap-2.5">
+                                                                <div className={`h-6 w-6 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} font-semibold text-[10px] shadow-inset-edge shrink-0`}>
+                                                                    {getInitial(arch.name)}
+                                                                </div>
+                                                                <span className="text-ui-sm text-foreground truncate">{arch.name}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : selectedPersonaDetails?.name ? (
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="h-6 w-6 rounded-full bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center font-semibold text-[10px] shrink-0">
+                                                        {selectedPersonaDetails.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="text-ui-sm text-foreground truncate">{selectedPersonaDetails.name}</div>
+                                                        {selectedPersonaDetails.occupation && (
+                                                            <div className="text-caption text-muted-foreground truncate">{selectedPersonaDetails.occupation}</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-body-sm text-muted-foreground">—</span>
+                                            )}
+                                            {hasActiveGuide && (() => {
+                                                const totalQs = (activeGuide?.guideSets || []).reduce(
+                                                    (acc, s) => acc + (s.questions?.length || 0), 0
+                                                );
+                                                if (totalQs === 0) return null;
+                                                const covered = coveredQuestionIds.size;
+                                                const pct = Math.round((covered / totalQs) * 100);
+                                                return (
+                                                    <div className="mt-4 pt-4 border-t border-[color:var(--border-subtle)]">
+                                                        <div className="mb-1.5"><Eyebrow>Coverage</Eyebrow></div>
+                                                        <div className="flex items-center justify-between text-ui-sm">
+                                                            <span className="text-foreground font-medium">{covered}/{totalQs}</span>
+                                                            <span className="text-muted-foreground">{pct}%</span>
+                                                        </div>
+                                                        <div className="mt-2 h-1.5 rounded-full bg-[color:var(--surface-muted)] overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-[color:var(--primary)] transition-all"
+                                                                style={{ width: `${pct}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </RailSection>
+                                    </>
+                                )}
 
+                                {/* Moderator Guide panel — flows underneath identity in the same rail */}
+                                {hasActiveGuide && (
+                                    <div className="flex flex-col min-h-0 flex-1">
+                                        <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:var(--border-subtle)] shrink-0">
+                                            <div className="h-6 w-6 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center">
+                                                <BookOpen className="h-3.5 w-3.5" />
+                                            </div>
+                                            <span className="text-ui-sm font-semibold text-foreground">Moderator Guide</span>
+                                        </div>
+                                        <div ref={guideScrollAreaRef} className="flex-1 min-h-0 overflow-y-auto p-4">
+                                            <ModeratorGuidePanel
+                                                sections={(activeGuide?.guideSets || []).map((set) => ({
+                                                    id: set.id,
+                                                    title: set.title,
+                                                    questions: (set.questions || []).map((q) => ({
+                                                        id: q.id,
+                                                        text: q.text,
+                                                        subQuestions: q.subQuestions,
+                                                    })),
+                                                }))}
+                                                coveredQuestionIds={coveredQuestionIds}
+                                                highlightedQuestionId={highlightedQuestionId}
+                                                highlightedQuestionReason={highlightedQuestionReason}
+                                                registerRef={(id, el) => {
+                                                    if (el) questionRefs.current.set(id, el);
+                                                    else questionRefs.current.delete(id);
+                                                }}
+                                                onPickQuestion={(text) => {
+                                                    setInputMessage(text);
+                                                    inputRef.current?.focus();
+                                                }}
+                                                onPickSubQuestion={(text) => {
+                                                    setInputMessage(text);
+                                                    inputRef.current?.focus();
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        }
+                        rightRail={
+                            <div
+                                data-slot="opportunity-rail"
+                                ref={liveCoachScrollRef}
+                                className="flex flex-col min-h-0 flex-1 overflow-y-auto"
+                            >
+                                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[color:var(--border-subtle)] shrink-0 bg-[color:var(--surface)] sticky top-0 z-10">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-6 w-6 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center">
+                                            <Lightbulb className="h-3.5 w-3.5" />
+                                        </div>
+                                        <span className="text-ui-sm font-semibold text-foreground">Live Coach</span>
+                                    </div>
+                                    {isCoachLoading && (
+                                        <span className="inline-flex items-center gap-1.5 text-caption text-[color:var(--knowledge)]">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            Analysing
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-h-0 p-4 flex flex-col gap-2.5">
+                                    {coachNudges.length === 0 && !isCoachLoading && (
+                                        <div className="flex flex-col items-center justify-center text-center py-10 px-4 gap-2">
+                                            <div className="h-10 w-10 rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge flex items-center justify-center">
+                                                <Sparkles className="h-5 w-5 text-muted-foreground" />
+                                            </div>
+                                            <p className="text-body-sm text-muted-foreground max-w-[220px]">
+                                                Opportunities will appear here as the conversation unfolds.
+                                            </p>
+                                        </div>
+                                    )}
+                                    {coachNudges.flatMap((nudge) => {
+                                        const rows: React.ReactNode[] = [];
+                                        if (nudge.opportunities && nudge.opportunities.length > 0) {
+                                            nudge.opportunities.forEach((opp, oppIdx) => {
+                                                const opportunityId = `${nudge.id}-opp-${oppIdx}`;
+                                                const isExpanded = expandedOpportunityId === opportunityId;
+                                                rows.push(
+                                                    <OpportunityCard
+                                                        key={opportunityId}
+                                                        quote={opp.quote}
+                                                        surfacedContext={opp.surfacedContext}
+                                                        testableAssumption={opp.testableAssumption}
+                                                        explorationDirection={opp.explorationDirection}
+                                                        expanded={isExpanded}
+                                                        onToggle={() => setExpandedOpportunityId(isExpanded ? null : opportunityId)}
+                                                        onClose={() => setExpandedOpportunityId(null)}
+                                                    />
+                                                );
+                                            });
+                                        } else if (nudge.coachingNudge) {
+                                            const legacyId = nudge.id;
+                                            const isExpanded = expandedOpportunityId === legacyId;
+                                            rows.push(
+                                                <OpportunityCard
+                                                    key={legacyId}
+                                                    quote={nudge.highlightQuote}
+                                                    surfacedContext={nudge.coachingNudge}
+                                                    expanded={isExpanded}
+                                                    onToggle={() => setExpandedOpportunityId(isExpanded ? null : legacyId)}
+                                                    onClose={() => setExpandedOpportunityId(null)}
+                                                />
+                                            );
+                                        }
+                                        return rows;
+                                    })}
+                                    {isCoachLoading && (
+                                        <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-4 flex items-start gap-3">
+                                            <div className="h-8 w-8 rounded-[10px] bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] shadow-inset-edge flex items-center justify-center shrink-0">
+                                                <Sparkles className="h-4 w-4 animate-pulse" />
+                                            </div>
+                                            <div className="flex-1 min-w-0 space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[color:var(--knowledge)]">
+                                                        Coach Analysing
+                                                    </span>
+                                                    <div className="flex gap-1">
+                                                        <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                                        <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                                        <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce" />
+                                                    </div>
+                                                </div>
+                                                <p className="text-caption text-muted-foreground leading-relaxed">
+                                                    Reviewing research &amp; identifying opportunities...
+                                                </p>
+                                                <div className="space-y-1.5 pt-1">
+                                                    <div className="h-2 bg-[color:var(--surface-muted)] rounded-full animate-pulse w-[85%]" />
+                                                    <div className="h-2 bg-[color:var(--surface-muted)] rounded-full animate-pulse w-[60%]" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        }
+                        mainClassName="!p-0 !overflow-hidden relative flex flex-col"
+                    >
                         {/* CENTER — chat + composer */}
-                        <main
+                        <div
                             data-slot="chat-main"
-                            className="relative flex flex-col min-h-0 overflow-hidden"
+                            className="relative flex flex-col flex-1 min-h-0 overflow-hidden"
                         >
                             <div className="flex-1 min-h-0 overflow-y-auto px-6 md:px-10 pt-8 pb-40">
                                 <div className="mx-auto w-full max-w-[760px] flex flex-col gap-5">
@@ -1374,103 +1547,8 @@ function SimulationPageContent({ params }: PageProps) {
                                     </div>
                                 </div>
                             </div>
-                        </main>
-
-                        {/* RIGHT rail — Live Coach opportunities */}
-                        <aside
-                            data-slot="opportunity-rail"
-                            ref={liveCoachScrollRef}
-                            className="bg-[color:var(--surface)] border-l border-[color:var(--border-subtle)] flex flex-col min-h-0 overflow-y-auto"
-                        >
-                            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[color:var(--border-subtle)] shrink-0 bg-[color:var(--surface)] sticky top-0 z-10">
-                                <div className="flex items-center gap-2">
-                                    <div className="h-6 w-6 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center">
-                                        <Lightbulb className="h-3.5 w-3.5" />
-                                    </div>
-                                    <span className="text-ui-sm font-semibold text-foreground">Live Coach</span>
-                                </div>
-                                {isCoachLoading && (
-                                    <span className="inline-flex items-center gap-1.5 text-caption text-[color:var(--knowledge)]">
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                        Analysing
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex-1 min-h-0 p-4 flex flex-col gap-2.5">
-                                {coachNudges.length === 0 && !isCoachLoading && (
-                                    <div className="flex flex-col items-center justify-center text-center py-10 px-4 gap-2">
-                                        <div className="h-10 w-10 rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge flex items-center justify-center">
-                                            <Sparkles className="h-5 w-5 text-muted-foreground" />
-                                        </div>
-                                        <p className="text-body-sm text-muted-foreground max-w-[220px]">
-                                            Opportunities will appear here as the conversation unfolds.
-                                        </p>
-                                    </div>
-                                )}
-                                {coachNudges.flatMap((nudge) => {
-                                    const rows: React.ReactNode[] = [];
-                                    if (nudge.opportunities && nudge.opportunities.length > 0) {
-                                        nudge.opportunities.forEach((opp, oppIdx) => {
-                                            const opportunityId = `${nudge.id}-opp-${oppIdx}`;
-                                            const isExpanded = expandedOpportunityId === opportunityId;
-                                            rows.push(
-                                                <OpportunityCard
-                                                    key={opportunityId}
-                                                    quote={opp.quote}
-                                                    surfacedContext={opp.surfacedContext}
-                                                    testableAssumption={opp.testableAssumption}
-                                                    explorationDirection={opp.explorationDirection}
-                                                    expanded={isExpanded}
-                                                    onToggle={() => setExpandedOpportunityId(isExpanded ? null : opportunityId)}
-                                                    onClose={() => setExpandedOpportunityId(null)}
-                                                />
-                                            );
-                                        });
-                                    } else if (nudge.coachingNudge) {
-                                        const legacyId = nudge.id;
-                                        const isExpanded = expandedOpportunityId === legacyId;
-                                        rows.push(
-                                            <OpportunityCard
-                                                key={legacyId}
-                                                quote={nudge.highlightQuote}
-                                                surfacedContext={nudge.coachingNudge}
-                                                expanded={isExpanded}
-                                                onToggle={() => setExpandedOpportunityId(isExpanded ? null : legacyId)}
-                                                onClose={() => setExpandedOpportunityId(null)}
-                                            />
-                                        );
-                                    }
-                                    return rows;
-                                })}
-                                {isCoachLoading && (
-                                    <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-4 flex items-start gap-3">
-                                        <div className="h-8 w-8 rounded-[10px] bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] shadow-inset-edge flex items-center justify-center shrink-0">
-                                            <Sparkles className="h-4 w-4 animate-pulse" />
-                                        </div>
-                                        <div className="flex-1 min-w-0 space-y-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[color:var(--knowledge)]">
-                                                    Coach Analysing
-                                                </span>
-                                                <div className="flex gap-1">
-                                                    <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce [animation-delay:-0.3s]" />
-                                                    <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce [animation-delay:-0.15s]" />
-                                                    <span className="w-1.5 h-1.5 bg-[color:var(--knowledge)] rounded-full animate-bounce" />
-                                                </div>
-                                            </div>
-                                            <p className="text-caption text-muted-foreground leading-relaxed">
-                                                Reviewing research &amp; identifying opportunities...
-                                            </p>
-                                            <div className="space-y-1.5 pt-1">
-                                                <div className="h-2 bg-[color:var(--surface-muted)] rounded-full animate-pulse w-[85%]" />
-                                                <div className="h-2 bg-[color:var(--surface-muted)] rounded-full animate-pulse w-[60%]" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </aside>
-                    </div>
+                        </div>
+                    </WorkspaceFrame>
                 </>
             ) : (
                 /* When simulation is NOT STARTED - Setup View */
@@ -1513,7 +1591,36 @@ function SimulationPageContent({ params }: PageProps) {
                         }
                     />
 
-                    <div className="flex-1 min-h-0 py-8">
+                    <WorkspaceFrame
+                        variant="review"
+                        scrollContained
+                        leftRail={
+                            subProject && (
+                                <WorkspaceRail
+                                    subProject={subProject}
+                                    projectId={projectId}
+                                    subProjectId={subProjectId}
+                                    hideEdit
+                                >
+                                    <RailSection title="Session">
+                                        <MetaRow k="Mode" v={isFocusGroup ? "Focus group" : "1:1"} />
+                                        <MetaRow
+                                            k="Guide"
+                                            v={selectedGuideId && selectedGuideId !== "none" ? "Selected" : "None"}
+                                        />
+                                        <MetaRow
+                                            k={isFocusGroup ? "Archetypes" : "Persona"}
+                                            v={
+                                                isFocusGroup
+                                                    ? String(selectedArchetypeIds.length)
+                                                    : (selectedPersonaId ? "Selected" : "—")
+                                            }
+                                        />
+                                    </RailSection>
+                                </WorkspaceRail>
+                            )
+                        }
+                    >
                         {/* Collapsible Configuration Panel */}
                         {showConfig && (
                             <div className="mb-6 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -2102,7 +2209,7 @@ function SimulationPageContent({ params }: PageProps) {
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </WorkspaceFrame>
                 </>
             )}
             {/* activePanel is preserved for future coach/guide tab-switching UX; reference to silence unused-var */}

@@ -25,6 +25,12 @@ type Props = {
    */
   scrollContained?: boolean
   className?: string
+  /**
+   * Override classes for the inner <main>. Use to remove default padding or
+   * disable main's overflow-y-auto for pages whose content manages its own
+   * internal scroll container (e.g. chat with a floating composer).
+   */
+  mainClassName?: string
 }
 
 function WorkspaceFrame({
@@ -34,6 +40,7 @@ function WorkspaceFrame({
   children,
   scrollContained = false,
   className,
+  mainClassName,
 }: Props) {
   const hasRight = variant !== "review" && rightRail
   const gridCols = hasRight ? columns[variant] : "grid-cols-[280px_1fr]"
@@ -73,7 +80,8 @@ function WorkspaceFrame({
         data-slot="workspace-main"
         className={cn(
           "min-w-0 px-10 pt-8 pb-18",
-          scrollContained && "overflow-y-auto"
+          scrollContained && "overflow-y-auto",
+          mainClassName
         )}
       >
         {children}

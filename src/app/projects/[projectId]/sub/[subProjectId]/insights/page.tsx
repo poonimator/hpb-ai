@@ -17,6 +17,10 @@ import {
     Trash2,
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { WorkspaceRail } from "@/components/tools/workspace-rail";
 import { LensCard, adaptCriteria } from "@/components/tools/lens-card";
 
 // ─── Types ───────────────────────────────────────────────────────────────
@@ -82,6 +86,9 @@ interface SubProject {
     id: string;
     name: string;
     researchStatement: string;
+    ageRange?: string | null;
+    lifeStage?: string | null;
+    createdAt?: string | null;
     project: {
         id: string;
         name: string;
@@ -501,9 +508,26 @@ export default function InsightsPage({ params }: PageProps) {
                 crumbs={crumbs}
             />
 
-            <div className="px-8 py-10 animate-in fade-in duration-500">
-                <div className="mx-auto max-w-3xl">
-                    {/* Page intro */}
+            <WorkspaceFrame
+                variant="review"
+                scrollContained
+                leftRail={
+                    subProject && (
+                        <WorkspaceRail
+                            subProject={subProject}
+                            projectId={projectId}
+                            subProjectId={subProjectId}
+                        >
+                            <RailSection title="History">
+                                <MetaRow k="Analyses" v={history.length} />
+                            </RailSection>
+                        </WorkspaceRail>
+                    )
+                }
+            >
+                <div className="animate-in fade-in duration-500">
+                    <div className="mx-auto max-w-3xl">
+                        {/* Page intro */}
                     <div className="mb-8 text-center">
                         <div className="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge">
                             <Lightbulb className="size-5" strokeWidth={1.5} />
@@ -603,8 +627,9 @@ export default function InsightsPage({ params }: PageProps) {
                             </div>
                         </div>
                     )}
+                    </div>
                 </div>
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

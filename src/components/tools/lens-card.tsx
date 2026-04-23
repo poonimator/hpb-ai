@@ -168,7 +168,7 @@ function LensCardExploration({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2.5 rounded-[12px] bg-[#f1f1f1] shadow-inset-edge px-[18px] py-4 min-w-0 overflow-hidden",
+        "flex flex-col gap-2.5 rounded-[12px] bg-[#fafafa] shadow-inset-edge px-[18px] py-4 min-w-0 overflow-hidden",
         className,
       )}
     >

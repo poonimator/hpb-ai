@@ -705,22 +705,6 @@ export default function InsightsPage({ params }: PageProps) {
             >
                 <div className="animate-in fade-in duration-500">
                     <div className="mx-auto max-w-3xl">
-                        {/* Page intro */}
-                    <div className="mb-8 text-center">
-                        <div className="mx-auto mb-4 inline-flex size-10 items-center justify-center rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge">
-                            <Lightbulb className="size-5" strokeWidth={1.5} />
-                        </div>
-                        <h1 className="mb-2 text-display-4 font-semibold text-foreground">
-                            Insight Statement Analyser
-                        </h1>
-                        <p className="mx-auto max-w-lg text-body-sm text-muted-foreground">
-                            Critique your insight statements against 5 quality criteria, enriched with
-                            LUMA&apos;s human-centred design principles and your project&apos;s research.
-                        </p>
-                    </div>
-
-                    {/* Criteria Formula */}
-                    <InsightFormula />
 
                     {/* Composer */}
                     <div className="mb-6 rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-5 shadow-composer">

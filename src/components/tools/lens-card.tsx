@@ -28,6 +28,10 @@ import { cn } from "@/lib/utils"
  *        used by the fallback 5-lens / 5-criteria sections of the HMW +
  *        Insights pages. Renders a verdict-badged variant.
  *
+ * Both renderers default to collapsed when the lens PASSES and expanded when
+ * it NEEDS WORK / FAILS. Clicking the header toggles state, with a chevron
+ * that rotates to signal direction.
+ *
  * The `adaptCriteria()` / `adaptLens()` helpers exported at the bottom still
  * return the `LensLike` shape for those legacy call sites.
  */
@@ -73,6 +77,13 @@ interface LensCardExplorationProps {
   research?: string
   /** Italic secondary line under the research body (e.g. source). */
   researchTitle?: string
+  /** Whether the card can be toggled open/closed. Defaults to `true`. */
+  collapsible?: boolean
+  /**
+   * Initial expanded state. Defaults to `true` when `needsWork` is present,
+   * `false` otherwise (PASS-style cards collapse by default).
+   */
+  defaultExpanded?: boolean
   className?: string
 }
 
@@ -102,9 +113,67 @@ function LensCardExploration({
   needsWork,
   research,
   researchTitle,
+  collapsible = true,
+  defaultExpanded,
   className,
 }: LensCardExplorationProps) {
-  return (
+  const isPass = !needsWork
+  const initial = defaultExpanded ?? !isPass
+  const [expanded, setExpanded] = React.useState(initial)
+
+  // Header label: the first PASS tag, or "Needs Work" if the card has a chip.
+  const statusLabel = needsWork
+    ? "Needs Work"
+    : tags.length > 0
+      ? tags[0]
+      : "Pass"
+
+  const header = (
+    <div className="flex items-center gap-2">
+      <Lightbulb
+        size={16}
+        style={{ color: accent }}
+        strokeWidth={1.5}
+        className="shrink-0"
+      />
+      {fragment ? (
+        <span
+          className="flex-1 truncate text-body-sm font-medium"
+          style={{ color: accent }}
+        >
+          <span className="italic">{fragment}</span>
+        </span>
+      ) : (
+        <span className="flex-1 text-body-sm font-medium text-foreground" />
+      )}
+      <span
+        className={cn(
+          "inline-flex shrink-0 items-center gap-1 text-[11px]",
+          needsWork
+            ? "text-[color:var(--primary)]"
+            : "text-[color:var(--ink-muted)]",
+        )}
+      >
+        {needsWork ? (
+          <AlertTriangle className="size-3" strokeWidth={1.75} />
+        ) : (
+          <CheckCircle2 className="size-3" strokeWidth={1.75} />
+        )}
+        <span className="font-medium">{statusLabel}</span>
+      </span>
+      {collapsible ? (
+        <ChevronDown
+          className={cn(
+            "size-3.5 shrink-0 text-[color:var(--ink-muted)] transition-transform duration-200",
+            expanded ? "rotate-180" : "",
+          )}
+          strokeWidth={1.75}
+        />
+      ) : null}
+    </div>
+  )
+
+  const inner = (
     <div
       className={cn(
         "flex flex-col gap-2.5 rounded-[12px] px-[18px] py-4",
@@ -112,60 +181,68 @@ function LensCardExploration({
       )}
       style={{ background: bg }}
     >
-      <Lightbulb size={14} style={{ color: accent }} strokeWidth={1.5} />
-
-      {body ? (
-        <p className="text-[12.5px] leading-[1.55] tracking-[0.01em] text-[color:var(--ink-secondary)]">
-          {body}
-        </p>
-      ) : null}
-
-      {fragment ? (
-        <p
-          className="text-[12px] italic leading-[1.4]"
-          style={{ color: accent }}
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex w-full items-center gap-2 text-left transition-colors hover:opacity-90"
+          aria-expanded={expanded}
         >
-          {fragment}
-        </p>
-      ) : null}
+          {header}
+        </button>
+      ) : (
+        header
+      )}
 
-      {tags.length > 0
-        ? tags.map((t) => (
-            <div
-              key={t}
-              className="rounded-[8px] bg-white px-[10px] py-[6px] text-[11.5px] text-[color:var(--ink-secondary)] shadow-inset-edge"
-            >
-              ✓ {t}
-            </div>
-          ))
-        : null}
-
-      {needsWork ? (
+      {(!collapsible || expanded) && (
         <>
-          <span className="inline-flex w-fit items-center gap-1 rounded-[4px] bg-[color:var(--primary-soft)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary)] shadow-inset-edge">
-            ⚠ NEEDS WORK
-          </span>
-          <p className="text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)]">
-            {needsWork}
-          </p>
-        </>
-      ) : null}
+          {body ? (
+            <p className="text-[12.5px] leading-[1.55] tracking-[0.01em] text-[color:var(--ink-secondary)]">
+              {body}
+            </p>
+          ) : null}
 
-      {research ? (
-        <div className="rounded-[8px] bg-white px-3 py-2.5 text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)] shadow-inset-edge">
-          {research}
-          {researchTitle ? (
+          {tags.length > 0
+            ? tags.map((t) => (
+                <div
+                  key={t}
+                  className="rounded-[8px] bg-white px-[10px] py-[6px] text-[11.5px] text-[color:var(--ink-secondary)] shadow-inset-edge"
+                >
+                  ✓ {t}
+                </div>
+              ))
+            : null}
+
+          {needsWork ? (
             <>
-              <br />
-              <span className="italic text-[color:var(--ink-muted)]">
-                {researchTitle}
+              <span className="inline-flex w-fit items-center gap-1 rounded-[4px] bg-[color:var(--primary-soft)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary)] shadow-inset-edge">
+                ⚠ NEEDS WORK
               </span>
+              <p className="text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)]">
+                {needsWork}
+              </p>
             </>
           ) : null}
-        </div>
-      ) : null}
+
+          {research ? (
+            <div className="rounded-[8px] bg-white px-3 py-2.5 text-[11.5px] leading-[1.55] text-[color:var(--ink-secondary)] shadow-inset-edge">
+              {research}
+              {researchTitle ? (
+                <>
+                  <br />
+                  <span className="italic text-[color:var(--ink-muted)]">
+                    {researchTitle}
+                  </span>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   )
+
+  return inner
 }
 
 // ─── Legacy (verdict-badge) renderer — kept for fallback sections ────────

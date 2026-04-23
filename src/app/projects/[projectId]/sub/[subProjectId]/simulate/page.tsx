@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, use, Suspense, useCallback } from "react";
+import { useState, useEffect, useRef, use, Suspense, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -43,11 +43,11 @@ import { ChatBubble } from "@/components/tools/chat-bubble";
 import { OpportunityCard } from "@/components/tools/opportunity-card";
 import { ModeratorGuidePanel } from "@/components/tools/moderator-guide-panel";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
-import { WorkspaceRail } from "@/components/tools/workspace-rail";
 import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface ParsedPersona {
@@ -940,6 +940,15 @@ function SimulationPageContent({ params }: PageProps) {
     const activeGuide = guides.find(g => g.id === selectedGuideId);
     const hasActiveGuide = isStarted && selectedGuideId && selectedGuideId !== "none" && !!activeGuide;
 
+    // Elapsed session time (minutes) — derived from first message timestamp
+    const elapsedMinutes = useMemo(() => {
+        if (!messages.length) return 0;
+        const firstRaw = messages[0]?.timestamp;
+        const first = firstRaw ? new Date(firstRaw).getTime() : Date.now();
+        const last = Date.now();
+        return Math.max(0, Math.round((last - first) / 60000));
+    }, [messages]);
+
     // Build crumbs for PageBar (setup mode)
     const setupCrumbs = subProject?.name
         ? [
@@ -1036,120 +1045,96 @@ function SimulationPageContent({ params }: PageProps) {
                         scrollContained
                         leftRail={
                             <>
-                                {/* Inline workspace identity (mirrors WorkspaceRail look but without flex-1 spacer,
-                                    so the ModeratorGuidePanel can flow underneath in the same rail). */}
-                                {subProject && (
-                                    <>
-                                        <RailHeader>
-                                            <h2 className="text-display-4 text-foreground leading-tight">{subProject.name}</h2>
-                                            {subProject.researchStatement && (
-                                                <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
-                                                    {subProject.researchStatement}
-                                                </p>
-                                            )}
-                                        </RailHeader>
-                                        <RailSection title="Session">
-                                            <MetaRow k="Mode" v={isFocusGroup ? "Focus group" : "1:1"} />
-                                            <MetaRow
-                                                k="Guide"
-                                                v={selectedGuideId && selectedGuideId !== "none" ? (activeGuide?.name || "Selected") : "None"}
-                                            />
-                                        </RailSection>
-                                        <RailSection title="Participants">
-                                            {isFocusGroup && focusGroupArchetypes.length > 0 ? (
-                                                <div className="flex flex-col gap-2">
-                                                    {focusGroupArchetypes.map((arch) => {
-                                                        const color = getArchetypeColor(arch.id);
-                                                        return (
-                                                            <div key={arch.id} className="flex items-center gap-2.5">
-                                                                <div className={`h-6 w-6 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} font-semibold text-[10px] shadow-inset-edge shrink-0`}>
-                                                                    {getInitial(arch.name)}
-                                                                </div>
-                                                                <span className="text-ui-sm text-foreground truncate">{arch.name}</span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            ) : selectedPersonaDetails?.name ? (
-                                                <div className="flex items-center gap-2.5">
-                                                    <div className="h-6 w-6 rounded-full bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center font-semibold text-[10px] shrink-0">
-                                                        {selectedPersonaDetails.name.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="text-ui-sm text-foreground truncate">{selectedPersonaDetails.name}</div>
-                                                        {selectedPersonaDetails.occupation && (
-                                                            <div className="text-caption text-muted-foreground truncate">{selectedPersonaDetails.occupation}</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-body-sm text-muted-foreground">—</span>
-                                            )}
-                                            {hasActiveGuide && (() => {
-                                                const totalQs = (activeGuide?.guideSets || []).reduce(
-                                                    (acc, s) => acc + (s.questions?.length || 0), 0
-                                                );
-                                                if (totalQs === 0) return null;
-                                                const covered = coveredQuestionIds.size;
-                                                const pct = Math.round((covered / totalQs) * 100);
-                                                return (
-                                                    <div className="mt-4 pt-4 border-t border-[color:var(--border-subtle)]">
-                                                        <div className="mb-1.5"><Eyebrow>Coverage</Eyebrow></div>
-                                                        <div className="flex items-center justify-between text-ui-sm">
-                                                            <span className="text-foreground font-medium">{covered}/{totalQs}</span>
-                                                            <span className="text-muted-foreground">{pct}%</span>
-                                                        </div>
-                                                        <div className="mt-2 h-1.5 rounded-full bg-[color:var(--surface-muted)] overflow-hidden">
-                                                            <div
-                                                                className="h-full bg-[color:var(--primary)] transition-all"
-                                                                style={{ width: `${pct}%` }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()}
-                                        </RailSection>
-                                    </>
-                                )}
-
-                                {/* Moderator Guide panel — flows underneath identity in the same rail */}
-                                {hasActiveGuide && (
-                                    <div className="flex flex-col min-h-0 flex-1">
-                                        <div className="flex items-center gap-2 px-4 py-3 border-b border-[color:var(--border-subtle)] shrink-0">
-                                            <div className="h-6 w-6 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center">
-                                                <BookOpen className="h-3.5 w-3.5" />
-                                            </div>
-                                            <span className="text-ui-sm font-semibold text-foreground">Moderator Guide</span>
-                                        </div>
-                                        <div ref={guideScrollAreaRef} className="flex-1 min-h-0 overflow-y-auto p-4">
-                                            <ModeratorGuidePanel
-                                                sections={(activeGuide?.guideSets || []).map((set) => ({
-                                                    id: set.id,
-                                                    title: set.title,
-                                                    questions: (set.questions || []).map((q) => ({
-                                                        id: q.id,
-                                                        text: q.text,
-                                                        subQuestions: q.subQuestions,
-                                                    })),
-                                                }))}
-                                                coveredQuestionIds={coveredQuestionIds}
-                                                highlightedQuestionId={highlightedQuestionId}
-                                                highlightedQuestionReason={highlightedQuestionReason}
-                                                registerRef={(id, el) => {
-                                                    if (el) questionRefs.current.set(id, el);
-                                                    else questionRefs.current.delete(id);
-                                                }}
-                                                onPickQuestion={(text) => {
-                                                    setInputMessage(text);
-                                                    inputRef.current?.focus();
-                                                }}
-                                                onPickSubQuestion={(text) => {
-                                                    setInputMessage(text);
-                                                    inputRef.current?.focus();
-                                                }}
-                                            />
-                                        </div>
+                                <RailHeader>
+                                    <div className="flex items-center gap-2">
+                                        <Badge className="bg-[color:var(--info-soft)] text-[color:var(--info)] border-transparent">
+                                            In Progress
+                                        </Badge>
+                                        <span className="text-caption text-muted-foreground">
+                                            · {elapsedMinutes}m
+                                        </span>
                                     </div>
+                                    <h2 className="text-display-4 text-foreground leading-tight">
+                                        {subProject?.name || "Session"}
+                                    </h2>
+                                    {subProject?.researchStatement && (
+                                        <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                            {subProject.researchStatement}
+                                        </p>
+                                    )}
+                                </RailHeader>
+
+                                <RailSection title={isFocusGroup ? "Participants" : "Participant"}>
+                                    {isFocusGroup ? (
+                                        <div className="flex flex-col gap-2.5">
+                                            {focusGroupArchetypes.map((a, i) => {
+                                                const colors = ["#b45309", "#0ea5e9", "#16a34a", "#7c3aed", "#dc2626"];
+                                                const color = colors[i % colors.length];
+                                                return (
+                                                    <div key={a.id} className="flex items-center gap-2.5">
+                                                        <span
+                                                            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shadow-inset-edge shrink-0"
+                                                            style={{ background: color }}
+                                                        >
+                                                            {a.name?.[0]?.toUpperCase() || "?"}
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <div className="text-body-sm text-foreground truncate">{a.name}</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-9 h-9 rounded-full bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center text-[13px] font-semibold shrink-0">
+                                                {(resumedPersonaDetails?.name || personas.find(p => p.id === selectedPersonaId)?.title || "?")[0].toUpperCase()}
+                                            </span>
+                                            <div className="min-w-0">
+                                                <div className="text-body-sm text-foreground font-medium truncate">
+                                                    {resumedPersonaDetails?.name || personas.find(p => p.id === selectedPersonaId)?.title || "Persona"}
+                                                </div>
+                                                {resumedPersonaDetails?.occupation && (
+                                                    <div className="text-caption text-muted-foreground truncate">
+                                                        {resumedPersonaDetails.occupation}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </RailSection>
+
+                                {hasActiveGuide ? (
+                                    <div ref={guideScrollAreaRef} className="flex-1 min-h-0 overflow-y-auto border-t border-[color:var(--border-subtle)] p-4">
+                                        <ModeratorGuidePanel
+                                            sections={(activeGuide?.guideSets || []).map((set) => ({
+                                                id: set.id,
+                                                title: set.title,
+                                                questions: (set.questions || []).map((q) => ({
+                                                    id: q.id,
+                                                    text: q.text,
+                                                    subQuestions: q.subQuestions,
+                                                })),
+                                            }))}
+                                            coveredQuestionIds={coveredQuestionIds}
+                                            highlightedQuestionId={highlightedQuestionId}
+                                            highlightedQuestionReason={highlightedQuestionReason}
+                                            registerRef={(id, el) => {
+                                                if (el) questionRefs.current.set(id, el);
+                                                else questionRefs.current.delete(id);
+                                            }}
+                                            onPickQuestion={(text) => {
+                                                setInputMessage(text);
+                                                inputRef.current?.focus();
+                                            }}
+                                            onPickSubQuestion={(text) => {
+                                                setInputMessage(text);
+                                                inputRef.current?.focus();
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex-1" />
                                 )}
                             </>
                         }
@@ -1595,30 +1580,67 @@ function SimulationPageContent({ params }: PageProps) {
                         variant="review"
                         scrollContained
                         leftRail={
-                            subProject && (
-                                <WorkspaceRail
-                                    subProject={subProject}
-                                    projectId={projectId}
-                                    subProjectId={subProjectId}
-                                    hideEdit
-                                >
-                                    <RailSection title="Session">
-                                        <MetaRow k="Mode" v={isFocusGroup ? "Focus group" : "1:1"} />
-                                        <MetaRow
-                                            k="Guide"
-                                            v={selectedGuideId && selectedGuideId !== "none" ? "Selected" : "None"}
-                                        />
-                                        <MetaRow
-                                            k={isFocusGroup ? "Archetypes" : "Persona"}
-                                            v={
-                                                isFocusGroup
-                                                    ? String(selectedArchetypeIds.length)
-                                                    : (selectedPersonaId ? "Selected" : "—")
-                                            }
-                                        />
+                            <>
+                                <RailHeader>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary">New session</Badge>
+                                    </div>
+                                    <h2 className="text-display-4 text-foreground leading-tight">
+                                        {subProject?.name || "Session"}
+                                    </h2>
+                                    {subProject?.researchStatement && (
+                                        <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                            {subProject.researchStatement}
+                                        </p>
+                                    )}
+                                </RailHeader>
+
+                                <RailSection title="Configuration">
+                                    <MetaRow k="Mode" v={isFocusGroup ? "Focus group" : "1:1 interview"} />
+                                    <MetaRow
+                                        k="Guide"
+                                        v={
+                                            selectedGuideId && selectedGuideId !== "none"
+                                                ? guides.find(g => g.id === selectedGuideId)?.name || "Selected"
+                                                : "None"
+                                        }
+                                    />
+                                    <MetaRow
+                                        k={isFocusGroup ? "Archetypes" : "Persona"}
+                                        v={
+                                            isFocusGroup
+                                                ? (selectedArchetypeIds.length > 0 ? String(selectedArchetypeIds.length) : "—")
+                                                : (selectedPersonaId ? (personas.find(p => p.id === selectedPersonaId)?.title || "Selected") : "—")
+                                        }
+                                    />
+                                </RailSection>
+
+                                {isFocusGroup && focusGroupArchetypes.length > 0 && (
+                                    <RailSection title="Focus group">
+                                        <div className="flex flex-col gap-2.5">
+                                            {focusGroupArchetypes.map((a, i) => {
+                                                const colors = ["#b45309", "#0ea5e9", "#16a34a", "#7c3aed", "#dc2626"];
+                                                const color = colors[i % colors.length];
+                                                return (
+                                                    <div key={a.id} className="flex items-center gap-2.5">
+                                                        <span
+                                                            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shadow-inset-edge shrink-0"
+                                                            style={{ background: color }}
+                                                        >
+                                                            {a.name?.[0]?.toUpperCase() || "?"}
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <div className="text-body-sm text-foreground truncate">{a.name}</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </RailSection>
-                                </WorkspaceRail>
-                            )
+                                )}
+
+                                <div className="flex-1" />
+                            </>
                         }
                     >
                         {/* Collapsible Configuration Panel */}

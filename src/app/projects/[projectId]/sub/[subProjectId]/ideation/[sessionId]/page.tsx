@@ -276,8 +276,8 @@ export default function IdeationResultsPage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* Concept grid — 3 columns per exploration prototype. */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Concept grid — 4 columns so 8 concepts fit in 2 rows. */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {concepts.map((concept, index) => {
                         const conceptTheme = (concept as unknown as { theme?: string }).theme;
                         return (

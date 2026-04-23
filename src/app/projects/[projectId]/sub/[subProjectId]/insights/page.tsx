@@ -126,6 +126,28 @@ function scoreFromVerdict(v: string | undefined) {
     return 0;
 }
 
+// Map an insight criterion name to its soft-tinted highlight background.
+// Matches the palette used in the right rail + exploration prototype.
+function criterionHighlightBg(key: string | undefined): string {
+    if (!key) return "bg-[color:var(--primary-soft)]";
+    const k = key.toLowerCase();
+    if (k.includes("well-informed") || k.includes("well informed") || k.includes("informed")) return "bg-[rgba(14,165,233,0.14)]";
+    if (k.includes("more than") || k.includes("observation")) return "bg-[color:var(--primary-soft)]";
+    if (k.includes("so what")) return "bg-[rgba(5,150,105,0.14)]";
+    if (k.includes("sticky")) return "bg-[rgba(190,24,93,0.1)]";
+    if (k.includes("actionable") || k.includes("action")) return "bg-[rgba(124,58,237,0.1)]";
+    return "bg-[color:var(--primary-soft)]";
+}
+
+function annotationCriterionKey(ann: StatementAnnotation, fallbackIdx: number): string {
+    if (typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null) {
+        return ann.criteriaCritique.criterion || "";
+    }
+    if (typeof ann.criteriaCritique === "string") return ann.criteriaCritique;
+    const ordered = ["Well-Informed", "More Than an Observation", "So What?", "Sticky", "Actionable"];
+    return ordered[fallbackIdx % ordered.length];
+}
+
 // ─── Helper Components ───────────────────────────────────────────────────
 
 const CRITERIA_LABELS = [
@@ -212,14 +234,16 @@ function AnnotatedInsight({ statement, annotations }: {
 
     return (
         <div>
-            {/* Insight Statement with subtle highlight underlay */}
+            {/* Insight Statement with subtle highlight underlay — tinted by criterion */}
             <p className="text-display-4 text-center leading-snug text-foreground mb-6">
                 {parts.map((part, i) => {
                     if (part.annIdx !== null) {
+                        const ann = annotations[part.annIdx];
+                        const bg = criterionHighlightBg(annotationCriterionKey(ann, part.annIdx));
                         return (
                             <span
                                 key={i}
-                                className="rounded-sm bg-[color:var(--primary-soft)] px-0.5 shadow-inset-edge"
+                                className={cn("rounded-[3px] px-1 py-0.5", bg)}
                             >
                                 {part.text}
                             </span>
@@ -519,7 +543,7 @@ export default function InsightsPage({ params }: PageProps) {
             />
 
             <WorkspaceFrame
-                variant="platform"
+                variant="analyser"
                 scrollContained
                 leftRail={
                     <>

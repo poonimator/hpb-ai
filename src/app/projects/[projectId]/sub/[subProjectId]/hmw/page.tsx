@@ -138,6 +138,30 @@ function scoreFromVerdict(v: string | undefined) {
     return 0;
 }
 
+// Map a lens id/name to its soft-tinted highlight background.
+// Matches the lens palette used in the right rail + exploration prototype.
+function lensHighlightBg(key: string | undefined): string {
+    if (!key) return "bg-[color:var(--primary-soft)]";
+    const k = key.toLowerCase();
+    if (k.includes("action") || k.includes("intended")) return "bg-[rgba(14,165,233,0.14)]";
+    if (k.includes("user") || k.includes("potential") || k.includes("audience") || k.includes("broad")) return "bg-[color:var(--primary-soft)]";
+    if (k.includes("timing") || k.includes("moment") || k.includes("grounded") || k.includes("real problem")) return "bg-[rgba(5,150,105,0.14)]";
+    if (k.includes("outcome") || k.includes("desired")) return "bg-[rgba(190,24,93,0.1)]";
+    if (k.includes("research") || k.includes("grounding") || k.includes("aligned")) return "bg-[rgba(124,58,237,0.1)]";
+    return "bg-[color:var(--primary-soft)]";
+}
+
+// Extract the lens key from an annotation so we can pick a highlight color.
+function annotationLensKey(ann: StatementAnnotation, fallbackIdx: number): string {
+    if (typeof ann.lensCritique === "object" && ann.lensCritique !== null) {
+        return ann.lensCritique.lens || "";
+    }
+    if (typeof ann.lensCritique === "string") return ann.lensCritique;
+    // Fall back to ordered palette by position.
+    const ordered = ["intended-action", "potential-user", "timing-moment", "desired-outcome", "research-grounding"];
+    return ordered[fallbackIdx % ordered.length];
+}
+
 // ─── Helper Components ───────────────────────────────────────────────────
 
 function HMWFormula() {
@@ -346,15 +370,17 @@ function AnnotatedHMW({ statement, annotations }: {
 
     return (
         <div>
-            {/* HMW Statement with subtle highlight underlay */}
+            {/* HMW Statement with subtle highlight underlay — each fragment tinted by lens */}
             <p className="text-display-4 text-center leading-snug text-foreground mb-6">
-                <span className="text-[color:var(--primary)]">HMW </span>
+                <span className="text-[#059669] font-semibold">HMW </span>
                 {parts.map((part, i) => {
                     if (part.annIdx !== null) {
+                        const ann = annotations[part.annIdx];
+                        const bg = lensHighlightBg(annotationLensKey(ann, part.annIdx));
                         return (
                             <span
                                 key={i}
-                                className="rounded-sm bg-[color:var(--primary-soft)] px-0.5 shadow-inset-edge"
+                                className={cn("rounded-[3px] px-1 py-0.5", bg)}
                             >
                                 {part.text}
                             </span>
@@ -445,7 +471,7 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                     <AnnotatedHMW statement={hmwStatement} annotations={critique.statementBreakdown!} />
                 ) : (
                     <p className="text-display-4 leading-snug text-foreground">
-                        <span className="font-bold text-[color:var(--primary)]">HMW </span>
+                        <span className="font-semibold text-[#059669]">HMW </span>
                         <HighlightedHMW statement={hmwStatement} highlights={allHighlights} activeLens={null} />
                     </p>
                 )}
@@ -741,7 +767,7 @@ export default function HMWPage({ params }: PageProps) {
             />
 
             <WorkspaceFrame
-                variant="platform"
+                variant="analyser"
                 scrollContained
                 leftRail={
                     <>
@@ -843,7 +869,7 @@ export default function HMWPage({ params }: PageProps) {
                                 {[
                                     { color: "#0ea5e9", label: "Intended Action",  pass: "Solution-Agnostic" },
                                     { color: "#b45309", label: "Potential User",   pass: "Appropriately Broad" },
-                                    { color: "#059669", label: "Timing / Moment",  pass: "Grounded in Real Problem", warn: true },
+                                    { color: "#059669", label: "Timing / Moment",  pass: "Grounded in Real Problem" },
                                     { color: "#be185d", label: "Desired Outcome",  pass: "Outcome-Focused" },
                                     { color: "#7c3aed", label: "Research Grounding", pass: "Research-Aligned" },
                                 ].map((l) => (
@@ -851,8 +877,8 @@ export default function HMWPage({ params }: PageProps) {
                                         <span className="w-2 h-2 rounded-full mt-[6px] shrink-0" style={{ background: l.color }} />
                                         <div className="flex-1 min-w-0">
                                             <div className="text-body-sm text-foreground font-medium">{l.label}</div>
-                                            <div className={cn("text-caption mt-0.5", l.warn ? "text-[color:var(--warning)]" : "text-muted-foreground")}>
-                                                {l.warn ? "⚠ " : "✓ "}{l.pass}
+                                            <div className="text-caption mt-0.5 text-muted-foreground">
+                                                {l.pass}
                                             </div>
                                         </div>
                                     </div>

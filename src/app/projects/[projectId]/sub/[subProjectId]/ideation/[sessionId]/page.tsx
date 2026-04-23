@@ -44,6 +44,15 @@ interface IdeationConcept {
     howToMeasure: { text: string; source: string; reason: string };
 }
 
+// Theme → accent color palette (matches exploration prototype).
+const THEME_PALETTE: Record<string, string> = {
+    Technology: "#0ea5e9",
+    Services: "#059669",
+    Education: "#7c3aed",
+    Events: "#b45309",
+    Entertainment: "#be185d",
+};
+
 interface IdeationSession {
     id: string;
     name: string;
@@ -267,18 +276,27 @@ export default function IdeationResultsPage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* 4x2 concept grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {concepts.map((concept, index) => (
-                        <ConceptCard
-                            key={index}
-                            index={index + 1}
-                            name={concept.name}
-                            tagline={concept.tagline}
-                            imageBase64={concept.howItWorks.imageBase64}
-                            onClick={() => setSelectedConcept(concept)}
-                        />
-                    ))}
+                {/* Concept grid — 3 columns per exploration prototype. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {concepts.map((concept, index) => {
+                        const conceptTheme = (concept as unknown as { theme?: string }).theme;
+                        return (
+                            <ConceptCard
+                                key={index}
+                                index={index + 1}
+                                name={concept.name}
+                                tagline={concept.tagline}
+                                theme={conceptTheme}
+                                themeColor={
+                                    conceptTheme
+                                        ? THEME_PALETTE[conceptTheme] ?? "var(--primary)"
+                                        : "var(--primary)"
+                                }
+                                imageBase64={concept.howItWorks.imageBase64}
+                                onClick={() => setSelectedConcept(concept)}
+                            />
+                        );
+                    })}
                 </div>
             </WorkspaceFrame>
 

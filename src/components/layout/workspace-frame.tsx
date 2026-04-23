@@ -1,11 +1,12 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-type Variant = "live" | "platform" | "review"
+type Variant = "live" | "platform" | "analyser" | "review"
 
 const columns: Record<Variant, string> = {
   live: "grid-cols-[300px_1fr_400px]",
   platform: "grid-cols-[320px_1fr_400px]",
+  analyser: "grid-cols-[320px_1fr_320px]",
   review: "grid-cols-[320px_1fr]",
 }
 

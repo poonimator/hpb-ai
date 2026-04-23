@@ -12,13 +12,14 @@ function MetaRow({ k, v, className }: Props) {
     <div
       data-slot="meta-row"
       className={cn(
-        // items-start so long values that wrap don't center-offset the key
-        "flex items-start justify-between gap-3 py-1.5 text-body-sm",
+        // Stacked layout — label on top, value below. Both left-aligned so long
+        // multi-line values flow naturally without breaking the grid of rows above.
+        "flex flex-col gap-1 py-1.5 text-body-sm",
         className
       )}
     >
-      <span className="text-muted-foreground shrink-0">{k}</span>
-      <span className="text-ui-sm text-foreground text-right min-w-0">{v}</span>
+      <span className="text-caption text-muted-foreground">{k}</span>
+      <span className="text-ui-sm text-foreground leading-snug">{v}</span>
     </div>
   )
 }

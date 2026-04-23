@@ -41,8 +41,9 @@ export default function RootLayout({
           <main className="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
             {children}
           </main>
+          {/* Footer frame matches the TopNav: full-width, px-7, no max-width */}
           <footer className="w-full border-t border-[color:var(--border-subtle)] bg-[color:var(--surface)]">
-            <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 px-7 py-4">
               <p className="text-caption text-muted-foreground">Version 1.0.0. Aleph Pte Ltd.</p>
               <div className="flex items-center gap-5 text-caption">
                 <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Use</a>

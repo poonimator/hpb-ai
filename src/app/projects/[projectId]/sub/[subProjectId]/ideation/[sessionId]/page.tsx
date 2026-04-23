@@ -19,9 +19,10 @@ import {
 import { PageBar } from "@/components/layout/page-bar";
 import { ConceptCard } from "@/components/tools/concept-card";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
-import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
+import { Badge } from "@/components/ui/badge";
 
 interface PageProps {
     params: Promise<{ projectId: string; subProjectId: string; sessionId: string }>;
@@ -61,7 +62,15 @@ export default function IdeationResultsPage({ params }: PageProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedConcept, setSelectedConcept] = useState<IdeationConcept | null>(null);
-    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
+    const [subProject, setSubProject] = useState<{
+        id: string;
+        name: string;
+        researchStatement: string | null;
+        ageRange: string | null;
+        lifeStage: string | null;
+        createdAt: string | null;
+        project: unknown;
+    } | null>(null);
 
     useEffect(() => {
         fetchSession();
@@ -155,22 +164,16 @@ export default function IdeationResultsPage({ params }: PageProps) {
         );
     }
 
-    const railSubProject: WorkspaceRailSubProject = subProject ?? {
-        id: subProjectId,
-        name: "Workspace",
-        researchStatement: null,
-        ageRange: null,
-        lifeStage: null,
-        createdAt: null,
-        project: null,
-    };
-
-    const railExtras = (
-        <RailSection title="Ideation">
-            <MetaRow k="Concepts" v={concepts.length} />
-            <MetaRow k="Status" v={session?.status || "—"} />
-        </RailSection>
-    );
+    const themeCounts = concepts.reduce<Record<string, number>>((acc, c) => {
+        const t = (c as unknown as { theme?: string }).theme;
+        if (t) acc[t] = (acc[t] || 0) + 1;
+        return acc;
+    }, {});
+    const themeEntries = Object.entries(themeCounts);
+    const themePalette = ["#b45309", "#0ea5e9", "#16a34a", "#7c3aed", "#dc2626", "#f59e0b", "#059669", "#db2777"];
+    const sourceProfileIds: string[] = session?.sourceProfileIdsJson
+        ? (() => { try { return JSON.parse(session.sourceProfileIdsJson!) as string[]; } catch { return []; } })()
+        : [];
 
     return (
         <div className="flex flex-col flex-1 min-h-0">
@@ -192,13 +195,60 @@ export default function IdeationResultsPage({ params }: PageProps) {
             <WorkspaceFrame
                 variant="review"
                 leftRail={
-                    <WorkspaceRail
-                        subProject={railSubProject}
-                        projectId={projectId}
-                        subProjectId={subProjectId}
-                    >
-                        {railExtras}
-                    </WorkspaceRail>
+                    <>
+                        <RailHeader>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="secondary">
+                                    {session?.status === "COMPLETE" ? "Generated" : session?.status || "Draft"}
+                                </Badge>
+                                {session?.createdAt && (
+                                    <span className="text-caption text-muted-foreground">
+                                        {new Date(session.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                    </span>
+                                )}
+                            </div>
+                            <h2 className="text-display-4 text-foreground leading-tight">
+                                {session?.name || "Ideation"}
+                            </h2>
+                            {subProject?.researchStatement && (
+                                <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                    {subProject.researchStatement}
+                                </p>
+                            )}
+                        </RailHeader>
+
+                        {themeEntries.length > 0 && (
+                            <RailSection title="Themes">
+                                <div className="flex flex-col gap-1">
+                                    {themeEntries.map(([theme, count], i) => (
+                                        <div
+                                            key={theme}
+                                            className="flex items-center justify-between py-1.5 text-body-sm"
+                                        >
+                                            <span className="inline-flex items-center gap-2 text-foreground">
+                                                <span
+                                                    className="w-2 h-2 rounded-full"
+                                                    style={{ background: themePalette[i % themePalette.length] }}
+                                                />
+                                                {theme}
+                                            </span>
+                                            <span className="text-[11px] text-muted-foreground font-mono">{count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </RailSection>
+                        )}
+
+                        <RailSection title="Source">
+                            <MetaRow k="Concepts" v={concepts.length} />
+                            {session?.sourceMappingId && <MetaRow k="Mapping" v="Linked" />}
+                            {sourceProfileIds.length > 0 && (
+                                <MetaRow k="Profiles" v={sourceProfileIds.length} />
+                            )}
+                        </RailSection>
+
+                        <div className="flex-1" />
+                    </>
                 }
                 scrollContained
             >

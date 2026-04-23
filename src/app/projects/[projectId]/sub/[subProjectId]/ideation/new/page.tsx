@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
-import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
+import { Badge } from "@/components/ui/badge";
 
 interface PageProps {
     params: Promise<{ projectId: string; subProjectId: string }>;
@@ -71,7 +72,16 @@ export default function NewIdeationPage({ params }: PageProps) {
     const [mappingSessions, setMappingSessions] = useState<MappingSessionOption[]>([]);
     const [profiles, setProfiles] = useState<ProfileOption[]>([]);
     const [loadingData, setLoadingData] = useState(true);
-    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
+    // NOTE: subProject state retained for parity with fetch flow; rail no longer renders it.
+    const [, setSubProject] = useState<{
+        id: string;
+        name: string;
+        researchStatement: string | null;
+        ageRange: string | null;
+        lifeStage: string | null;
+        createdAt: string | null;
+        project: unknown;
+    } | null>(null);
 
     // Form state
     const [selectedMappingId, setSelectedMappingId] = useState(prefillMappingId);
@@ -275,24 +285,6 @@ export default function NewIdeationPage({ params }: PageProps) {
     const archetypeProfiles = profiles.filter(p => p.type === "archetype");
     const kbProfilesList = profiles.filter(p => p.type !== "archetype");
 
-    const railExtras = (
-        <RailSection title="Selections">
-            <MetaRow k="Mapping" v={selectedMappingId ? "1" : "—"} />
-            <MetaRow k="Profiles" v={selectedProfileIds.length} />
-            <MetaRow k="Focus areas" v={selectedFocusAreas.length} />
-        </RailSection>
-    );
-
-    const railSubProject: WorkspaceRailSubProject = subProject ?? {
-        id: subProjectId,
-        name: "Workspace",
-        researchStatement: null,
-        ageRange: null,
-        lifeStage: null,
-        createdAt: null,
-        project: null,
-    };
-
     return (
         <div className="flex flex-col flex-1 min-h-0">
             <PageBar
@@ -307,14 +299,32 @@ export default function NewIdeationPage({ params }: PageProps) {
             <WorkspaceFrame
                 variant="review"
                 leftRail={
-                    <WorkspaceRail
-                        subProject={railSubProject}
-                        projectId={projectId}
-                        subProjectId={subProjectId}
-                        hideEdit
-                    >
-                        {railExtras}
-                    </WorkspaceRail>
+                    <>
+                        <RailHeader>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="secondary">Wizard</Badge>
+                            </div>
+                            <h2 className="text-display-4 text-foreground leading-tight">
+                                New Ideation
+                            </h2>
+                            <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                Generate 8 concepts from a mapping session, guided by selected profiles and creative focus areas.
+                            </p>
+                        </RailHeader>
+
+                        <RailSection title="Selections">
+                            <MetaRow k="Mapping" v={selectedMappingId ? "1" : "—"} />
+                            <MetaRow k="Profiles" v={selectedProfileIds.length} />
+                            <MetaRow k="Focus areas" v={selectedFocusAreas.length} />
+                        </RailSection>
+
+                        <RailSection title="Output">
+                            <MetaRow k="Concepts" v="8" />
+                            <MetaRow k="Method" v="Crazy 8s" />
+                        </RailSection>
+
+                        <div className="flex-1" />
+                    </>
                 }
                 scrollContained
             >

@@ -760,23 +760,15 @@ export default function ViewSessionPage({ params }: PageProps) {
             </RailSection>
 
             <RailSection title="Participants">
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-2">
                     {participants.map((p) => (
-                        <div key={p.id} className="flex items-center gap-2.5">
-                            <div
-                                className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[11px] font-semibold text-white shrink-0 shadow-inset-edge"
-                                style={{ backgroundColor: p.accent }}
-                            >
-                                {getInitial(p.name)}
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-ui-sm text-foreground truncate">{p.name}</div>
-                                {p.kicker && (
-                                    <div className="text-caption text-muted-foreground truncate uppercase tracking-[0.05em]">
-                                        {p.kicker}
-                                    </div>
-                                )}
-                            </div>
+                        <div key={p.id} className="text-body-sm text-foreground">
+                            <div>{p.name}</div>
+                            {p.kicker && (
+                                <div className="text-caption text-muted-foreground truncate">
+                                    {p.kicker}
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -883,15 +875,15 @@ export default function ViewSessionPage({ params }: PageProps) {
                         <div className="mb-8 inline-flex items-center gap-4 text-caption text-muted-foreground px-4 py-2.5 bg-[color:var(--surface-muted)] rounded-[10px] shadow-inset-edge">
                             <span className="font-medium text-foreground">Hover on highlights:</span>
                             <div className="flex items-center gap-1.5">
-                                <span className="w-3 h-3 rounded-md bg-accent border border-primary" />
+                                <span className="w-2.5 h-2.5 rounded-sm bg-accent border border-primary" />
                                 <span>Good technique</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className="w-3 h-3 rounded-md bg-amber-200/80 border border-amber-300" />
+                                <span className="w-2.5 h-2.5 rounded-sm bg-amber-200/80 border border-amber-300" />
                                 <span>Leading/Issues</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className="w-3 h-3 rounded-md bg-purple-200/80 border border-purple-300" />
+                                <span className="w-2.5 h-2.5 rounded-sm bg-purple-200/80 border border-purple-300" />
                                 <span>Missed opportunity</span>
                             </div>
                         </div>
@@ -929,14 +921,8 @@ export default function ViewSessionPage({ params }: PageProps) {
                                         >
                                             {/* Header */}
                                             <div className="px-[18px] pt-[14px] pb-3 flex items-center gap-2.5 border-b border-[color:var(--border-subtle)]">
-                                                <div
-                                                    className="w-8 h-8 rounded-full inline-flex items-center justify-center text-[13px] font-semibold text-white shrink-0 shadow-inset-edge"
-                                                    style={{ backgroundColor: p.accent }}
-                                                >
-                                                    {getInitial(p.name)}
-                                                </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="text-[16px] font-semibold text-foreground leading-[1.15] tracking-tight truncate">
+                                                    <div className="text-[16px] text-foreground font-medium leading-[1.15] tracking-tight truncate">
                                                         {p.name}
                                                     </div>
                                                     {tags.length > 0 && (
@@ -944,8 +930,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                             {tags.map((t) => (
                                                                 <span
                                                                     key={t}
-                                                                    className="text-[9px] font-bold tracking-[0.1em] uppercase px-1.5 py-0.5 rounded"
-                                                                    style={{ color: p.accent, backgroundColor: p.accentSoft }}
+                                                                    className="shadow-inset-edge bg-[color:var(--surface-muted)] text-muted-foreground text-caption rounded-full px-2 py-0.5"
                                                                 >
                                                                     {t}
                                                                 </span>
@@ -965,10 +950,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                 ) : structured?.keyPoints ? (
                                                     structured.keyPoints.map((point, i) => (
                                                         <div key={i} className="flex gap-2 text-body-sm leading-[1.55] text-muted-foreground">
-                                                            <span
-                                                                className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
-                                                                style={{ backgroundColor: p.accent }}
-                                                            />
+                                                            <span className="w-1 h-1 rounded-full mt-[9px] shrink-0 bg-muted-foreground" />
                                                             <span className="flex-1">{point}</span>
                                                         </div>
                                                     ))
@@ -979,10 +961,7 @@ export default function ViewSessionPage({ params }: PageProps) {
 
                                             {/* Footer quote */}
                                             {structured?.quote && (
-                                                <div
-                                                    className="mx-[18px] mb-[16px] px-3 py-2.5 rounded-[10px] text-caption italic text-muted-foreground leading-[1.55] shadow-inset-edge"
-                                                    style={{ backgroundColor: p.accentSoft }}
-                                                >
+                                                <div className="mx-[18px] mb-[16px] px-3 py-2.5 rounded-[10px] text-caption italic text-muted-foreground leading-[1.55] shadow-inset-edge bg-[color:var(--surface-muted)]">
                                                     &ldquo;{structured.quote}&rdquo;
                                                 </div>
                                             )}
@@ -993,26 +972,18 @@ export default function ViewSessionPage({ params }: PageProps) {
                         ) : (
                             // Empty state — non-focus-group or review not generated yet
                             <div className="bg-[color:var(--surface)] rounded-[16px] shadow-outline-ring p-6">
-                                <div className="flex items-start gap-3">
-                                    <div
-                                        className="w-8 h-8 rounded-full inline-flex items-center justify-center text-[13px] font-semibold text-white shrink-0 shadow-inset-edge"
-                                        style={{ backgroundColor: participants[0].accent }}
-                                    >
-                                        {getInitial(participants[0].name)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-[16px] font-semibold text-foreground leading-[1.15]">{participants[0].name}</div>
-                                        {participants[0].kicker && (
-                                            <div className="text-caption text-muted-foreground uppercase tracking-[0.05em] mt-1">
-                                                {participants[0].kicker}
-                                            </div>
-                                        )}
-                                        <p className="text-body-sm text-muted-foreground mt-3 leading-[1.55]">
-                                            {isFocusGroup
-                                                ? "Summaries will appear here once the session completes."
-                                                : "Per-participant summaries are generated for focus groups. Regenerate the review to refresh this view."}
-                                        </p>
-                                    </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-[16px] text-foreground font-medium leading-[1.15]">{participants[0].name}</div>
+                                    {participants[0].kicker && (
+                                        <div className="text-caption text-muted-foreground mt-1">
+                                            {participants[0].kicker}
+                                        </div>
+                                    )}
+                                    <p className="text-body-sm text-muted-foreground mt-3 leading-[1.55]">
+                                        {isFocusGroup
+                                            ? "Summaries will appear here once the session completes."
+                                            : "Per-participant summaries are generated for focus groups. Regenerate the review to refresh this view."}
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -1039,25 +1010,21 @@ export default function ViewSessionPage({ params }: PageProps) {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                                     {/* Agreements */}
                                     <div className="flex flex-col gap-2.5">
-                                        <div
-                                            className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] shadow-inset-edge"
-                                            style={{ backgroundColor: "color-mix(in oklch, var(--success) 8%, transparent)" }}
-                                        >
-                                            <Handshake className="h-3.5 w-3.5 text-[color:var(--success)]" />
-                                            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-[color:var(--success)]">Agreements</span>
+                                        <div className="flex items-center gap-2 px-3.5 py-2">
+                                            <Handshake className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-display-4 text-foreground">Agreements</span>
                                             <span className="flex-1" />
-                                            <span className="text-mono-meta text-[color:var(--success)] font-semibold">{agreementsCount}</span>
+                                            <span className="text-mono-meta text-muted-foreground">{agreementsCount}</span>
                                         </div>
                                         {cross.agreements?.length ? (
                                             cross.agreements.map((a, i) => (
                                                 <CompareRow
                                                     key={i}
                                                     text={a.point}
-                                                    accent="var(--success)"
-                                                    chips={a.profiles.map((pName) => {
-                                                        const p = participants.find(pp => pp.name === pName) || participants[0];
-                                                        return { id: `${i}-${pName}`, name: pName, accent: p.accent };
-                                                    })}
+                                                    chips={a.profiles.map((pName) => ({
+                                                        id: `${i}-${pName}`,
+                                                        name: pName,
+                                                    }))}
                                                 />
                                             ))
                                         ) : (
@@ -1067,25 +1034,21 @@ export default function ViewSessionPage({ params }: PageProps) {
 
                                     {/* Tensions */}
                                     <div className="flex flex-col gap-2.5">
-                                        <div
-                                            className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] shadow-inset-edge"
-                                            style={{ backgroundColor: "color-mix(in oklch, var(--warning) 8%, transparent)" }}
-                                        >
-                                            <Zap className="h-3.5 w-3.5 text-[color:var(--warning)]" />
-                                            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-[color:var(--warning)]">Tensions</span>
+                                        <div className="flex items-center gap-2 px-3.5 py-2">
+                                            <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-display-4 text-foreground">Tensions</span>
                                             <span className="flex-1" />
-                                            <span className="text-mono-meta text-[color:var(--warning)] font-semibold">{tensionsCount}</span>
+                                            <span className="text-mono-meta text-muted-foreground">{tensionsCount}</span>
                                         </div>
                                         {cross.tensions?.length ? (
                                             cross.tensions.map((t, i) => (
                                                 <CompareRow
                                                     key={i}
                                                     text={t.point}
-                                                    accent="var(--warning)"
-                                                    chips={t.between.map((pName) => {
-                                                        const p = participants.find(pp => pp.name === pName) || participants[0];
-                                                        return { id: `${i}-${pName}`, name: pName, accent: p.accent };
-                                                    })}
+                                                    chips={t.between.map((pName) => ({
+                                                        id: `${i}-${pName}`,
+                                                        name: pName,
+                                                    }))}
                                                 />
                                             ))
                                         ) : (
@@ -1095,14 +1058,11 @@ export default function ViewSessionPage({ params }: PageProps) {
 
                                     {/* Gaps */}
                                     <div className="flex flex-col gap-2.5">
-                                        <div
-                                            className="flex items-center gap-2 px-3.5 py-2 rounded-[10px] shadow-inset-edge"
-                                            style={{ backgroundColor: "color-mix(in oklch, var(--danger) 8%, transparent)" }}
-                                        >
-                                            <CircleDot className="h-3.5 w-3.5 text-[color:var(--danger)]" />
-                                            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-[color:var(--danger)]">Gaps</span>
+                                        <div className="flex items-center gap-2 px-3.5 py-2">
+                                            <CircleDot className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-display-4 text-foreground">Gaps</span>
                                             <span className="flex-1" />
-                                            <span className="text-mono-meta text-[color:var(--danger)] font-semibold">{gapsCount}</span>
+                                            <span className="text-mono-meta text-muted-foreground">{gapsCount}</span>
                                         </div>
                                         {cross.gaps?.length ? (
                                             cross.gaps.map((g, i) => {
@@ -1112,8 +1072,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                     <CompareRow
                                                         key={i}
                                                         text={gapText}
-                                                        accent="var(--danger)"
-                                                        chips={gapSource ? [{ id: `${i}-src`, name: gapSource, accent: "var(--muted-foreground)" }] : []}
+                                                        chips={gapSource ? [{ id: `${i}-src`, name: gapSource }] : []}
                                                     />
                                                 );
                                             })
@@ -1141,8 +1100,8 @@ export default function ViewSessionPage({ params }: PageProps) {
                                             key={i}
                                             className="bg-[color:var(--surface)] rounded-[14px] shadow-outline-ring p-[18px] flex flex-col gap-2.5"
                                         >
-                                            <div className="self-start inline-flex items-center bg-[color:var(--surface-muted)] rounded-md px-2 py-0.5 text-mono-meta font-semibold tracking-[0.1em] text-muted-foreground">
-                                                STEP {(i + 1).toString().padStart(2, "0")}
+                                            <div className="w-6 h-6 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge text-foreground text-caption font-semibold inline-flex items-center justify-center">
+                                                {i + 1}
                                             </div>
                                             <div className="text-body-sm font-medium text-foreground leading-[1.45]">
                                                 {step.action}
@@ -1235,17 +1194,11 @@ export default function ViewSessionPage({ params }: PageProps) {
 
                                                         return (
                                                             <div key={ansIdx} className="flex gap-2.5 items-start group/msg">
-                                                                <div
-                                                                    className="w-[26px] h-[26px] rounded-full inline-flex items-center justify-center text-[11px] font-semibold text-white shrink-0 shadow-inset-edge"
-                                                                    style={{ backgroundColor: p?.accent || PERSONA_PALETTE[0].accent }}
-                                                                >
+                                                                <div className="w-[26px] h-[26px] rounded-full bg-[color:var(--surface-muted)] text-muted-foreground inline-flex items-center justify-center text-[11px] font-semibold shrink-0 shadow-inset-edge">
                                                                     {p ? getInitial(p.name) : "?"}
                                                                 </div>
                                                                 <div className="flex-1 min-w-0">
-                                                                    <div
-                                                                        className="text-[11px] font-semibold mb-1"
-                                                                        style={{ color: p?.accent || PERSONA_PALETTE[0].accent }}
-                                                                    >
+                                                                    <div className="text-[11px] font-semibold mb-1 text-foreground">
                                                                         {p?.name || personaName}
                                                                     </div>
                                                                     {ans.msg.imageBase64 && (
@@ -1506,21 +1459,14 @@ export default function ViewSessionPage({ params }: PageProps) {
 // Compact row for Agreements / Tensions / Gaps columns; mirrors SR2_CompareRow in the exploration.
 function CompareRow({
     text,
-    accent,
     chips,
 }: {
     text: string;
-    accent: string;
-    chips: { id: string; name: string; accent: string }[];
+    chips: { id: string; name: string }[];
 }) {
     return (
-        <div className="flex gap-3 items-start px-3.5 py-3 bg-[color:var(--surface)] rounded-[12px] shadow-outline-ring">
-            <span className="w-[22px] h-[22px] rounded-md bg-black/[0.02] shrink-0 inline-flex items-center justify-center shadow-inset-edge">
-                <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: accent }}
-                />
-            </span>
+        <div className="flex gap-3 items-start rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-5">
+            <span className="w-1 h-1 rounded-full bg-muted-foreground shrink-0 mt-[9px]" />
             <div className="flex-1 flex flex-col gap-2">
                 <div className="text-body-sm leading-[1.55] text-foreground">{text}</div>
                 {chips.length > 0 && (
@@ -1528,15 +1474,8 @@ function CompareRow({
                         {chips.map((c) => (
                             <span
                                 key={c.id}
-                                className="inline-flex items-center gap-1.5 pl-0.5 pr-2 py-0.5 bg-[color:var(--surface)] rounded-full text-[10.5px] font-semibold shadow-inset-edge"
-                                style={{ color: c.accent }}
+                                className="shadow-inset-edge bg-[color:var(--surface-muted)] text-muted-foreground text-caption rounded-full px-2 py-0.5"
                             >
-                                <span
-                                    className="w-3.5 h-3.5 rounded-full inline-flex items-center justify-center text-[8.5px] font-bold text-white"
-                                    style={{ backgroundColor: c.accent }}
-                                >
-                                    {getInitial(c.name)}
-                                </span>
                                 {c.name.replace(/^The /, "")}
                             </span>
                         ))}
@@ -1549,7 +1488,7 @@ function CompareRow({
 
 function EmptyCompareCard({ label }: { label: string }) {
     return (
-        <div className="px-3.5 py-3 bg-[color:var(--surface)] rounded-[12px] shadow-outline-ring text-caption italic text-muted-foreground">
+        <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-5 text-caption italic text-muted-foreground">
             {label}
         </div>
     );

@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import {
     Loader2,
-    User,
     Users,
     Bot,
     CheckCircle2,
@@ -29,7 +28,6 @@ import {
     Zap,
     CircleDot,
     Quote,
-    ChevronDown,
     Tag,
 } from "lucide-react";
 import {
@@ -39,12 +37,12 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AIFeedback } from "@/components/ai/feedback";
+import { ChatBubble } from "@/components/tools/chat-bubble";
 import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
 import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
-import { cn } from "@/lib/utils";
 
 interface Message {
     id: string;
@@ -236,8 +234,6 @@ export default function ViewSessionPage({ params }: PageProps) {
     const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
     const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
-    // Collapsible transcript state (keyed by block id; -1 means none open)
-    const [openTranscriptIdx, setOpenTranscriptIdx] = useState<number>(0);
     useEffect(() => {
         fetchSimulation();
     }, [id]);
@@ -760,15 +756,10 @@ export default function ViewSessionPage({ params }: PageProps) {
             </RailSection>
 
             <RailSection title="Participants">
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                     {participants.map((p) => (
                         <div key={p.id} className="text-body-sm text-foreground">
-                            <div>{p.name}</div>
-                            {p.kicker && (
-                                <div className="text-caption text-muted-foreground truncate">
-                                    {p.kicker}
-                                </div>
-                            )}
+                            {p.name}
                         </div>
                     ))}
                 </div>
@@ -1130,7 +1121,9 @@ export default function ViewSessionPage({ params }: PageProps) {
                             <Quote className="h-3.5 w-3.5 text-muted-foreground" />
                             <h2 className="text-display-4 text-foreground leading-tight">Transcript</h2>
                             <span className="flex-1" />
-                            <span className="text-caption text-muted-foreground">Tap a question to expand</span>
+                            <span className="text-caption text-muted-foreground">
+                                {questionsCount} {questionsCount === 1 ? "question" : "questions"}
+                            </span>
                         </div>
 
                         {simulation.messages.length === 0 ? (
@@ -1139,144 +1132,131 @@ export default function ViewSessionPage({ params }: PageProps) {
                                 <p className="text-body-sm text-muted-foreground">No messages in this session</p>
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-2.5">
+                            <div className="flex flex-col gap-4">
                                 {transcriptBlocks.map((block, blockIdx) => {
-                                    const open = openTranscriptIdx === blockIdx;
+                                    // Locate the user message behind this block (if any — "Opening" pseudo-blocks have none)
+                                    const userMsg = simulation.messages.find(
+                                        m => m.role === "user" && m.content === block.question
+                                    );
+
+                                    const userNode = userMsg ? (() => {
+                                        const msgIndex = simulation.messages.findIndex(m => m.id === userMsg.id);
+                                        const feedback = getFeedbackForMessage(msgIndex, "user", userMsg.id, userMsg.content);
+
+                                        const quotes: Array<{ quote: string; type: "highlight" | "leading" | "missed"; tooltip: string; suggestion?: string; feedbackKey: string; feedbackContent: any }> = [];
+                                        feedback.highlights.forEach((h, i) => {
+                                            if (h.quote) quotes.push({
+                                                quote: h.quote,
+                                                type: "highlight",
+                                                tooltip: h.observation,
+                                                feedbackKey: `highlight-${msgIndex}-${i}`,
+                                                feedbackContent: h,
+                                            });
+                                        });
+                                        feedback.leadingMoments.forEach((l, i) => {
+                                            if (l.quote) quotes.push({
+                                                quote: l.quote,
+                                                type: "leading",
+                                                tooltip: l.issue,
+                                                suggestion: l.suggestion,
+                                                feedbackKey: `leading-${msgIndex}-${i}`,
+                                                feedbackContent: l,
+                                            });
+                                        });
+
+                                        const userContent = userMsg.content && userMsg.content !== "[Shared an image]"
+                                            ? (quotes.length > 0
+                                                ? renderContentWithHighlights(userMsg.content, quotes, true)
+                                                : userMsg.content)
+                                            : null;
+
+                                        return (
+                                            <ChatBubble
+                                                key={userMsg.id}
+                                                id={`chat-bubble-${userMsg.id}`}
+                                                role="user"
+                                                content={userContent}
+                                                imageBase64={userMsg.imageBase64}
+                                            />
+                                        );
+                                    })() : null;
+
+                                    const answerNodes = block.answers.map((ans) => {
+                                        const p = ans.participant;
+                                        const msgIndex = simulation.messages.findIndex(m => m.id === ans.msg.id);
+                                        const feedback = getFeedbackForMessage(
+                                            msgIndex,
+                                            ans.msg.role,
+                                            ans.msg.id,
+                                            ans.msg.content
+                                        );
+
+                                        const quotes: Array<{ quote: string; type: "highlight" | "leading" | "missed"; tooltip: string; suggestion?: string; feedbackKey: string; feedbackContent: any }> = [];
+                                        feedback.missedProbes.forEach((m, i) => {
+                                            if (m.quote) quotes.push({
+                                                quote: m.quote,
+                                                type: "missed",
+                                                tooltip: m.opportunity,
+                                                suggestion: m.suggestion,
+                                                feedbackKey: `missed-${msgIndex}-${i}`,
+                                                feedbackContent: m,
+                                            });
+                                        });
+
+                                        const bubbleContent = ans.msg.content && ans.msg.content !== "[Shared an image]"
+                                            ? (quotes.length > 0
+                                                ? renderContentWithHighlights(ans.msg.content, quotes, false)
+                                                : ans.msg.content)
+                                            : null;
+
+                                        // Focus-group accent (only used when we actually have an archetype)
+                                        const fgColor = isFocusGroup && ans.msg.archetypeId
+                                            ? getArchetypeColor(ans.msg.archetypeId)
+                                            : null;
+
+                                        const speakerName = p?.name || personaName;
+
+                                        return (
+                                            <ChatBubble
+                                                key={ans.msg.id}
+                                                id={`chat-bubble-${ans.msg.id}`}
+                                                role="persona"
+                                                content={
+                                                    <>
+                                                        {ans.msg.imageBase64 && (
+                                                            <img
+                                                                src={ans.msg.imageBase64}
+                                                                alt="Shared image"
+                                                                className="max-w-full max-h-[240px] rounded-[var(--radius-md2)] mb-2 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                                                                onClick={() => setEnlargedImage(ans.msg.imageBase64!)}
+                                                            />
+                                                        )}
+                                                        {bubbleContent}
+                                                    </>
+                                                }
+                                                archetypeName={fgColor ? speakerName : null}
+                                                archetypeColor={fgColor?.text}
+                                                avatarClassName={fgColor?.avatar}
+                                                avatarTextClassName={fgColor?.avatarText}
+                                                initial={getInitial(speakerName)}
+                                                typing={false}
+                                                feedbackSlot={
+                                                    <AIFeedback
+                                                        entityType="simulation_message"
+                                                        entityId={ans.msg.id}
+                                                        simulationId={simulation?.id}
+                                                        messageContent={ans.msg.content}
+                                                        size="sm"
+                                                    />
+                                                }
+                                            />
+                                        );
+                                    });
+
                                     return (
-                                        <div
-                                            key={blockIdx}
-                                            className="bg-[color:var(--surface)] rounded-[14px] shadow-outline-ring overflow-hidden"
-                                        >
-                                            <button
-                                                type="button"
-                                                onClick={() => setOpenTranscriptIdx(open ? -1 : blockIdx)}
-                                                className="w-full text-left flex items-center gap-3 px-[18px] py-3.5 bg-transparent cursor-pointer"
-                                            >
-                                                <span className="w-[22px] h-[22px] rounded-md bg-[color:var(--surface-muted)] text-muted-foreground inline-flex items-center justify-center shrink-0 shadow-inset-edge">
-                                                    <Quote className="h-2.5 w-2.5" />
-                                                </span>
-                                                <span className="flex-1 text-[13.5px] font-medium text-foreground truncate">
-                                                    &ldquo;{block.question}&rdquo;
-                                                </span>
-                                                <span className="text-mono-meta text-muted-foreground">
-                                                    {block.answers.length} {block.answers.length === 1 ? "answer" : "answers"}
-                                                </span>
-                                                <ChevronDown
-                                                    className={cn(
-                                                        "h-3.5 w-3.5 text-muted-foreground transition-transform duration-[160ms]",
-                                                        open && "rotate-180"
-                                                    )}
-                                                />
-                                            </button>
-                                            {open && (
-                                                <div className="px-[18px] pb-[18px] pt-1 flex flex-col gap-3">
-                                                    {block.answers.map((ans, ansIdx) => {
-                                                        const p = ans.participant;
-                                                        const msgIndex = simulation.messages.findIndex(m => m.id === ans.msg.id);
-                                                        const feedback = getFeedbackForMessage(
-                                                            msgIndex,
-                                                            ans.msg.role,
-                                                            ans.msg.id,
-                                                            ans.msg.content
-                                                        );
-
-                                                        const quotes: Array<{ quote: string; type: "highlight" | "leading" | "missed"; tooltip: string; suggestion?: string; feedbackKey: string; feedbackContent: any }> = [];
-                                                        feedback.missedProbes.forEach((m, i) => {
-                                                            if (m.quote) quotes.push({
-                                                                quote: m.quote,
-                                                                type: "missed",
-                                                                tooltip: m.opportunity,
-                                                                suggestion: m.suggestion,
-                                                                feedbackKey: `missed-${msgIndex}-${i}`,
-                                                                feedbackContent: m,
-                                                            });
-                                                        });
-
-                                                        return (
-                                                            <div key={ansIdx} className="flex gap-2.5 items-start group/msg">
-                                                                <div className="w-[26px] h-[26px] rounded-full bg-[color:var(--surface-muted)] text-muted-foreground inline-flex items-center justify-center text-[11px] font-semibold shrink-0 shadow-inset-edge">
-                                                                    {p ? getInitial(p.name) : "?"}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="text-[11px] font-semibold mb-1 text-foreground">
-                                                                        {p?.name || personaName}
-                                                                    </div>
-                                                                    {ans.msg.imageBase64 && (
-                                                                        <img
-                                                                            src={ans.msg.imageBase64}
-                                                                            alt="Shared image"
-                                                                            className="max-w-full max-h-[200px] rounded-md mb-2 object-contain cursor-pointer hover:opacity-90 transition-opacity border border-border"
-                                                                            onClick={() => setEnlargedImage(ans.msg.imageBase64!)}
-                                                                        />
-                                                                    )}
-                                                                    <div className="text-body-sm leading-[1.7] text-muted-foreground">
-                                                                        {ans.msg.content && ans.msg.content !== "[Shared an image]"
-                                                                            ? (quotes.length > 0
-                                                                                ? renderContentWithHighlights(ans.msg.content, quotes, false)
-                                                                                : ans.msg.content)
-                                                                            : null}
-                                                                    </div>
-                                                                    {/* Feedback widget (visible on hover) */}
-                                                                    <div className="mt-2 pt-2 border-t border-[color:var(--border-subtle)] opacity-0 group-hover/msg:opacity-100 transition-opacity">
-                                                                        <AIFeedback
-                                                                            entityType="simulation_message"
-                                                                            entityId={ans.msg.id}
-                                                                            simulationId={simulation?.id}
-                                                                            messageContent={ans.msg.content}
-                                                                            size="sm"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-
-                                                    {/* Interviewer question block — show highlights on the user message too */}
-                                                    {(() => {
-                                                        const userMsg = simulation.messages.find(m => m.role === "user" && m.content === block.question);
-                                                        if (!userMsg) return null;
-                                                        const msgIndex = simulation.messages.findIndex(m => m.id === userMsg.id);
-                                                        const feedback = getFeedbackForMessage(msgIndex, "user", userMsg.id, userMsg.content);
-
-                                                        const quotes: Array<{ quote: string; type: "highlight" | "leading" | "missed"; tooltip: string; suggestion?: string; feedbackKey: string; feedbackContent: any }> = [];
-                                                        feedback.highlights.forEach((h, i) => {
-                                                            if (h.quote) quotes.push({
-                                                                quote: h.quote,
-                                                                type: "highlight",
-                                                                tooltip: h.observation,
-                                                                feedbackKey: `highlight-${msgIndex}-${i}`,
-                                                                feedbackContent: h,
-                                                            });
-                                                        });
-                                                        feedback.leadingMoments.forEach((l, i) => {
-                                                            if (l.quote) quotes.push({
-                                                                quote: l.quote,
-                                                                type: "leading",
-                                                                tooltip: l.issue,
-                                                                suggestion: l.suggestion,
-                                                                feedbackKey: `leading-${msgIndex}-${i}`,
-                                                                feedbackContent: l,
-                                                            });
-                                                        });
-
-                                                        if (quotes.length === 0) return null;
-
-                                                        return (
-                                                            <div className="flex gap-2.5 items-start mt-1 pt-3 border-t border-[color:var(--border-subtle)]">
-                                                                <div className="w-[26px] h-[26px] rounded-full bg-[color:var(--surface-muted)] text-muted-foreground inline-flex items-center justify-center shrink-0 shadow-inset-edge">
-                                                                    <User className="h-3 w-3" />
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="text-[11px] font-semibold text-muted-foreground mb-1">Interviewer</div>
-                                                                    <div className="text-body-sm leading-[1.7] text-foreground">
-                                                                        {renderContentWithHighlights(userMsg.content, quotes, true)}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            )}
+                                        <div key={blockIdx} className="flex flex-col gap-4">
+                                            {userNode}
+                                            {answerNodes}
                                         </div>
                                     );
                                 })}

@@ -207,12 +207,6 @@ export default function ProjectHomePage({ params }: PageProps) {
         );
     }
 
-    const totalGuides =
-        project.subProjects?.reduce(
-            (sum, sp) => sum + (sp.guideVersions?.length ?? 0),
-            0
-        ) ?? 0;
-
     const createdLabel = project.createdAt
         ? new Date(project.createdAt).toLocaleDateString(undefined, {
               month: "short",
@@ -250,8 +244,6 @@ export default function ProjectHomePage({ params }: PageProps) {
 
             <RailSection title="Project">
                 <MetaRow k="Workspaces" v={project.subProjects?.length ?? 0} />
-                <MetaRow k="Guides" v={totalGuides} />
-                <MetaRow k="KB docs" v={project.knowledgeDocumentCount ?? 0} />
                 {createdLabel && <MetaRow k="Created" v={createdLabel} />}
             </RailSection>
 

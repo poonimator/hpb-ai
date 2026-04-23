@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
 import { ConceptCard } from "@/components/tools/concept-card";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 
 interface PageProps {
     params: Promise<{ projectId: string; subProjectId: string; sessionId: string }>;
@@ -57,10 +61,36 @@ export default function IdeationResultsPage({ params }: PageProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedConcept, setSelectedConcept] = useState<IdeationConcept | null>(null);
+    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
 
     useEffect(() => {
         fetchSession();
     }, [sessionId]);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function loadSubProject() {
+            try {
+                const res = await fetch(`/api/sub-projects/${subProjectId}`);
+                if (!res.ok) return;
+                const { data } = await res.json();
+                if (cancelled || !data) return;
+                setSubProject({
+                    id: data.id,
+                    name: data.name,
+                    researchStatement: data.researchStatement ?? null,
+                    ageRange: data.ageRange ?? null,
+                    lifeStage: data.lifeStage ?? null,
+                    createdAt: data.createdAt ?? null,
+                    project: data.project ?? null,
+                });
+            } catch {
+                /* ignore — rail will fall back to minimal placeholder */
+            }
+        }
+        loadSubProject();
+        return () => { cancelled = true; };
+    }, [subProjectId]);
 
     async function fetchSession() {
         try {
@@ -125,8 +155,25 @@ export default function IdeationResultsPage({ params }: PageProps) {
         );
     }
 
+    const railSubProject: WorkspaceRailSubProject = subProject ?? {
+        id: subProjectId,
+        name: "Workspace",
+        researchStatement: null,
+        ageRange: null,
+        lifeStage: null,
+        createdAt: null,
+        project: null,
+    };
+
+    const railExtras = (
+        <RailSection title="Ideation">
+            <MetaRow k="Concepts" v={concepts.length} />
+            <MetaRow k="Status" v={session?.status || "—"} />
+        </RailSection>
+    );
+
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0">
             <PageBar
                 sticky={false}
                 back={{ href: `/projects/${projectId}/sub/${subProjectId}?tab=ideation`, label: "Back" }}
@@ -142,7 +189,19 @@ export default function IdeationResultsPage({ params }: PageProps) {
                 }
             />
 
-            <div className="py-8 px-6">
+            <WorkspaceFrame
+                variant="review"
+                leftRail={
+                    <WorkspaceRail
+                        subProject={railSubProject}
+                        projectId={projectId}
+                        subProjectId={subProjectId}
+                    >
+                        {railExtras}
+                    </WorkspaceRail>
+                }
+                scrollContained
+            >
                 {/* Title */}
                 <div className="mb-6 flex items-start gap-3">
                     <div className="h-10 w-10 rounded-[12px] bg-[color:var(--primary-soft)] shadow-inset-edge flex items-center justify-center shrink-0">
@@ -171,7 +230,7 @@ export default function IdeationResultsPage({ params }: PageProps) {
                         />
                     ))}
                 </div>
-            </div>
+            </WorkspaceFrame>
 
             {/* Detail Overlay */}
             {selectedConcept && (

@@ -14,6 +14,10 @@ import {
     Sparkles,
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { WorkspaceRail, type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 
 interface PageProps {
     params: Promise<{ projectId: string; subProjectId: string }>;
@@ -67,6 +71,7 @@ export default function NewIdeationPage({ params }: PageProps) {
     const [mappingSessions, setMappingSessions] = useState<MappingSessionOption[]>([]);
     const [profiles, setProfiles] = useState<ProfileOption[]>([]);
     const [loadingData, setLoadingData] = useState(true);
+    const [subProject, setSubProject] = useState<WorkspaceRailSubProject | null>(null);
 
     // Form state
     const [selectedMappingId, setSelectedMappingId] = useState(prefillMappingId);
@@ -106,6 +111,17 @@ export default function NewIdeationPage({ params }: PageProps) {
             if (!res.ok) throw new Error(data.error);
 
             const sp = data.data;
+
+            // Capture sub-project metadata for the workspace rail
+            setSubProject({
+                id: sp.id,
+                name: sp.name,
+                researchStatement: sp.researchStatement ?? null,
+                ageRange: sp.ageRange ?? null,
+                lifeStage: sp.lifeStage ?? null,
+                createdAt: sp.createdAt ?? null,
+                project: sp.project ?? null,
+            });
 
             // Completed mapping sessions
             const completedMappings = (sp.mappingSessions || []).filter(
@@ -259,8 +275,26 @@ export default function NewIdeationPage({ params }: PageProps) {
     const archetypeProfiles = profiles.filter(p => p.type === "archetype");
     const kbProfilesList = profiles.filter(p => p.type !== "archetype");
 
+    const railExtras = (
+        <RailSection title="Selections">
+            <MetaRow k="Mapping" v={selectedMappingId ? "1" : "—"} />
+            <MetaRow k="Profiles" v={selectedProfileIds.length} />
+            <MetaRow k="Focus areas" v={selectedFocusAreas.length} />
+        </RailSection>
+    );
+
+    const railSubProject: WorkspaceRailSubProject = subProject ?? {
+        id: subProjectId,
+        name: "Workspace",
+        researchStatement: null,
+        ageRange: null,
+        lifeStage: null,
+        createdAt: null,
+        project: null,
+    };
+
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0">
             <PageBar
                 sticky={false}
                 back={{ href: `/projects/${projectId}/sub/${subProjectId}?tab=ideation`, label: "Back" }}
@@ -270,7 +304,20 @@ export default function NewIdeationPage({ params }: PageProps) {
                 ]}
             />
 
-            <div className="py-10 px-6">
+            <WorkspaceFrame
+                variant="review"
+                leftRail={
+                    <WorkspaceRail
+                        subProject={railSubProject}
+                        projectId={projectId}
+                        subProjectId={subProjectId}
+                        hideEdit
+                    >
+                        {railExtras}
+                    </WorkspaceRail>
+                }
+                scrollContained
+            >
                 <div className="mx-auto w-full max-w-3xl">
                     {/* Page title */}
                     <div className="flex items-start gap-3 mb-10">
@@ -508,7 +555,7 @@ export default function NewIdeationPage({ params }: PageProps) {
                         </div>
                     )}
                 </div>
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

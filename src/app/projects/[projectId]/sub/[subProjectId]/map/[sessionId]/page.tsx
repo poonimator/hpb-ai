@@ -579,11 +579,12 @@ export default function MappingSessionPage({ params }: PageProps) {
 
     const handleAdd = async (transcriptId: string, text: string) => {
         if (!addingToTheme) return;
+        const matchedTranscript = session?.transcripts.find(t => t.id === transcriptId);
+        if (!matchedTranscript) return;
 
         // Pseudo ID for optimistic
         const tempId = "temp-" + Date.now();
         const theme = addingToTheme;
-        const currentCount = clustersByTheme[theme].length;
 
         const newCluster: MappingCluster = {
             id: tempId,
@@ -591,8 +592,7 @@ export default function MappingSessionPage({ params }: PageProps) {
             quote: text,
             context: "Manual Entry",
             transcriptId,
-            // Find transcript obj
-            transcript: session?.transcripts.find(t => t.id === transcriptId)!,
+            transcript: matchedTranscript,
             order: 0, // Should be 0 if at top, or logic? User said "Add button... between title and FIRST card".
             // So render input at top implies adding to top?
             // If adding to top, order should be -1 relative to others, or re-index.

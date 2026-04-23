@@ -215,8 +215,14 @@ interface TypewriterTextProps {
 
 function TypewriterText({ text, onComplete, wordsPerSecond = 4, className = "" }: TypewriterTextProps) {
     const [displayedWords, setDisplayedWords] = useState<number>(0);
+    const [trackedText, setTrackedText] = useState<string>(text);
     const words = text.split(/(\s+)/); // Split but keep whitespace
-    const totalWords = words.filter(w => w.trim()).length;
+
+    // Reset counter when the text prop changes (render-time pattern, not useEffect).
+    if (text !== trackedText) {
+        setTrackedText(text);
+        setDisplayedWords(0);
+    }
 
     useEffect(() => {
         if (displayedWords >= words.length) {
@@ -236,11 +242,6 @@ function TypewriterText({ text, onComplete, wordsPerSecond = 4, className = "" }
 
         return () => clearTimeout(timer);
     }, [displayedWords, words.length, wordsPerSecond, onComplete]);
-
-    // Reset when text changes
-    useEffect(() => {
-        setDisplayedWords(0);
-    }, [text]);
 
     const visibleText = words.slice(0, displayedWords).join('');
     const isComplete = displayedWords >= words.length;
@@ -922,6 +923,16 @@ function SimulationPageContent({ params }: PageProps) {
         }
     };
 
+    // Elapsed session time (minutes) — derived from first message timestamp.
+    // Declared BEFORE any early return to preserve Rules of Hooks ordering.
+    const elapsedMinutes = useMemo(() => {
+        if (!messages.length) return 0;
+        const firstRaw = messages[0]?.timestamp;
+        const first = firstRaw ? new Date(firstRaw).getTime() : Date.now();
+        const last = Date.now();
+        return Math.max(0, Math.round((last - first) / 60000));
+    }, [messages]);
+
     if (loading) {
         return (
             <div className="h-screen flex items-center justify-center bg-[color:var(--canvas)]">
@@ -939,15 +950,6 @@ function SimulationPageContent({ params }: PageProps) {
 
     const activeGuide = guides.find(g => g.id === selectedGuideId);
     const hasActiveGuide = isStarted && selectedGuideId && selectedGuideId !== "none" && !!activeGuide;
-
-    // Elapsed session time (minutes) — derived from first message timestamp
-    const elapsedMinutes = useMemo(() => {
-        if (!messages.length) return 0;
-        const firstRaw = messages[0]?.timestamp;
-        const first = firstRaw ? new Date(firstRaw).getTime() : Date.now();
-        const last = Date.now();
-        return Math.max(0, Math.round((last - first) / 60000));
-    }, [messages]);
 
     // Build crumbs for PageBar (setup mode)
     const setupCrumbs = subProject?.name
@@ -1561,7 +1563,7 @@ function SimulationPageContent({ params }: PageProps) {
                                         ? selectedArchetypeIds.length < 2
                                         : (!selectedPersonaId || (personas.length === 0 && archetypes.length === 0))
                                     }
-                                    className="gap-1.5"
+                                    className="gap-1.5 bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                                 >
                                     {loading ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

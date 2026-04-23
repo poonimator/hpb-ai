@@ -15,7 +15,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PageContainer } from "@/components/layout/page-container";
 
 interface SubProject {
     id: string;
@@ -97,7 +96,7 @@ export default function DashboardPage() {
     // Loading state — matches tool-page primary-soft chip treatment
     if (loading) {
         return (
-            <PageContainer innerClassName="pb-20">
+            <div className="flex-1 min-h-0 w-full overflow-y-auto">
                 <div className="flex h-full items-center justify-center py-24">
                     <div className="flex flex-col items-center gap-3">
                         <div className="h-10 w-10 rounded-[10px] bg-[color:var(--primary-soft)] shadow-inset-edge flex items-center justify-center">
@@ -106,14 +105,14 @@ export default function DashboardPage() {
                         <span className="text-body-sm text-muted-foreground">Loading projects…</span>
                     </div>
                 </div>
-            </PageContainer>
+            </div>
         );
     }
 
     // Error state — soft destructive card
     if (error) {
         return (
-            <PageContainer innerClassName="pb-20">
+            <div className="flex-1 min-h-0 w-full overflow-y-auto">
                 <div className="flex items-center justify-center py-24">
                     <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 max-w-md w-full flex flex-col items-center text-center gap-4">
                         <div className="h-10 w-10 rounded-[10px] bg-[color:var(--destructive)]/10 shadow-inset-edge flex items-center justify-center">
@@ -136,12 +135,15 @@ export default function DashboardPage() {
                         </Button>
                     </div>
                 </div>
-            </PageContainer>
+            </div>
         );
     }
 
     return (
-        <PageContainer innerClassName="pt-10 pb-20">
+        // Full-width layout. Left padding is tuned so content aligns with the
+        // "Projects" nav item (TopNav: 28px px-7 + 72px logo + 24+1+28 spacer = 153px).
+        <div className="flex-1 min-h-0 w-full overflow-y-auto">
+          <div className="w-full flex flex-col pt-10 pb-20 pr-7 pl-4 sm:pl-6 md:pl-[153px]">
             {/* Page header — matches the display-heavy intro blocks on the rest of the app */}
             <header className="mb-10 flex items-end justify-between gap-6 border-b border-[color:var(--border-subtle)] pb-8">
                 <div className="flex flex-col gap-2">
@@ -282,7 +284,8 @@ export default function DashboardPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </PageContainer>
+          </div>
+        </div>
     );
 }
 // Created by Swapnil Bapat © 2026

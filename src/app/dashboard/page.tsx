@@ -141,16 +141,25 @@ export default function DashboardPage() {
     }
 
     return (
-        <PageContainer innerClassName="pb-20">
-            {/* Compact page intro */}
-            <div className="mb-8 flex items-start justify-between gap-4">
-                <div>
-                    <h1 className="text-display-2 text-foreground">Projects</h1>
-                    <p className="text-body-sm text-muted-foreground mt-1">
-                        Manage your HPB research projects.
+        <PageContainer innerClassName="pt-10 pb-20">
+            {/* Page header — matches the display-heavy intro blocks on the rest of the app */}
+            <header className="mb-10 flex items-end justify-between gap-6 border-b border-[color:var(--border-subtle)] pb-8">
+                <div className="flex flex-col gap-2">
+                    <span className="text-eyebrow text-muted-foreground">Workspace</span>
+                    <h1 className="text-display-1 text-foreground leading-[1.05]">Projects</h1>
+                    <p className="text-body-sm text-muted-foreground max-w-xl leading-relaxed">
+                        Organise research, run interview simulations, map insights, and drive synthesis across your HPB projects.
                     </p>
                 </div>
-            </div>
+                {projects.length > 0 && (
+                    <div className="shrink-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge px-3.5 py-1.5 text-body-sm text-muted-foreground">
+                        <FolderKanban className="h-3.5 w-3.5" />
+                        <span>
+                            <span className="text-foreground font-medium">{projects.length}</span> active
+                        </span>
+                    </div>
+                )}
+            </header>
 
             {/* Empty state — single prominent create tile */}
             {projects.length === 0 ? (

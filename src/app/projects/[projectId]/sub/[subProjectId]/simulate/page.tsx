@@ -923,14 +923,20 @@ function SimulationPageContent({ params }: PageProps) {
         }
     };
 
-    // Elapsed session time (minutes) — derived from first message timestamp.
+    // Elapsed session time — derived from first message timestamp.
     // Declared BEFORE any early return to preserve Rules of Hooks ordering.
-    const elapsedMinutes = useMemo(() => {
-        if (!messages.length) return 0;
+    const elapsedLabel = useMemo(() => {
+        if (!messages.length) return "0 min";
         const firstRaw = messages[0]?.timestamp;
         const first = firstRaw ? new Date(firstRaw).getTime() : Date.now();
-        const last = Date.now();
-        return Math.max(0, Math.round((last - first) / 60000));
+        const totalMin = Math.max(0, Math.round((Date.now() - first) / 60000));
+        if (totalMin < 60) return `${totalMin} min`;
+        const h = Math.floor(totalMin / 60);
+        const m = totalMin % 60;
+        if (h < 24) return `${h}h ${m}m`;
+        const d = Math.floor(h / 24);
+        const rh = h % 24;
+        return `${d}d ${rh}h ${m}m`;
     }, [messages]);
 
     if (loading) {
@@ -1049,11 +1055,11 @@ function SimulationPageContent({ params }: PageProps) {
                             <>
                                 <RailHeader>
                                     <div className="flex items-center gap-2">
-                                        <Badge className="bg-[color:var(--info-soft)] text-[color:var(--info)] border-transparent">
+                                        <Badge variant="secondary">
                                             In Progress
                                         </Badge>
                                         <span className="text-caption text-muted-foreground">
-                                            · {elapsedMinutes}m
+                                            · {elapsedLabel}
                                         </span>
                                     </div>
                                     <h2 className="text-display-4 text-foreground leading-tight">
@@ -1068,40 +1074,23 @@ function SimulationPageContent({ params }: PageProps) {
 
                                 <RailSection title={isFocusGroup ? "Participants" : "Participant"}>
                                     {isFocusGroup ? (
-                                        <div className="flex flex-col gap-2.5">
-                                            {focusGroupArchetypes.map((a, i) => {
-                                                const colors = ["#b45309", "#0ea5e9", "#16a34a", "#7c3aed", "#dc2626"];
-                                                const color = colors[i % colors.length];
-                                                return (
-                                                    <div key={a.id} className="flex items-center gap-2.5">
-                                                        <span
-                                                            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shadow-inset-edge shrink-0"
-                                                            style={{ background: color }}
-                                                        >
-                                                            {a.name?.[0]?.toUpperCase() || "?"}
-                                                        </span>
-                                                        <div className="min-w-0">
-                                                            <div className="text-body-sm text-foreground truncate">{a.name}</div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                        <div className="flex flex-col gap-2">
+                                            {focusGroupArchetypes.map((a) => (
+                                                <div key={a.id} className="text-body-sm text-foreground truncate">
+                                                    {a.name}
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : (
-                                        <div className="flex items-center gap-3">
-                                            <span className="w-9 h-9 rounded-full bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center text-[13px] font-semibold shrink-0">
-                                                {(resumedPersonaDetails?.name || personas.find(p => p.id === selectedPersonaId)?.title || "?")[0].toUpperCase()}
-                                            </span>
-                                            <div className="min-w-0">
-                                                <div className="text-body-sm text-foreground font-medium truncate">
-                                                    {resumedPersonaDetails?.name || personas.find(p => p.id === selectedPersonaId)?.title || "Persona"}
-                                                </div>
-                                                {resumedPersonaDetails?.occupation && (
-                                                    <div className="text-caption text-muted-foreground truncate">
-                                                        {resumedPersonaDetails.occupation}
-                                                    </div>
-                                                )}
+                                        <div>
+                                            <div className="text-body-sm text-foreground font-medium truncate">
+                                                {resumedPersonaDetails?.name || personas.find(p => p.id === selectedPersonaId)?.title || "Persona"}
                                             </div>
+                                            {resumedPersonaDetails?.occupation && (
+                                                <div className="text-caption text-muted-foreground truncate mt-0.5">
+                                                    {resumedPersonaDetails.occupation}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </RailSection>
@@ -1619,24 +1608,12 @@ function SimulationPageContent({ params }: PageProps) {
 
                                 {isFocusGroup && focusGroupArchetypes.length > 0 && (
                                     <RailSection title="Focus group">
-                                        <div className="flex flex-col gap-2.5">
-                                            {focusGroupArchetypes.map((a, i) => {
-                                                const colors = ["#b45309", "#0ea5e9", "#16a34a", "#7c3aed", "#dc2626"];
-                                                const color = colors[i % colors.length];
-                                                return (
-                                                    <div key={a.id} className="flex items-center gap-2.5">
-                                                        <span
-                                                            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shadow-inset-edge shrink-0"
-                                                            style={{ background: color }}
-                                                        >
-                                                            {a.name?.[0]?.toUpperCase() || "?"}
-                                                        </span>
-                                                        <div className="min-w-0">
-                                                            <div className="text-body-sm text-foreground truncate">{a.name}</div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                        <div className="flex flex-col gap-2">
+                                            {focusGroupArchetypes.map((a) => (
+                                                <div key={a.id} className="text-body-sm text-foreground truncate">
+                                                    {a.name}
+                                                </div>
+                                            ))}
                                         </div>
                                     </RailSection>
                                 )}

@@ -384,11 +384,62 @@ function SimulationPageContent({ params }: PageProps) {
     // Expanded opportunity state - tracks which opportunity card is expanded (by unique ID)
     const [expandedOpportunityId, setExpandedOpportunityId] = useState<string | null>(null);
 
+    // Selected highlight quote state - for click-to-scroll from chat bubble to opportunity card
+    const [selectedQuote, setSelectedQuote] = useState<string | null>(null);
+    const opportunityRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
     // Highlighted question state - for Live Coach suggestions shown in Moderator Guide
     const [highlightedQuestionId, setHighlightedQuestionId] = useState<string | null>(null);
     const [highlightedQuestionReason, setHighlightedQuestionReason] = useState<string | null>(null);
     const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const guideScrollAreaRef = useRef<HTMLDivElement>(null);
+
+    // Normalise whitespace for quote-equality matching
+    const normaliseQuote = (s: string) => s.trim().replace(/\s+/g, " ");
+
+    // Click handler for chat bubble highlights — scroll to & expand matching opportunity card
+    const handlePickQuote = (quote: string) => {
+        const normalised = normaliseQuote(quote);
+        if (!normalised) return;
+
+        // If clicking the already-selected quote, deselect and collapse
+        if (selectedQuote === normalised) {
+            setSelectedQuote(null);
+            setExpandedOpportunityId(null);
+            return;
+        }
+
+        // Find matching opportunity across all nudges
+        let matchedId: string | null = null;
+        for (const nudge of coachNudges) {
+            if (nudge.opportunities && nudge.opportunities.length > 0) {
+                const idx = nudge.opportunities.findIndex(
+                    (opp) => opp.quote && normaliseQuote(opp.quote) === normalised
+                );
+                if (idx !== -1) {
+                    matchedId = `${nudge.id}-opp-${idx}`;
+                    break;
+                }
+            } else if (nudge.coachingNudge && nudge.highlightQuote) {
+                if (normaliseQuote(nudge.highlightQuote) === normalised) {
+                    matchedId = nudge.id;
+                    break;
+                }
+            }
+        }
+
+        if (!matchedId) return;
+
+        setSelectedQuote(normalised);
+        setExpandedOpportunityId(matchedId);
+
+        setTimeout(() => {
+            opportunityRefs.current.get(matchedId!)?.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        }, 100);
+    };
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -1508,7 +1559,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                     }}
                                                     placeholder={isFocusGroup ? "Type your message... (use @ to tag an archetype)" : "Type your message..."}
                                                     rows={1}
-                                                    className="w-full min-h-[40px] max-h-[160px] py-2 px-3 bg-[color:var(--surface-muted)] shadow-inset-edge rounded-[var(--radius-md2)] focus:outline-none focus:shadow-outline-ring resize-none text-body-sm leading-relaxed"
+                                                    className="w-full min-h-[40px] max-h-[160px] py-[9px] px-3 bg-[color:var(--surface-muted)] shadow-inset-edge rounded-[var(--radius-md2)] focus:outline-none focus:shadow-outline-ring resize-none text-body-sm leading-[22px]"
                                                     disabled={isSending || isEnding}
                                                 />
                                             </div>

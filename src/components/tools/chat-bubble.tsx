@@ -68,7 +68,7 @@ function ChatBubble({
             className={cn(
               "px-4 py-2.5 text-body-sm leading-relaxed text-white",
               "rounded-[var(--radius-chat)] rounded-br-[4px]",
-              "bg-[color:var(--ink)] shadow-card",
+              "bg-[color:var(--ink-secondary)] shadow-card",
             )}
           >
             {imageBase64 ? (

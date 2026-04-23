@@ -818,12 +818,12 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         </div>
 
                                         {/* Content at bottom */}
-                                        <div className="mt-3">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                        <div className="mt-3 flex flex-col gap-1">
+                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2">
                                                 {personaName}
                                             </h4>
                                             {isFocusGroup && (
-                                                <div className="flex flex-wrap gap-1 mb-1">
+                                                <div className="flex flex-wrap gap-1">
                                                     {(sim.simulationArchetypes ?? []).map((sa) => (
                                                         <span key={sa.archetype.id} className="text-[10px] font-medium text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">
                                                             {sa.archetype.name}
@@ -831,14 +831,21 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     ))}
                                                 </div>
                                             )}
-                                            <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
-                                                {new Date(sim.startedAt).toLocaleDateString()} &middot;{' '}
-                                                <span className="inline-flex items-center gap-1">
-                                                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-muted-foreground' : 'animate-pulse'}`} style={!isCompleted ? { backgroundColor: 'var(--color-info)' } : undefined} />
-                                                    {isCompleted ? 'Completed' : 'Active'}
-                                                </span>
-                                                {hasReview && ' · Reviewed'}
-                                            </p>
+                                            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground leading-snug">
+                                                <span>{new Date(sim.startedAt).toLocaleDateString()}</span>
+                                                <span className="opacity-50">·</span>
+                                                <span
+                                                    className={`inline-block w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-muted-foreground' : 'animate-pulse'}`}
+                                                    style={!isCompleted ? { backgroundColor: 'var(--color-info)' } : undefined}
+                                                />
+                                                <span>{isCompleted ? 'Completed' : 'Active'}</span>
+                                                {hasReview && (
+                                                    <>
+                                                        <span className="opacity-50">·</span>
+                                                        <span>Reviewed</span>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </Link>
                                 );

@@ -6,7 +6,7 @@ type Variant = "live" | "platform" | "analyser" | "review"
 const columns: Record<Variant, string> = {
   live: "grid-cols-[300px_1fr_400px]",
   platform: "grid-cols-[320px_1fr_400px]",
-  analyser: "grid-cols-[320px_1fr_320px]",
+  analyser: "grid-cols-[300px_1fr_280px]",
   review: "grid-cols-[320px_1fr]",
 }
 

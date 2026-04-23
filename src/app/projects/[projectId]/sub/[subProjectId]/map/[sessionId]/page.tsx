@@ -744,13 +744,10 @@ export default function MappingSessionPage({ params }: PageProps) {
 
             {session?.transcripts && session.transcripts.length > 0 && (
                 <RailSection title="Sources">
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-1.5">
                         {session.transcripts.slice(0, 6).map((t: any) => (
-                            <div key={t.id} className="flex items-center gap-2.5 text-body-sm text-muted-foreground">
-                                <span className="w-6 h-6 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge inline-flex items-center justify-center text-[10px] font-semibold text-foreground shrink-0">
-                                    {(t.displayName || t.fileName || "T")[0].toUpperCase()}
-                                </span>
-                                <span className="truncate">{t.displayName || t.fileName || "Transcript"}</span>
+                            <div key={t.id} className="text-body-sm text-foreground truncate">
+                                {t.displayName || t.fileName || "Transcript"}
                             </div>
                         ))}
                         {session.transcripts.length > 6 && (
@@ -810,7 +807,7 @@ export default function MappingSessionPage({ params }: PageProps) {
                                             <div
                                                 ref={provided.innerRef}
                                                 {...provided.droppableProps}
-                                                className="w-[280px] shrink-0 flex flex-col bg-[color:var(--surface-muted)] rounded-[14px] p-4 gap-3"
+                                                className="w-[280px] shrink-0 flex flex-col rounded-[14px] p-4 gap-3"
                                             >
                                                 {/* Column Header */}
                                                 <div className="flex items-start justify-between gap-2">

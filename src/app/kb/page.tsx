@@ -263,7 +263,7 @@ export default function KnowledgeBasePage() {
                 <Button
                     type="button"
                     size="sm"
-                    className="w-full justify-center"
+                    className="w-full justify-center bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                     onClick={() => {
                         setDocType(activeTab);
                         setUploadDialogOpen(true);
@@ -317,6 +317,7 @@ export default function KnowledgeBasePage() {
                         </p>
                         <Button
                             size="sm"
+                            className="bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                             onClick={() => {
                                 setDocType(activeTab);
                                 setUploadDialogOpen(true);
@@ -368,7 +369,7 @@ export default function KnowledgeBasePage() {
                                             <>
                                                 <Button
                                                     size="sm"
-                                                    className="h-7 text-xs"
+                                                    className="h-7 text-xs bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                                                     onClick={() => handleApprove(doc.id)}
                                                     disabled={processingId === doc.id}
                                                 >
@@ -512,6 +513,7 @@ export default function KnowledgeBasePage() {
                         <Button
                             onClick={handleUpload}
                             disabled={uploading || !file || !title || !classificationConfirmed}
+                            className="bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                         >
                             {uploading ? (
                                 <>

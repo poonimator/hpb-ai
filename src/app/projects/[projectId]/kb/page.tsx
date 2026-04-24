@@ -315,7 +315,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                 <Button
                     type="button"
                     size="sm"
-                    className="w-full justify-center"
+                    className="w-full justify-center bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                     onClick={() => {
                         setUploadDocType(activeTab);
                         setUploadDialogOpen(true);
@@ -364,6 +364,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                         </p>
                         <Button
                             size="sm"
+                            className="bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                             onClick={() => {
                                 setUploadDocType(activeTab);
                                 setUploadDialogOpen(true);
@@ -472,7 +473,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                                         <div className="mt-4 flex items-center gap-2">
                                             <Button
                                                 size="sm"
-                                                className="h-7 text-xs"
+                                                className="h-7 text-xs bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                                                 onClick={() => approveDocument(doc.id)}
                                                 disabled={processingId === doc.id}
                                             >
@@ -680,6 +681,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                         <Button
                             onClick={handleUpload}
                             disabled={uploading || !uploadFile || !uploadTitle || !classificationConfirmed}
+                            className="bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                         >
                             {uploading ? (
                                 <>

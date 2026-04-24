@@ -36,6 +36,10 @@ const buttonVariants = cva(
         ].join(" "),
         knowledge:
           "bg-transparent text-[color:var(--knowledge)] shadow-[0_0_0_1px_color-mix(in_oklab,var(--knowledge)_25%,transparent)] hover:bg-[color:var(--knowledge-soft)]",
+        primary:
+          "bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110",
+        "destructive-outline":
+          "bg-transparent text-[color:var(--danger)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--danger)_25%,transparent)] hover:bg-[color:var(--danger-soft)] hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--danger)_40%,transparent)]",
       },
       size: {
         default: "h-9 px-4",

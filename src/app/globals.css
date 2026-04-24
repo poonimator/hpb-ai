@@ -128,6 +128,20 @@
   --knowledge:      oklch(0.53 0.14 298);
   --knowledge-soft: oklch(0.53 0.14 298 / 0.08);
 
+  /* Categorical palette — calm, warm-tinted tokens for category-coded data
+     (quote lenses, map themes, personas, ideation themes).
+     Use for semantic grouping, NEVER for brand/CTA accents. */
+  --cat-1:      oklch(0.55 0.09 45);     /* warm terracotta */
+  --cat-1-soft: oklch(0.55 0.09 45 / 0.1);
+  --cat-2:      oklch(0.55 0.07 180);    /* muted teal */
+  --cat-2-soft: oklch(0.55 0.07 180 / 0.1);
+  --cat-3:      oklch(0.55 0.08 250);    /* muted indigo */
+  --cat-3-soft: oklch(0.55 0.08 250 / 0.1);
+  --cat-4:      oklch(0.55 0.07 310);    /* muted plum */
+  --cat-4-soft: oklch(0.55 0.07 310 / 0.1);
+  --cat-5:      oklch(0.55 0.07 130);    /* muted moss */
+  --cat-5-soft: oklch(0.55 0.07 130 / 0.1);
+
   /* Severity aliases */
   --severity-high:   var(--danger);
   --severity-medium: var(--warning);

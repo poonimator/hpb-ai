@@ -184,7 +184,6 @@ export default function SubProjectHomePage({ params }: PageProps) {
     const [error, setError] = useState<string | null>(null);
 
     // Dialog States
-    const [isResearchDescriptionOpen, setIsResearchDescriptionOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
 
     // Edit Form State
@@ -484,18 +483,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading workspace...</p>
-                </div>
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
         );
     }
 
     if (error || !subProject) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="flex items-center justify-center py-20">
                 <Card className="max-w-md">
                     <CardHeader>
                         <CardTitle className="text-[color:var(--danger)]">Error</CardTitle>
@@ -563,11 +559,9 @@ export default function SubProjectHomePage({ params }: PageProps) {
             </RailSection>
 
             <div className="px-8 py-4">
-                <Button asChild variant="outline" size="sm" className="w-full justify-center">
-                    <Link href={`/projects/${projectId}/sub/${subProjectId}/edit`}>
-                        <Pencil className="h-3.5 w-3.5" />
-                        Edit workspace
-                    </Link>
+                <Button variant="outline" size="sm" className="w-full justify-center" onClick={openEditDialog}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit workspace
                 </Button>
             </div>
 
@@ -923,12 +917,12 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         {(() => {
                             const CARD_ICON_BG = [
                                 "bg-muted text-primary",
-                                "bg-slate-50 text-slate-500",
-                                "bg-cyan-50 text-cyan-500",
+                                "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]",
+                                "bg-[color:var(--cat-2-soft)] text-[color:var(--cat-2)]",
                                 "bg-muted text-primary",
-                                "bg-sky-50 text-sky-500",
+                                "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]",
                                 "bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]",
-                                "bg-stone-50 text-stone-500",
+                                "bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)]",
                                 "bg-muted text-primary",
                             ];
 
@@ -1254,45 +1248,14 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         </div>
 
                         <DialogFooter className="mt-8 gap-3">
-                            <Button variant="ghost" onClick={() => setIsEditOpen(false)} disabled={isSavingEdit} className="rounded-full hover:bg-muted text-muted-foreground">
+                            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSavingEdit}>
                                 Cancel
                             </Button>
-                            <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-6">
+                            <Button variant="primary" onClick={handleSaveEdit} disabled={isSavingEdit}>
                                 {isSavingEdit ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                                 Save Changes
                             </Button>
                         </DialogFooter>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Read More Dialog */}
-            <Dialog open={isResearchDescriptionOpen} onOpenChange={setIsResearchDescriptionOpen}>
-                <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader className="mb-4">
-                        <DialogTitle className="text-2xl font-bold text-foreground">{subProject.name}</DialogTitle>
-                    </DialogHeader>
-                    <div className="prose prose-neutral prose-sm max-w-none">
-                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Research Statement</h3>
-                        <p className="text-muted-foreground leading-relaxed text-base whitespace-pre-wrap">
-                            {subProject.researchStatement}
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-border">
-                            <div>
-                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Age Range</span>
-                                <span className="text-foreground font-medium">{subProject.ageRange}</span>
-                            </div>
-                            <div>
-                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Target Life Stage</span>
-                                <span className="text-foreground font-medium">{subProject.lifeStage}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-8 flex justify-end">
-                        <Button onClick={() => setIsResearchDescriptionOpen(false)} className="rounded-full bg-muted hover:bg-muted/80 text-foreground font-medium">
-                            Close
-                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>

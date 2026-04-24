@@ -46,11 +46,11 @@ interface IdeationConcept {
 
 // Theme → accent color palette (matches exploration prototype).
 const THEME_PALETTE: Record<string, string> = {
-    Technology: "#0ea5e9",
-    Services: "#059669",
-    Education: "#7c3aed",
-    Events: "#b45309",
-    Entertainment: "#be185d",
+    Technology: "var(--cat-1)",
+    Services: "var(--cat-2)",
+    Education: "var(--cat-3)",
+    Events: "var(--cat-4)",
+    Entertainment: "var(--cat-5)",
 };
 
 interface IdeationSession {
@@ -179,7 +179,7 @@ export default function IdeationResultsPage({ params }: PageProps) {
         return acc;
     }, {});
     const themeEntries = Object.entries(themeCounts);
-    const themePalette = ["#b45309", "#0ea5e9", "#16a34a", "#7c3aed", "#dc2626", "#f59e0b", "#059669", "#db2777"];
+    const themePalette = ["var(--cat-1)", "var(--cat-2)", "var(--cat-3)", "var(--cat-4)", "var(--cat-5)"];
     const sourceProfileIds: string[] = session?.sourceProfileIdsJson
         ? (() => { try { return JSON.parse(session.sourceProfileIdsJson!) as string[]; } catch { return []; } })()
         : [];

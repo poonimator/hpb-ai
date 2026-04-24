@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mono } from "@/components/ui/mono";
 import { cn } from "@/lib/utils";
 import { LensCard, adaptCriteria } from "@/components/tools/lens-card";
+import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -129,24 +130,24 @@ function scoreFromVerdict(v: string | undefined) {
 // Map an insight criterion name to its soft-tinted highlight background.
 // Matches the palette used in the right rail + exploration prototype.
 function criterionHighlightBg(key: string | undefined): string {
-    if (!key) return "bg-[color:var(--primary-soft)]";
+    if (!key) return "bg-[color:var(--cat-1-soft)]";
     const k = key.toLowerCase();
-    if (k.includes("well-informed") || k.includes("well informed") || k.includes("informed")) return "bg-[rgba(14,165,233,0.14)]";
-    if (k.includes("more than") || k.includes("observation")) return "bg-[color:var(--primary-soft)]";
-    if (k.includes("so what")) return "bg-[rgba(5,150,105,0.14)]";
-    if (k.includes("sticky")) return "bg-[rgba(190,24,93,0.1)]";
-    if (k.includes("actionable") || k.includes("action")) return "bg-[rgba(124,58,237,0.1)]";
-    return "bg-[color:var(--primary-soft)]";
+    if (k.includes("well-informed") || k.includes("well informed") || k.includes("informed")) return "bg-[color:var(--cat-1-soft)]";
+    if (k.includes("more than") || k.includes("observation")) return "bg-[color:var(--cat-2-soft)]";
+    if (k.includes("so what")) return "bg-[color:var(--cat-3-soft)]";
+    if (k.includes("sticky")) return "bg-[color:var(--cat-4-soft)]";
+    if (k.includes("actionable") || k.includes("action")) return "bg-[color:var(--cat-5-soft)]";
+    return "bg-[color:var(--cat-1-soft)]";
 }
 
 // Criterion-card tint + accent palette (matches exploration prototype).
 // Index maps to ordering: Well-Informed, More Than Observation, So What?, Sticky, Actionable.
 const CRITERION_PALETTE: { accent: string; bg: string }[] = [
-    { accent: "#0ea5e9", bg: "rgba(14,165,233,0.06)" },  // Well-Informed — sky
-    { accent: "var(--primary)", bg: "var(--primary-soft)" }, // More Than Observation — amber
-    { accent: "#059669", bg: "rgba(5,150,105,0.06)" },   // So What? — green
-    { accent: "#be185d", bg: "rgba(190,24,93,0.06)" },   // Sticky — pink
-    { accent: "#7c3aed", bg: "rgba(124,58,237,0.06)" },  // Actionable — purple
+    { accent: "var(--cat-1)", bg: "var(--cat-1-soft)" },  // Well-Informed
+    { accent: "var(--cat-2)", bg: "var(--cat-2-soft)" },  // More Than Observation
+    { accent: "var(--cat-3)", bg: "var(--cat-3-soft)" },  // So What?
+    { accent: "var(--cat-4)", bg: "var(--cat-4-soft)" },  // Sticky
+    { accent: "var(--cat-5)", bg: "var(--cat-5-soft)" },  // Actionable
 ];
 
 function criterionPalette(key: string | undefined, fallbackIdx: number) {
@@ -487,10 +488,10 @@ export default function InsightsPage({ params }: PageProps) {
             if (res.ok) {
                 setHistory(prev => prev.filter(e => e.id !== id));
             } else {
-                alert("Failed to delete");
+                toast.error("Failed to delete");
             }
         } catch {
-            alert("Failed to delete");
+            toast.error("Failed to delete");
         }
     }, [subProjectId]);
 
@@ -523,11 +524,11 @@ export default function InsightsPage({ params }: PageProps) {
                     historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }, 300);
             } else {
-                alert(data.error || "Failed to critique insight statement");
+                toast.error(data.error || "Failed to critique insight statement");
             }
         } catch (err) {
             console.error("Insight critique error:", err);
-            alert("Failed to check insight statement. Please try again.");
+            toast.error("Failed to check insight statement. Please try again.");
         } finally {
             setIsChecking(false);
         }
@@ -671,11 +672,11 @@ export default function InsightsPage({ params }: PageProps) {
                         <RailSection title="The 5 criteria">
                             <div className="flex flex-col gap-2.5">
                                 {[
-                                    { color: "#0ea5e9", label: "Well-Informed" },
-                                    { color: "#b45309", label: "More Than an Observation" },
-                                    { color: "#059669", label: "So What?" },
-                                    { color: "#be185d", label: "Sticky" },
-                                    { color: "#7c3aed", label: "Actionable" },
+                                    { color: "var(--cat-1)", label: "Well-Informed" },
+                                    { color: "var(--cat-2)", label: "More Than an Observation" },
+                                    { color: "var(--cat-3)", label: "So What?" },
+                                    { color: "var(--cat-4)", label: "Sticky" },
+                                    { color: "var(--cat-5)", label: "Actionable" },
                                 ].map((c) => (
                                     <div key={c.label} className="flex gap-2.5">
                                         <span className="w-2 h-2 rounded-full mt-[6px] shrink-0" style={{ background: c.color }} />
@@ -689,9 +690,9 @@ export default function InsightsPage({ params }: PageProps) {
 
                         <RailSection title="Formula">
                             <div className="text-body-sm text-foreground leading-[1.7] tracking-[0.01em]">
-                                <span className="text-[color:var(--primary)]">Observation</span> +{" "}
+                                <span className="text-[color:var(--cat-2)]">Observation</span> +{" "}
                                 <b>so what</b> +{" "}
-                                <span className="text-[#059669]">action</span>
+                                <span className="text-[color:var(--cat-3)]">action</span>
                             </div>
                         </RailSection>
 

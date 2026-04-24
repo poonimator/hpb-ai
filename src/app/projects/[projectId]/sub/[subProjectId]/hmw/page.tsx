@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mono } from "@/components/ui/mono";
 import { cn } from "@/lib/utils";
 import { LensCard, adaptLens } from "@/components/tools/lens-card";
+import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -141,24 +142,24 @@ function scoreFromVerdict(v: string | undefined) {
 // Map a lens id/name to its soft-tinted highlight background.
 // Matches the lens palette used in the right rail + exploration prototype.
 function lensHighlightBg(key: string | undefined): string {
-    if (!key) return "bg-[color:var(--primary-soft)]";
+    if (!key) return "bg-[color:var(--cat-1-soft)]";
     const k = key.toLowerCase();
-    if (k.includes("action") || k.includes("intended")) return "bg-[rgba(14,165,233,0.14)]";
-    if (k.includes("user") || k.includes("potential") || k.includes("audience") || k.includes("broad")) return "bg-[color:var(--primary-soft)]";
-    if (k.includes("timing") || k.includes("moment") || k.includes("grounded") || k.includes("real problem")) return "bg-[rgba(5,150,105,0.14)]";
-    if (k.includes("outcome") || k.includes("desired")) return "bg-[rgba(190,24,93,0.1)]";
-    if (k.includes("research") || k.includes("grounding") || k.includes("aligned")) return "bg-[rgba(124,58,237,0.1)]";
-    return "bg-[color:var(--primary-soft)]";
+    if (k.includes("action") || k.includes("intended")) return "bg-[color:var(--cat-1-soft)]";
+    if (k.includes("user") || k.includes("potential") || k.includes("audience") || k.includes("broad")) return "bg-[color:var(--cat-2-soft)]";
+    if (k.includes("timing") || k.includes("moment") || k.includes("grounded") || k.includes("real problem")) return "bg-[color:var(--cat-3-soft)]";
+    if (k.includes("outcome") || k.includes("desired")) return "bg-[color:var(--cat-4-soft)]";
+    if (k.includes("research") || k.includes("grounding") || k.includes("aligned")) return "bg-[color:var(--cat-5-soft)]";
+    return "bg-[color:var(--cat-1-soft)]";
 }
 
 // Lens-card tint + accent palette (matches exploration prototype).
 // Index maps to 5-lens ordering: intended-action, potential-user, timing, outcome, research.
 const LENS_PALETTE: { accent: string; bg: string }[] = [
-    { accent: "#0ea5e9", bg: "rgba(14,165,233,0.06)" },  // intended action — sky
-    { accent: "var(--primary)", bg: "var(--primary-soft)" }, // potential user — amber
-    { accent: "#059669", bg: "rgba(5,150,105,0.06)" },   // timing / moment — green
-    { accent: "#be185d", bg: "rgba(190,24,93,0.06)" },   // desired outcome — pink
-    { accent: "#7c3aed", bg: "rgba(124,58,237,0.06)" },  // research grounding — purple
+    { accent: "var(--cat-1)", bg: "var(--cat-1-soft)" },  // intended action
+    { accent: "var(--cat-2)", bg: "var(--cat-2-soft)" },  // potential user
+    { accent: "var(--cat-3)", bg: "var(--cat-3-soft)" },  // timing / moment
+    { accent: "var(--cat-4)", bg: "var(--cat-4-soft)" },  // desired outcome
+    { accent: "var(--cat-5)", bg: "var(--cat-5-soft)" },  // research grounding
 ];
 
 function lensPalette(key: string | undefined, fallbackIdx: number) {
@@ -396,7 +397,7 @@ function AnnotatedHMW({ statement, annotations }: {
                 className="mb-[22px] font-light leading-[1.4] tracking-[-0.01em] text-foreground"
                 style={{ fontSize: 20 }}
             >
-                <span className="font-semibold text-[#059669]">HMW </span>
+                <span className="font-semibold text-[color:var(--cat-3)]">HMW </span>
                 {parts.map((part, i) => {
                     if (part.annIdx !== null) {
                         const ann = annotations[part.annIdx];
@@ -510,7 +511,7 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                     <AnnotatedHMW statement={hmwStatement} annotations={critique.statementBreakdown!} />
                 ) : (
                     <p className="text-display-4 leading-snug text-foreground">
-                        <span className="font-semibold text-[#059669]">HMW </span>
+                        <span className="font-semibold text-[color:var(--cat-3)]">HMW </span>
                         <HighlightedHMW statement={hmwStatement} highlights={allHighlights} activeLens={null} />
                     </p>
                 )}
@@ -728,10 +729,10 @@ export default function HMWPage({ params }: PageProps) {
             if (res.ok) {
                 setHistory(prev => prev.filter(e => e.id !== id));
             } else {
-                alert("Failed to delete");
+                toast.error("Failed to delete");
             }
         } catch {
-            alert("Failed to delete");
+            toast.error("Failed to delete");
         }
     }, [subProjectId]);
 
@@ -764,11 +765,11 @@ export default function HMWPage({ params }: PageProps) {
                     historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }, 300);
             } else {
-                alert(data.error || "Failed to critique HMW statement");
+                toast.error(data.error || "Failed to critique HMW statement");
             }
         } catch (err) {
             console.error("HMW critique error:", err);
-            alert("Failed to check HMW statement. Please try again.");
+            toast.error("Failed to check HMW statement. Please try again.");
         } finally {
             setIsChecking(false);
         }
@@ -912,11 +913,11 @@ export default function HMWPage({ params }: PageProps) {
                         <RailSection title="The 5 lenses">
                             <div className="flex flex-col gap-2.5">
                                 {[
-                                    { color: "#0ea5e9", label: "Intended Action",  pass: "Solution-Agnostic" },
-                                    { color: "#b45309", label: "Potential User",   pass: "Appropriately Broad" },
-                                    { color: "#059669", label: "Timing / Moment",  pass: "Grounded in Real Problem" },
-                                    { color: "#be185d", label: "Desired Outcome",  pass: "Outcome-Focused" },
-                                    { color: "#7c3aed", label: "Research Grounding", pass: "Research-Aligned" },
+                                    { color: "var(--cat-1)", label: "Intended Action",  pass: "Solution-Agnostic" },
+                                    { color: "var(--cat-2)", label: "Potential User",   pass: "Appropriately Broad" },
+                                    { color: "var(--cat-3)", label: "Timing / Moment",  pass: "Grounded in Real Problem" },
+                                    { color: "var(--cat-4)", label: "Desired Outcome",  pass: "Outcome-Focused" },
+                                    { color: "var(--cat-5)", label: "Research Grounding", pass: "Research-Aligned" },
                                 ].map((l) => (
                                     <div key={l.label} className="flex gap-2.5">
                                         <span className="w-2 h-2 rounded-full mt-[6px] shrink-0" style={{ background: l.color }} />
@@ -934,11 +935,11 @@ export default function HMWPage({ params }: PageProps) {
                         <RailSection title="Formula">
                             <div className="text-body-sm text-foreground leading-[1.7] tracking-[0.01em]">
                                 <b>HMW</b> +{" "}
-                                <span className="text-[#059669]">action</span> +{" "}
+                                <span className="text-[color:var(--cat-1)]">action</span> +{" "}
                                 <b>for</b> +{" "}
-                                <span className="text-[color:var(--primary)]">user</span> +{" "}
+                                <span className="text-[color:var(--cat-2)]">user</span> +{" "}
                                 <b>so that</b> +{" "}
-                                <span className="text-[#be185d]">outcome</span>
+                                <span className="text-[color:var(--cat-4)]">outcome</span>
                             </div>
                         </RailSection>
 

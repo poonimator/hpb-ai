@@ -16,22 +16,14 @@ import { cn } from "@/lib/utils"
  * `cluster.quote` JSON blob and hands an array to `quotes`.
  */
 
-/** Shared palette — map a transcript display name to a stable colour index. */
+/** Shared palette — map a transcript display name to a stable colour index.
+ *  Five calm categorical tokens; the name-hash picks one deterministically. */
 const TAG_COLORS = [
-  { bg: "bg-red-50", text: "text-red-700", border: "border-red-100", icon: "text-red-500" },
-  { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-100", icon: "text-orange-500" },
-  { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-100", icon: "text-amber-500" },
-  { bg: "bg-lime-50", text: "text-lime-700", border: "border-lime-100", icon: "text-lime-500" },
-  { bg: "bg-stone-50", text: "text-stone-700", border: "border-stone-100", icon: "text-stone-500" },
-  { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-100", icon: "text-cyan-500" },
-  { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-100", icon: "text-sky-500" },
-  { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-100", icon: "text-blue-500" },
-  { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-100", icon: "text-indigo-500" },
-  { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-100", icon: "text-violet-500" },
-  { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-100", icon: "text-purple-500" },
-  { bg: "bg-fuchsia-50", text: "text-fuchsia-700", border: "border-fuchsia-100", icon: "text-fuchsia-500" },
-  { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-100", icon: "text-pink-500" },
-  { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-100", icon: "text-rose-500" },
+  { bg: "bg-[color:var(--cat-1-soft)]", text: "text-[color:var(--cat-1)]", border: "border-[color:var(--cat-1)]/25", icon: "text-[color:var(--cat-1)]" },
+  { bg: "bg-[color:var(--cat-2-soft)]", text: "text-[color:var(--cat-2)]", border: "border-[color:var(--cat-2)]/25", icon: "text-[color:var(--cat-2)]" },
+  { bg: "bg-[color:var(--cat-3-soft)]", text: "text-[color:var(--cat-3)]", border: "border-[color:var(--cat-3)]/25", icon: "text-[color:var(--cat-3)]" },
+  { bg: "bg-[color:var(--cat-4-soft)]", text: "text-[color:var(--cat-4)]", border: "border-[color:var(--cat-4)]/25", icon: "text-[color:var(--cat-4)]" },
+  { bg: "bg-[color:var(--cat-5-soft)]", text: "text-[color:var(--cat-5)]", border: "border-[color:var(--cat-5)]/25", icon: "text-[color:var(--cat-5)]" },
 ] as const
 
 function getTagStyle(str: string) {

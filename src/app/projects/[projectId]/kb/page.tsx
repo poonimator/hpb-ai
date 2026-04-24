@@ -314,8 +314,9 @@ export default function ProjectKbPage({ params }: PageProps) {
             <div className="px-8 py-4">
                 <Button
                     type="button"
+                    variant="outline"
                     size="sm"
-                    className="w-full justify-center bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
+                    className="w-full justify-center"
                     onClick={() => {
                         setUploadDocType(activeTab);
                         setUploadDialogOpen(true);
@@ -363,8 +364,8 @@ export default function ProjectKbPage({ params }: PageProps) {
                             Upload {DOC_TYPE_LABELS[activeTab].toLowerCase()} to this project&apos;s knowledge base.
                         </p>
                         <Button
+                            variant="outline"
                             size="sm"
-                            className="bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                             onClick={() => {
                                 setUploadDocType(activeTab);
                                 setUploadDialogOpen(true);
@@ -385,8 +386,18 @@ export default function ProjectKbPage({ params }: PageProps) {
                                 return (
                                     <div
                                         key={doc.id}
-                                        className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 flex flex-col items-center justify-center text-center min-h-[220px]"
+                                        className="group relative rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 flex flex-col items-center justify-center text-center min-h-[220px]"
                                     >
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => setDeleteDocId(doc.id)}
+                                            disabled={processingId === doc.id}
+                                            title="Remove stuck persona"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
                                         <Loader2 className="h-6 w-6 text-muted-foreground animate-spin mb-3" />
                                         <h3 className="font-semibold text-sm mb-1">Analysing persona…</h3>
                                         <p className="text-[12px] text-muted-foreground max-w-[220px]">
@@ -473,7 +484,8 @@ export default function ProjectKbPage({ params }: PageProps) {
                                         <div className="mt-4 flex items-center gap-2">
                                             <Button
                                                 size="sm"
-                                                className="h-7 text-xs bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
+                                                variant="outline"
+                                                className="h-7 text-xs"
                                                 onClick={() => approveDocument(doc.id)}
                                                 disabled={processingId === doc.id}
                                             >
@@ -681,7 +693,6 @@ export default function ProjectKbPage({ params }: PageProps) {
                         <Button
                             onClick={handleUpload}
                             disabled={uploading || !uploadFile || !uploadTitle || !classificationConfirmed}
-                            className="bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                         >
                             {uploading ? (
                                 <>
@@ -700,7 +711,7 @@ export default function ProjectKbPage({ params }: PageProps) {
             </Dialog>
 
             <Dialog open={!!viewDoc} onOpenChange={(open) => !open && setViewDoc(null)}>
-                <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-6">
+                <DialogContent className="!max-w-[min(1400px,95vw)] w-[min(1400px,95vw)] h-[92vh] flex flex-col p-6">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <FileText className="h-5 w-5 text-muted-foreground" />

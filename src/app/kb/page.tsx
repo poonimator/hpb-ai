@@ -262,8 +262,9 @@ export default function KnowledgeBasePage() {
             <div className="px-8 py-4">
                 <Button
                     type="button"
+                    variant="outline"
                     size="sm"
-                    className="w-full justify-center bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
+                    className="w-full justify-center"
                     onClick={() => {
                         setDocType(activeTab);
                         setUploadDialogOpen(true);
@@ -316,8 +317,8 @@ export default function KnowledgeBasePage() {
                             Upload {DOC_TYPE_LABELS[activeTab].toLowerCase()} to make them available across all projects.
                         </p>
                         <Button
+                            variant="outline"
                             size="sm"
-                            className="bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                             onClick={() => {
                                 setDocType(activeTab);
                                 setUploadDialogOpen(true);
@@ -368,8 +369,9 @@ export default function KnowledgeBasePage() {
                                         {isPending && (
                                             <>
                                                 <Button
+                                                    variant="outline"
                                                     size="sm"
-                                                    className="h-7 text-xs bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
+                                                    className="h-7 text-xs"
                                                     onClick={() => handleApprove(doc.id)}
                                                     disabled={processingId === doc.id}
                                                 >
@@ -513,7 +515,6 @@ export default function KnowledgeBasePage() {
                         <Button
                             onClick={handleUpload}
                             disabled={uploading || !file || !title || !classificationConfirmed}
-                            className="bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
                         >
                             {uploading ? (
                                 <>
@@ -532,7 +533,7 @@ export default function KnowledgeBasePage() {
             </Dialog>
 
             <Dialog open={!!viewDoc} onOpenChange={(open) => !open && setViewDoc(null)}>
-                <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-6">
+                <DialogContent className="!max-w-[min(1400px,95vw)] w-[min(1400px,95vw)] h-[92vh] flex flex-col p-6">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <FileText className="h-5 w-5 text-muted-foreground" />

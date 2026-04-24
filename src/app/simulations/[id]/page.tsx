@@ -29,6 +29,7 @@ import {
     CircleDot,
     Quote,
     Tag,
+    Clock,
 } from "lucide-react";
 import {
     Tooltip,
@@ -166,24 +167,28 @@ function parsePersonaName(personaDoc: { parsedMetaJson: string | null } | null, 
 }
 
 // Persona accent palette — drives avatar bars, chips, dots across the review page.
-// Colour choices taken from session-review-v2.jsx PERSONAS array.
+// Migrated to --cat-1..5 category tokens; cycles if more than 5 personas.
 const PERSONA_PALETTE = [
-    { accent: "#7c3aed", accentSoft: "rgba(124, 58, 237, 0.08)" },
-    { accent: "#0891b2", accentSoft: "rgba(8, 145, 178, 0.08)" },
-    { accent: "#b45309", accentSoft: "rgba(180, 83, 9, 0.08)" },
-    { accent: "#db2777", accentSoft: "rgba(219, 39, 119, 0.08)" },
-    { accent: "#059669", accentSoft: "rgba(5, 150, 105, 0.08)" },
-    { accent: "#4f46e5", accentSoft: "rgba(79, 70, 229, 0.08)" },
-];
+    { accent: "var(--cat-1)", accentSoft: "var(--cat-1-soft)" },
+    { accent: "var(--cat-2)", accentSoft: "var(--cat-2-soft)" },
+    { accent: "var(--cat-3)", accentSoft: "var(--cat-3-soft)" },
+    { accent: "var(--cat-4)", accentSoft: "var(--cat-4-soft)" },
+    { accent: "var(--cat-5)", accentSoft: "var(--cat-5-soft)" },
+] as const;
 
 // Legacy archetype colour map retained for highlight tooltips / misc.
+// Uses token-backed inline styles so persona accents track --cat-N.
 const ARCHETYPE_COLORS = [
-    { bg: "bg-violet-50/50", border: "border-violet-100", text: "text-violet-800", avatar: "bg-violet-200/70", avatarText: "text-violet-900" },
-    { bg: "bg-amber-50/50", border: "border-amber-100", text: "text-amber-800", avatar: "bg-amber-200/70", avatarText: "text-amber-900" },
-    { bg: "bg-sky-50/50", border: "border-sky-100", text: "text-sky-800", avatar: "bg-sky-200/70", avatarText: "text-sky-900" },
-    { bg: "bg-rose-50/50", border: "border-rose-100", text: "text-rose-800", avatar: "bg-rose-200/70", avatarText: "text-rose-900" },
-    { bg: "bg-emerald-50/50", border: "border-emerald-100", text: "text-emerald-800", avatar: "bg-emerald-200/70", avatarText: "text-emerald-900" },
+    { bg: "bg-[color:var(--cat-1-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-1)_25%,transparent)]", text: "text-[color:var(--cat-1)]", avatar: "bg-[color:var(--cat-1-soft)]", avatarText: "text-[color:var(--cat-1)]" },
+    { bg: "bg-[color:var(--cat-2-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-2)_25%,transparent)]", text: "text-[color:var(--cat-2)]", avatar: "bg-[color:var(--cat-2-soft)]", avatarText: "text-[color:var(--cat-2)]" },
+    { bg: "bg-[color:var(--cat-3-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-3)_25%,transparent)]", text: "text-[color:var(--cat-3)]", avatar: "bg-[color:var(--cat-3-soft)]", avatarText: "text-[color:var(--cat-3)]" },
+    { bg: "bg-[color:var(--cat-4-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-4)_25%,transparent)]", text: "text-[color:var(--cat-4)]", avatar: "bg-[color:var(--cat-4-soft)]", avatarText: "text-[color:var(--cat-4)]" },
+    { bg: "bg-[color:var(--cat-5-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-5)_25%,transparent)]", text: "text-[color:var(--cat-5)]", avatar: "bg-[color:var(--cat-5-soft)]", avatarText: "text-[color:var(--cat-5)]" },
 ];
+
+// Default accent for generic "respondent" emphasis in highlights.
+const RESPONDENT_ACCENT = "var(--cat-3)";
+const RESPONDENT_ACCENT_SOFT = "var(--cat-3-soft)";
 
 function getInitial(name: string): string {
     const words = name.trim().split(/\s+/);
@@ -319,6 +324,23 @@ export default function ViewSessionPage({ params }: PageProps) {
             console.error("Failed to regenerate review:", error);
         } finally {
             setRegenerating(false);
+        }
+    };
+
+    const handleEndSession = async () => {
+        if (!simulation) return;
+        try {
+            const res = await fetch("/api/simulations/end", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ simulationId: simulation.id }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                await fetchSimulation();
+            }
+        } catch (error) {
+            console.error("Failed to end simulation:", error);
         }
     };
 
@@ -488,25 +510,25 @@ export default function ViewSessionPage({ params }: PageProps) {
                     ? part.type === "highlight"
                         ? "bg-accent border-b-2 border-primary text-foreground"
                         : part.type === "leading"
-                            ? "bg-amber-200/80 border-b-2 border-amber-500 text-amber-900"
-                            : "bg-purple-200/80 border-b-2 border-purple-500 text-purple-900"
+                            ? "bg-[color:var(--primary-soft)] border-b-2 border-[color:var(--primary)] text-[color:var(--primary)]"
+                            : "bg-[color:var(--cat-3-soft)] border-b-2 border-[color:var(--cat-3)] text-[color:var(--cat-3)]"
                     : part.type === "highlight"
                         ? "bg-muted border-b-2 border-primary text-foreground"
                         : part.type === "leading"
-                            ? "bg-amber-100 border-b-2 border-amber-400 text-amber-900"
-                            : "bg-purple-100 border-b-2 border-purple-400 text-purple-900";
+                            ? "bg-[color:var(--primary-soft)] border-b-2 border-[color:color-mix(in_oklab,var(--primary)_60%,transparent)] text-[color:var(--primary)]"
+                            : "bg-[color:var(--cat-3-soft)] border-b-2 border-[color:color-mix(in_oklab,var(--cat-3)_60%,transparent)] text-[color:var(--cat-3)]";
 
                 const iconBg = part.type === "highlight"
                     ? "bg-muted text-foreground"
                     : part.type === "leading"
-                        ? "bg-amber-50 text-amber-500"
-                        : "bg-purple-50 text-purple-500";
+                        ? "bg-[color:var(--primary-soft)] text-[color:var(--primary)]"
+                        : "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]";
 
                 const labelColor = part.type === "highlight"
                     ? "text-foreground"
                     : part.type === "leading"
-                        ? "text-amber-600"
-                        : "text-purple-600";
+                        ? "text-[color:var(--primary)]"
+                        : "text-[color:var(--cat-3)]";
 
                 const labelText = part.type === "highlight"
                     ? "Good Technique"
@@ -527,7 +549,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                         >
                             <div className="relative p-4 rounded-md bg-background border border-border shadow-sm">
                                 {/* Subtle accent line at top */}
-                                <div className={`absolute top-0 left-4 right-4 h-[2px] rounded-full ${part.type === 'highlight' ? 'bg-primary/40' : part.type === 'leading' ? 'bg-amber-400/40' : 'bg-purple-400/40'}`} />
+                                <div className={`absolute top-0 left-4 right-4 h-[2px] rounded-full ${part.type === 'highlight' ? 'bg-primary/40' : part.type === 'leading' ? 'bg-[color:color-mix(in_oklab,var(--primary)_40%,transparent)]' : 'bg-[color:color-mix(in_oklab,var(--cat-3)_40%,transparent)]'}`} />
 
                                 <div className="flex items-start gap-3">
                                     <div className={`h-7 w-7 rounded-md ${iconBg} flex items-center justify-center shrink-0`}>
@@ -584,7 +606,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                     <h1 className="text-2xl font-bold text-foreground mb-2">Session Not Found</h1>
                     <p className="text-muted-foreground mb-6">The simulation session you're looking for doesn't exist.</p>
                     <Link href="/dashboard">
-                        <Button className="bg-primary hover:bg-primary/90">
+                        <Button variant="primary">
                             Back to Dashboard
                         </Button>
                     </Link>
@@ -861,6 +883,38 @@ export default function ViewSessionPage({ params }: PageProps) {
                         </p>
                     </div>
 
+                    {/* Ongoing session — resume or end (shown while simulation.endedAt is null) */}
+                    {!simulation.endedAt && (
+                        <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 mb-6">
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="h-9 w-9 rounded-[10px] bg-[color:var(--warning-soft)] text-[color:var(--warning)] shadow-inset-edge flex items-center justify-center shrink-0">
+                                    <Clock className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span className="text-eyebrow text-[color:var(--warning)]">Ongoing session</span>
+                                    <h2 className="text-display-3 text-foreground leading-tight mt-1">
+                                        This simulation is still running.
+                                    </h2>
+                                    <p className="text-body-sm text-muted-foreground mt-2 leading-relaxed">
+                                        Jump back into the conversation or wrap it up to unlock the coach review.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {projectId && subProjectId ? (
+                                    <Button variant="primary" asChild>
+                                        <Link href={`/projects/${projectId}/sub/${subProjectId}/simulate?resume=${simulation.id}`}>
+                                            Resume simulation
+                                        </Link>
+                                    </Button>
+                                ) : null}
+                                <Button variant="outline" onClick={handleEndSession}>
+                                    End session
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Legend (when review exists) */}
                     {hasReview && (
                         <div className="mb-8 inline-flex items-center gap-4 text-caption text-muted-foreground px-4 py-2.5 bg-[color:var(--surface-muted)] rounded-[10px] shadow-inset-edge">
@@ -870,11 +924,11 @@ export default function ViewSessionPage({ params }: PageProps) {
                                 <span>Good technique</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-sm bg-amber-200/80 border border-amber-300" />
+                                <span className="w-2.5 h-2.5 rounded-sm bg-[color:var(--primary-soft)] border border-[color:color-mix(in_oklab,var(--primary)_35%,transparent)]" />
                                 <span>Leading/Issues</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-sm bg-purple-200/80 border border-purple-300" />
+                                <span className="w-2.5 h-2.5 rounded-sm bg-[color:var(--cat-3-soft)] border border-[color:color-mix(in_oklab,var(--cat-3)_35%,transparent)]" />
                                 <span>Missed opportunity</span>
                             </div>
                         </div>
@@ -1266,7 +1320,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                     </section>
 
                     {/* No Review Message */}
-                    {!hasReview && simulation.messages.length >= 2 && (
+                    {simulation.endedAt && !hasReview && simulation.messages.length >= 2 && (
                         <div className="mt-6 text-center">
                             <p className="text-body-sm text-muted-foreground mb-4">
                                 No coach review available yet. Generate one to see coaching feedback on your interview.
@@ -1311,8 +1365,8 @@ export default function ViewSessionPage({ params }: PageProps) {
                                     <div className={`h-6 w-6 rounded-md flex items-center justify-center shrink-0 ${coachChatFeedback.type === "highlight"
                                         ? "bg-accent text-foreground"
                                         : coachChatFeedback.type === "leading"
-                                            ? "bg-amber-100 text-amber-600"
-                                            : "bg-purple-100 text-purple-600"
+                                            ? "bg-[color:var(--primary-soft)] text-[color:var(--primary)]"
+                                            : "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]"
                                         }`}>
                                         {coachChatFeedback.type === "highlight" && <ThumbsUp className="h-3.5 w-3.5" />}
                                         {coachChatFeedback.type === "leading" && <AlertTriangle className="h-3.5 w-3.5" />}

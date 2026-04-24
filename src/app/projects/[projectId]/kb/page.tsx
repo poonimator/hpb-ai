@@ -601,112 +601,128 @@ export default function ProjectKbPage({ params }: PageProps) {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="upload-title">Document title</Label>
-                            <Input
-                                id="upload-title"
-                                value={uploadTitle}
-                                onChange={(e) => setUploadTitle(e.target.value)}
-                                placeholder="e.g. Sarah — Secondary Student"
-                            />
+                    {uploading ? (
+                        <div className="py-8 flex flex-col items-center justify-center text-center">
+                            <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center mb-4">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                            <span className="text-eyebrow text-muted-foreground mb-1">Uploading</span>
+                            <h3 className="text-display-4 text-foreground mb-2">Processing your document…</h3>
+                            <p className="text-body-sm text-muted-foreground mb-5 max-w-xs">
+                                This can take up to 30 seconds for larger PDFs.
+                            </p>
+                            <div className="w-full max-w-xs h-1 bg-[color:var(--surface-muted)] rounded-full overflow-hidden">
+                                <div className="h-full w-1/3 bg-[color:var(--primary)] animate-pulse rounded-full" />
+                            </div>
                         </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="upload-docType">Document type</Label>
-                            <Select value={uploadDocType} onValueChange={setUploadDocType}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="PERSONA">Persona</SelectItem>
-                                    <SelectItem value="FRAMEWORK">Framework</SelectItem>
-                                    <SelectItem value="RESEARCH">Research</SelectItem>
-                                    <SelectItem value="POLICY">Policy</SelectItem>
-                                    <SelectItem value="OTHER">Other</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="upload-file">Source file</Label>
-                            <div className="relative group">
+                    ) : (
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="upload-title">Document title</Label>
                                 <Input
-                                    id="upload-file"
-                                    type="file"
-                                    ref={fileInputRef}
-                                    accept=".txt,.pdf"
-                                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                                    className="hidden"
+                                    id="upload-title"
+                                    value={uploadTitle}
+                                    onChange={(e) => setUploadTitle(e.target.value)}
+                                    placeholder="e.g. Sarah — Secondary Student"
                                 />
-                                <label
-                                    htmlFor="upload-file"
-                                    className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-md cursor-pointer transition-colors ${
-                                        uploadFile
-                                            ? "border-[color:var(--primary)]/40 bg-[color:var(--primary-soft)]"
-                                            : "border-input bg-background hover:border-[color:var(--primary)]/30 hover:bg-[color:var(--surface-muted)]"
-                                    }`}
-                                >
-                                    {uploadFile ? (
-                                        <div className="flex flex-col items-center text-foreground">
-                                            <FileText className="h-7 w-7 mb-2 text-muted-foreground" />
-                                            <span className="text-sm font-medium truncate max-w-[200px]">{uploadFile.name}</span>
-                                            <span className="text-xs text-muted-foreground mt-0.5">
-                                                {(uploadFile.size / 1024).toFixed(1)} KB
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center text-muted-foreground group-hover:text-foreground transition-colors">
-                                            <Upload className="h-7 w-7 mb-2" />
-                                            <span className="text-sm font-medium">Click to upload file</span>
-                                            <span className="text-xs mt-0.5">PDF or TXT (Max 10MB)</span>
-                                        </div>
-                                    )}
-                                </label>
                             </div>
-                        </div>
 
-                        <div className="p-3 bg-[color:var(--warning-soft)] border border-[color:var(--warning)]/25 rounded-md">
-                            <div className="flex items-start gap-3">
-                                <div className="flex items-center h-5 pt-0.5">
-                                    <Checkbox
-                                        id="classificationConfirmProject"
-                                        checked={classificationConfirmed}
-                                        onCheckedChange={(checked) => setClassificationConfirmed(checked === true)}
-                                        aria-label="Confirm data classification compliance"
+                            <div className="space-y-2">
+                                <Label htmlFor="upload-docType">Document type</Label>
+                                <Select value={uploadDocType} onValueChange={setUploadDocType}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="PERSONA">Persona</SelectItem>
+                                        <SelectItem value="FRAMEWORK">Framework</SelectItem>
+                                        <SelectItem value="RESEARCH">Research</SelectItem>
+                                        <SelectItem value="POLICY">Policy</SelectItem>
+                                        <SelectItem value="OTHER">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="upload-file">Source file</Label>
+                                <div className="relative group">
+                                    <Input
+                                        id="upload-file"
+                                        type="file"
+                                        ref={fileInputRef}
+                                        accept=".txt,.pdf"
+                                        onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                                        className="hidden"
                                     />
+                                    <label
+                                        htmlFor="upload-file"
+                                        className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-md cursor-pointer transition-colors ${
+                                            uploadFile
+                                                ? "border-[color:var(--primary)]/40 bg-[color:var(--primary-soft)]"
+                                                : "border-input bg-background hover:border-[color:var(--primary)]/30 hover:bg-[color:var(--surface-muted)]"
+                                        }`}
+                                    >
+                                        {uploadFile ? (
+                                            <div className="flex flex-col items-center text-foreground">
+                                                <FileText className="h-7 w-7 mb-2 text-muted-foreground" />
+                                                <span className="text-sm font-medium truncate max-w-[200px]">{uploadFile.name}</span>
+                                                <span className="text-xs text-muted-foreground mt-0.5">
+                                                    {(uploadFile.size / 1024).toFixed(1)} KB
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center text-muted-foreground group-hover:text-foreground transition-colors">
+                                                <Upload className="h-7 w-7 mb-2" />
+                                                <span className="text-sm font-medium">Click to upload file</span>
+                                                <span className="text-xs mt-0.5">PDF or TXT (Max 10MB)</span>
+                                            </div>
+                                        )}
+                                    </label>
                                 </div>
-                                <label htmlFor="classificationConfirmProject" className="text-sm select-none">
-                                    <span className="block font-medium text-[color:var(--warning)] text-caption uppercase tracking-wider mb-1">Compliance check</span>
-                                    <p className="text-xs text-muted-foreground leading-relaxed">
-                                        I confirm this document contains no data classified above <strong>OFFICIAL (CLOSED) / SENSITIVE-NORMAL</strong> and complies with IM8.
-                                    </p>
-                                </label>
+                            </div>
+
+                            <div className="p-3 bg-[color:var(--warning-soft)] border border-[color:var(--warning)]/25 rounded-md">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex items-center h-5 pt-0.5">
+                                        <Checkbox
+                                            id="classificationConfirmProject"
+                                            checked={classificationConfirmed}
+                                            onCheckedChange={(checked) => setClassificationConfirmed(checked === true)}
+                                            aria-label="Confirm data classification compliance"
+                                        />
+                                    </div>
+                                    <label htmlFor="classificationConfirmProject" className="text-sm select-none">
+                                        <span className="block font-medium text-[color:var(--warning)] text-caption uppercase tracking-wider mb-1">Compliance check</span>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                            I confirm this document contains no data classified above <strong>OFFICIAL (CLOSED) / SENSITIVE-NORMAL</strong> and complies with IM8.
+                                        </p>
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleUpload}
-                            disabled={uploading || !uploadFile || !uploadTitle || !classificationConfirmed}
-                        >
-                            {uploading ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Processing...
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Upload document
-                                </>
-                            )}
-                        </Button>
-                    </DialogFooter>
+                    {uploading ? (
+                        <DialogFooter>
+                            <Button disabled>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Processing...
+                            </Button>
+                        </DialogFooter>
+                    ) : (
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleUpload}
+                                disabled={!uploadFile || !uploadTitle || !classificationConfirmed}
+                            >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload document
+                            </Button>
+                        </DialogFooter>
+                    )}
                 </DialogContent>
             </Dialog>
 

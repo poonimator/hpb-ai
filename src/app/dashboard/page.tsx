@@ -154,7 +154,7 @@ export default function DashboardPage() {
                         Organise research, run interview simulations, map insights, and drive synthesis across your HPB projects.
                     </p>
                 </div>
-                <Button asChild className="shrink-0 gap-1.5 bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110">
+                <Button asChild variant="primary" className="shrink-0 gap-1.5">
                     <Link href="/projects/new">
                         <Plus className="h-4 w-4" />
                         New project

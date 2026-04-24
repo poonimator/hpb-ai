@@ -1630,12 +1630,13 @@ function SimulationPageContent({ params }: PageProps) {
                                 </Button>
                                 <Button
                                     size="sm"
+                                    variant="primary"
                                     onClick={startSimulation}
                                     disabled={isFocusGroup
                                         ? selectedArchetypeIds.length < 2
                                         : (!selectedPersonaId || (personas.length === 0 && archetypes.length === 0))
                                     }
-                                    className="gap-1.5 bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card hover:brightness-110"
+                                    className="gap-1.5"
                                 >
                                     {loading ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

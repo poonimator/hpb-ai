@@ -1,15 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ThumbsUp, ThumbsDown, Flag, Loader2, X, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ThumbsUp, ThumbsDown, Flag, Loader2 } from "lucide-react";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -112,149 +107,292 @@ export function AIFeedback({
         }
     };
 
-    const buttonSize = size === "sm" ? "h-6 w-6" : "h-8 w-8";
-    const iconSize = size === "sm" ? "h-3 w-3" : "h-4 w-4";
+    // Inline segmented pill sizing — keeps the footer compact for `sm`,
+    // breathes a touch more for `md`.
+    const iconSize = size === "sm" ? "size-3" : "size-3.5";
+    const slotPad = size === "sm" ? "px-2 py-1" : "px-2.5 py-1.5";
+    const pillPadLeft = size === "sm" ? "pl-2.5" : "pl-3";
+
+    // Loading guard — same semantics as before (disable thumbs while a fetch
+    // is in flight), now centralised so the segmented pill reads as one
+    // affordance instead of three independent buttons.
+    const thumbsDisabled = loading;
 
     return (
         <>
-            <div className={cn("flex items-center gap-1", className)}>
-                <button
-                    onClick={() => handleFeedback("thumbs_up")}
-                    disabled={loading}
+            {/* ── Inline segmented feedback chip ───────────────────────────
+                A single pill-chip that reads as one intentional affordance:
+                a quiet "Rate" eyebrow on the left, then three glyphs
+                separated by hairline dividers. Whisper-subtle at rest
+                (already lives inside the chat-bubble hover footer), with
+                gentle chromatic cues on active state — soft primary for
+                thumbs-up, danger-soft for thumbs-down, warning-soft for
+                flag. Nothing shouts. ───────────────────────────────────── */}
+            <div
+                className={cn(
+                    "inline-flex items-stretch",
+                    "rounded-[var(--radius-pill)] bg-[color:var(--surface)]",
+                    "shadow-outline-ring",
+                    className,
+                )}
+            >
+                <span
                     className={cn(
-                        buttonSize,
-                        "rounded-full flex items-center justify-center transition-all",
+                        "flex items-center text-eyebrow text-[color:var(--ink-secondary)]",
+                        "select-none",
+                        pillPadLeft,
+                        "pr-2",
+                    )}
+                >
+                    Rate
+                </span>
+
+                <span
+                    aria-hidden
+                    className="my-1.5 w-px bg-[color:var(--border-subtle)]"
+                />
+
+                <button
+                    type="button"
+                    onClick={() => handleFeedback("thumbs_up")}
+                    disabled={thumbsDisabled}
+                    className={cn(
+                        "flex items-center justify-center transition-colors",
+                        slotPad,
                         feedback === "thumbs_up"
-                            ? "bg-accent text-primary"
-                            : "text-muted-foreground hover:text-primary hover:bg-accent"
+                            ? "text-[color:var(--primary)] bg-[color:var(--primary-soft)]"
+                            : "text-[color:var(--ink-secondary)] hover:text-[color:var(--primary)] hover:bg-[color:var(--primary-soft)]",
+                        "disabled:cursor-not-allowed",
                     )}
                     title="This was helpful"
+                    aria-pressed={feedback === "thumbs_up"}
+                    aria-label="Helpful"
                 >
-                    {loading && feedback !== "thumbs_up" ? (
-                        <Loader2 className={cn(iconSize, "animate-spin")} />
+                    {loading && feedback !== "thumbs_up" && feedback !== "thumbs_down" ? (
+                        <Loader2 className={cn(iconSize, "animate-spin")} strokeWidth={1.75} />
                     ) : (
-                        <ThumbsUp className={cn(iconSize, feedback === "thumbs_up" && "fill-current")} />
+                        <ThumbsUp
+                            className={cn(iconSize, feedback === "thumbs_up" && "fill-current")}
+                            strokeWidth={1.75}
+                        />
                     )}
                 </button>
 
+                <span
+                    aria-hidden
+                    className="my-1.5 w-px bg-[color:var(--border-subtle)]"
+                />
+
                 <button
+                    type="button"
                     onClick={() => handleFeedback("thumbs_down")}
-                    disabled={loading}
+                    disabled={thumbsDisabled}
                     className={cn(
-                        buttonSize,
-                        "rounded-full flex items-center justify-center transition-all",
+                        "flex items-center justify-center transition-colors",
+                        slotPad,
                         feedback === "thumbs_down"
-                            ? "bg-destructive/10 text-destructive"
-                            : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            ? "text-[color:var(--danger)] bg-[color:var(--danger-soft)]"
+                            : "text-[color:var(--ink-secondary)] hover:text-[color:var(--danger)] hover:bg-[color:var(--danger-soft)]",
+                        "disabled:cursor-not-allowed",
                     )}
                     title="This wasn't helpful"
+                    aria-pressed={feedback === "thumbs_down"}
+                    aria-label="Not helpful"
                 >
-                    {loading && feedback !== "thumbs_down" ? (
-                        <Loader2 className={cn(iconSize, "animate-spin")} />
-                    ) : (
-                        <ThumbsDown className={cn(iconSize, feedback === "thumbs_down" && "fill-current")} />
-                    )}
+                    <ThumbsDown
+                        className={cn(iconSize, feedback === "thumbs_down" && "fill-current")}
+                        strokeWidth={1.75}
+                    />
                 </button>
 
+                <span
+                    aria-hidden
+                    className="my-1.5 w-px bg-[color:var(--border-subtle)]"
+                />
+
                 <button
+                    type="button"
                     onClick={() => setReportDialogOpen(true)}
                     className={cn(
-                        buttonSize,
-                        "rounded-full flex items-center justify-center transition-all",
-                        "text-muted-foreground hover:text-amber-600 hover:bg-amber-50"
+                        "flex items-center justify-center transition-colors",
+                        slotPad,
+                        "rounded-r-[var(--radius-pill)]",
+                        "text-[color:var(--ink-secondary)] hover:text-[color:var(--warning)] hover:bg-[color:var(--warning-soft)]",
                     )}
                     title="Report an issue"
+                    aria-label="Report an issue"
                 >
-                    <Flag className={iconSize} />
+                    <Flag className={iconSize} strokeWidth={1.75} />
                 </button>
             </div>
 
-            {/* Report Issue Dialog */}
+            {/* ── Report Issue dialog ───────────────────────────────────────
+                Redesigned as a focused reflection surface — eyebrow label
+                + display-3 title + one-line lead, no icon-chip ornament.
+                Single-column stack of well-shadowed category cards that
+                finally do something with the `description` field. Notes
+                area is a quiet reflection box with an inset-edge shadow
+                and its own eyebrow. Submit is the dashboard pill CTA.
+                A thin `--warning-soft` hairline runs along the top of
+                the content to acknowledge the cautionary tone without
+                drowning the dialog in amber. ───────────────────────── */}
             <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Flag className="h-5 w-5 text-amber-600" />
-                            Report an Issue
-                        </DialogTitle>
-                        <DialogDescription>
-                            Help us improve by reporting problematic AI-generated content.
-                        </DialogDescription>
-                    </DialogHeader>
+                <DialogContent className="sm:max-w-[540px] p-0 overflow-hidden">
+                    {/* Warning hairline at the top edge */}
+                    <div
+                        aria-hidden
+                        className="h-[2px] bg-[color:var(--warning-soft)]"
+                    />
 
                     {reportSubmitted ? (
-                        <div className="py-8 text-center">
-                            <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center mx-auto mb-4">
-                                <Check className="h-6 w-6 text-primary" />
-                            </div>
-                            <h3 className="font-semibold text-foreground mb-1">Report Submitted</h3>
-                            <p className="text-sm text-muted-foreground">Thank you for your feedback!</p>
+                        // ── Success state: a whisper-thin "Thank you" moment ──
+                        <div className="flex flex-col items-center justify-center gap-3 px-10 py-16 text-center">
+                            <span className="text-eyebrow text-[color:var(--primary)]">
+                                Received
+                            </span>
+                            <h2 className="text-display-2 text-foreground leading-[1.1]">
+                                Thank you.
+                            </h2>
+                            <p className="text-body-sm text-muted-foreground max-w-sm leading-relaxed">
+                                Your report has been logged. We use every flag to refine how the AI responds.
+                            </p>
                         </div>
                     ) : (
-                        <>
-                            <div className="space-y-4 py-4">
-                                <div>
-                                    <label className="text-sm font-medium text-foreground mb-2 block">
-                                        What type of issue is this?
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {ISSUE_CATEGORIES.map((cat) => (
+                        <div className="flex flex-col gap-7 px-8 pt-8 pb-7">
+                            {/* Header — eyebrow + display title + lead */}
+                            <header className="flex flex-col gap-2">
+                                <span className="text-eyebrow text-[color:var(--warning)]">
+                                    Report feedback
+                                </span>
+                                <h2 className="text-display-3 text-foreground leading-[1.1]">
+                                    Flag something that felt wrong.
+                                </h2>
+                                <p className="text-body-sm text-muted-foreground max-w-md leading-relaxed">
+                                    Pick the category that best captures the concern. Context helps us tune the model.
+                                </p>
+                            </header>
+
+                            {/* Category picker — vertical stack of full-width rows.
+                                Each row has a label + description; selected state is
+                                a gentle primary-soft wash plus a shadow-card lift. */}
+                            <section className="flex flex-col gap-3">
+                                <span className="text-eyebrow text-[color:var(--ink-secondary)]">
+                                    Category
+                                </span>
+                                <div className="flex flex-col gap-2">
+                                    {ISSUE_CATEGORIES.map((cat) => {
+                                        const isSelected = selectedCategory === cat.value;
+                                        return (
                                             <button
                                                 key={cat.value}
+                                                type="button"
                                                 onClick={() => setSelectedCategory(cat.value)}
+                                                aria-pressed={isSelected}
                                                 className={cn(
-                                                    "px-3 py-2 rounded-md border text-left transition-all text-sm",
-                                                    selectedCategory === cat.value
-                                                        ? "border-primary bg-accent text-foreground"
-                                                        : "border-input hover:border-border text-muted-foreground"
+                                                    "group relative flex items-start gap-3 rounded-[14px] px-4 py-3 text-left transition-all",
+                                                    isSelected
+                                                        ? "bg-[color:var(--primary-soft)] shadow-card"
+                                                        : "bg-[color:var(--surface)] shadow-inset-edge hover:shadow-outline-ring",
                                                 )}
                                             >
-                                                <div className="font-medium">{cat.label}</div>
+                                                {/* Leading accent dot — softly hints at selection */}
+                                                <span
+                                                    aria-hidden
+                                                    className={cn(
+                                                        "mt-[7px] inline-block size-1.5 shrink-0 rounded-full transition-colors",
+                                                        isSelected
+                                                            ? "bg-[color:var(--primary)]"
+                                                            : "bg-[color:var(--border)]",
+                                                    )}
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <div
+                                                        className={cn(
+                                                            "text-ui font-medium",
+                                                            isSelected
+                                                                ? "text-[color:var(--primary)]"
+                                                                : "text-foreground",
+                                                        )}
+                                                    >
+                                                        {cat.label}
+                                                    </div>
+                                                    <div className="mt-0.5 text-body-sm text-muted-foreground leading-relaxed">
+                                                        {cat.description}
+                                                    </div>
+                                                </div>
                                             </button>
-                                        ))}
-                                    </div>
+                                        );
+                                    })}
                                 </div>
+                            </section>
 
-                                <div>
-                                    <label className="text-sm font-medium text-foreground mb-2 block">
-                                        Additional details (optional)
-                                    </label>
+                            {/* Notes area — a quiet reflection space */}
+                            <section className="flex flex-col gap-2">
+                                <span className="text-eyebrow text-[color:var(--ink-secondary)]">
+                                    Additional notes
+                                    <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground">
+                                        (optional)
+                                    </span>
+                                </span>
+                                <div className="rounded-[14px] bg-[color:var(--surface)] shadow-inset-edge">
                                     <Textarea
                                         value={issueDetails}
                                         onChange={(e) => setIssueDetails(e.target.value)}
-                                        placeholder="Describe the issue in more detail..."
-                                        rows={3}
-                                        className="resize-none"
+                                        placeholder="Describe what went wrong, what you expected, or anything else that would help us understand."
+                                        rows={4}
+                                        className={cn(
+                                            "border-0 bg-transparent shadow-none resize-none",
+                                            "px-4 py-3 text-body-sm leading-relaxed",
+                                            "placeholder:text-muted-foreground/70",
+                                            "focus-visible:ring-0 focus-visible:ring-offset-0",
+                                        )}
                                     />
                                 </div>
-                            </div>
+                            </section>
 
-                            <DialogFooter>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setReportDialogOpen(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    onClick={handleReportSubmit}
-                                    disabled={!selectedCategory || reportSubmitting}
-                                    className="bg-amber-600 hover:bg-amber-700"
-                                >
-                                    {reportSubmitting ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Submitting...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Flag className="h-4 w-4 mr-2" />
-                                            Submit Report
-                                        </>
-                                    )}
-                                </Button>
-                            </DialogFooter>
-                        </>
+                            {/* Footer — pill primary + ghost cancel */}
+                            <footer className="flex items-center justify-between gap-3 pt-1">
+                                <p className="text-caption text-muted-foreground">
+                                    Reports are private and help us improve the AI.
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setReportDialogOpen(false)}
+                                        className={cn(
+                                            "rounded-[var(--radius-pill)] px-4 py-2 text-ui font-medium",
+                                            "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface-muted)]",
+                                            "transition-colors",
+                                        )}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleReportSubmit}
+                                        disabled={!selectedCategory || reportSubmitting}
+                                        className={cn(
+                                            "inline-flex items-center gap-1.5",
+                                            "rounded-[var(--radius-pill)] px-4 py-2 text-ui font-medium",
+                                            "bg-[color:var(--primary)] text-[color:var(--primary-fg)] shadow-card",
+                                            "hover:brightness-110 transition-[filter,opacity]",
+                                            "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100",
+                                        )}
+                                    >
+                                        {reportSubmitting ? (
+                                            <>
+                                                <Loader2 className="size-3.5 animate-spin" strokeWidth={1.75} />
+                                                Submitting
+                                            </>
+                                        ) : (
+                                            <>
+                                                Submit report
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </footer>
+                        </div>
                     )}
                 </DialogContent>
             </Dialog>

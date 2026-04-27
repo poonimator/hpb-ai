@@ -547,6 +547,7 @@ export default function ProjectKbPage({ params }: PageProps) {
                                         {isPending && (
                                             <>
                                                 <Button
+                                                    variant="outline"
                                                     size="sm"
                                                     className="h-7 text-xs"
                                                     onClick={() => approveDocument(doc.id)}

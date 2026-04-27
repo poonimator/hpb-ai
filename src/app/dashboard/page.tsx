@@ -148,7 +148,6 @@ export default function DashboardPage() {
             {/* Page header — matches the display-heavy intro blocks on the rest of the app */}
             <header className="mb-10 flex items-end justify-between gap-6 border-b border-[color:var(--border-subtle)] pb-8">
                 <div className="flex flex-col gap-2">
-                    <span className="text-eyebrow text-muted-foreground">Workspace</span>
                     <h1 className="text-display-1 text-foreground leading-[1.05]">Projects</h1>
                     <p className="text-body-sm text-muted-foreground max-w-xl leading-relaxed">
                         Organise research, run interview simulations, map insights, and drive synthesis across your HPB projects.

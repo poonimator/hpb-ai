@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Projects", href: "/dashboard" },
-  { title: "Knowledge Base", href: "/kb" },
+  { title: "Global Knowledge Base", href: "/kb" },
 ];
 
 export function TopNavbar() {

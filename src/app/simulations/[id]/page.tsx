@@ -547,40 +547,27 @@ export default function ViewSessionPage({ params }: PageProps) {
                             side="top"
                             className="p-0 bg-transparent border-none shadow-none max-w-sm"
                         >
-                            <div className="relative p-4 rounded-md bg-background border border-border shadow-sm">
-                                {/* Subtle accent line at top */}
-                                <div className={`absolute top-0 left-4 right-4 h-[2px] rounded-full ${part.type === 'highlight' ? 'bg-primary/40' : part.type === 'leading' ? 'bg-[color:color-mix(in_oklab,var(--primary)_40%,transparent)]' : 'bg-[color:color-mix(in_oklab,var(--cat-3)_40%,transparent)]'}`} />
-
-                                <div className="flex items-start gap-3">
-                                    <div className={`h-7 w-7 rounded-md ${iconBg} flex items-center justify-center shrink-0`}>
-                                        {part.type === "highlight" && <ThumbsUp className="h-3.5 w-3.5" />}
-                                        {part.type === "leading" && <AlertTriangle className="h-3.5 w-3.5" />}
-                                        {part.type === "missed" && <Lightbulb className="h-3.5 w-3.5" />}
-                                    </div>
-                                    <div className="flex-1 min-w-0 pt-0.5">
-                                        <p className={`text-[9px] font-bold uppercase tracking-[0.15em] mb-1 ${labelColor}/80`}>
-                                            {labelText}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                            {part.tooltip}
-                                        </p>
-                                        {part.suggestion && (
-                                            <p className="text-[11px] text-muted-foreground mt-2 italic border-t border-border pt-2">
-                                                💡 {part.suggestion}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                {/* Ask Coach Button */}
+                            <div className="rounded-[14px] bg-white shadow-card p-4">
+                                <p className={`text-eyebrow ${labelColor} mb-2`}>
+                                    {labelText}
+                                </p>
+                                <p className="text-body-sm text-foreground leading-relaxed">
+                                    {part.tooltip}
+                                </p>
+                                {part.suggestion && (
+                                    <p className="text-body-sm text-muted-foreground mt-3 pt-3 border-t border-[color:var(--border-subtle)] leading-relaxed">
+                                        {part.suggestion}
+                                    </p>
+                                )}
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         openCoachChat(part.feedbackKey!, part.type as "highlight" | "leading" | "missed", part.feedbackContent);
                                     }}
-                                    className="w-full mt-3 pt-2.5 border-t border-border flex items-center justify-center gap-1.5 text-[11px] font-medium text-primary hover:text-foreground transition-colors"
+                                    className="w-full mt-3 pt-3 border-t border-[color:var(--border-subtle)] flex items-center justify-center gap-1.5 text-ui-sm font-medium text-[color:var(--primary)] hover:opacity-80 transition-opacity"
                                 >
                                     <MessageCircle className="h-3.5 w-3.5" />
-                                    Ask Coach About This
+                                    Ask coach about this
                                 </button>
                             </div>
                         </TooltipContent>
@@ -951,11 +938,13 @@ export default function ViewSessionPage({ params }: PageProps) {
                                         try { structured = JSON.parse(simArch.summary); } catch { structured = null; }
                                     }
 
+                                    // Only show the tag once the structured summary
+                                    // has parsed — otherwise the archetype's `kicker`
+                                    // (a longer descriptor) flashes in first and gets
+                                    // replaced by the short stance, which reads as a bug.
                                     const tags: string[] = structured?.stance
                                         ? [structured.stance]
-                                        : simArch.archetype.kicker
-                                            ? [simArch.archetype.kicker]
-                                            : [];
+                                        : [];
 
                                     return (
                                         <div
@@ -1340,36 +1329,20 @@ export default function ViewSessionPage({ params }: PageProps) {
 
                 {/* Coach Chat Dialog */}
                 <Dialog open={coachChatOpen} onOpenChange={setCoachChatOpen}>
-                    <DialogContent className="max-w-md p-0 overflow-hidden bg-background border border-border shadow-lg rounded-md gap-0">
-                        <DialogHeader className="px-5 py-4 border-b border-border bg-card">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-9 w-9 rounded-md bg-primary flex items-center justify-center text-primary-foreground">
-                                        <MessageCircle className="h-4.5 w-4.5" />
-                                    </div>
-                                    <div className="space-y-0.5">
-                                        <DialogTitle className="text-sm font-bold text-foreground">Ask Your Coach</DialogTitle>
-                                        <p className="text-[11px] text-muted-foreground font-medium">Get deeper insights on this feedback</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </DialogHeader>
+                    <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-white gap-0">
+                        {/* Header — eyebrow + display title, no icon chip, no border band */}
+                        <div className="px-7 pt-7 pb-2">
+                            <span className="text-eyebrow text-[color:var(--primary)]">Ask the coach</span>
+                            <DialogTitle className="text-display-4 text-foreground leading-tight mt-1.5">
+                                Get deeper insight on this feedback.
+                            </DialogTitle>
+                        </div>
 
-                        {/* Feedback Context */}
+                        {/* Feedback Context — quiet inset card, no separator band */}
                         {coachChatFeedback && (
-                            <div className="px-5 py-4 bg-muted border-b border-border">
-                                <div className="flex items-start gap-3">
-                                    <div className={`h-6 w-6 rounded-md flex items-center justify-center shrink-0 ${coachChatFeedback.type === "highlight"
-                                        ? "bg-accent text-foreground"
-                                        : coachChatFeedback.type === "leading"
-                                            ? "bg-[color:var(--primary-soft)] text-[color:var(--primary)]"
-                                            : "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]"
-                                        }`}>
-                                        {coachChatFeedback.type === "highlight" && <ThumbsUp className="h-3.5 w-3.5" />}
-                                        {coachChatFeedback.type === "leading" && <AlertTriangle className="h-3.5 w-3.5" />}
-                                        {coachChatFeedback.type === "missed" && <Lightbulb className="h-3.5 w-3.5" />}
-                                    </div>
-                                    <p className="text-xs text-foreground leading-relaxed pt-0.5 font-medium">
+                            <div className="px-7 pt-4 pb-1">
+                                <div className="rounded-[12px] bg-[color:var(--surface-muted)] shadow-inset-edge px-4 py-3">
+                                    <p className="text-body-sm text-foreground leading-relaxed">
                                         {coachChatFeedback.content.observation || coachChatFeedback.content.issue || coachChatFeedback.content.opportunity}
                                     </p>
                                 </div>
@@ -1377,21 +1350,18 @@ export default function ViewSessionPage({ params }: PageProps) {
                         )}
 
                         {/* Chat Messages */}
-                        <div className="h-72 overflow-y-auto p-5 space-y-4 bg-background">
+                        <div className="h-72 overflow-y-auto px-7 py-4 space-y-3 bg-white">
                             {coachChatMessages.length === 0 && !coachChatLoading && (
-                                <div className="text-center text-muted-foreground text-sm py-10 flex flex-col items-center">
-                                    <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center mb-3">
-                                        <MessageCircle className="h-6 w-6 text-muted-foreground" />
-                                    </div>
-                                    <p className="font-medium text-muted-foreground">Ask a question about this feedback</p>
-                                    <p className="text-xs mt-1 text-muted-foreground">e.g., "Why is this important?"</p>
+                                <div className="text-center py-10 flex flex-col items-center gap-1">
+                                    <p className="text-body-sm font-medium text-foreground">Ask a question about this feedback</p>
+                                    <p className="text-caption text-muted-foreground">e.g. &ldquo;Why is this important?&rdquo;</p>
                                 </div>
                             )}
                             {coachChatMessages.map((msg, idx) => (
                                 <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                                    <div className={`max-w-[85%] px-4 py-2.5 rounded-md text-sm leading-relaxed ${msg.role === "user"
-                                        ? "bg-accent border border-border text-foreground rounded-tr-none"
-                                        : "bg-card border border-border text-foreground rounded-tl-none"
+                                    <div className={`max-w-[85%] px-3.5 py-2.5 rounded-[12px] text-body-sm leading-relaxed ${msg.role === "user"
+                                        ? "bg-[color:var(--primary-soft)] text-foreground"
+                                        : "bg-[color:var(--surface-muted)] text-foreground shadow-inset-edge"
                                         }`}>
                                         {msg.content}
                                     </div>
@@ -1399,40 +1369,39 @@ export default function ViewSessionPage({ params }: PageProps) {
                             ))}
                             {coachChatLoading && (
                                 <div className="flex justify-start">
-                                    <div className="bg-card border border-border text-muted-foreground px-4 py-3 rounded-md rounded-tl-none text-sm flex items-center gap-2">
-                                        <span className="flex gap-1">
-                                            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"></span>
-                                        </span>
+                                    <div className="bg-[color:var(--surface-muted)] shadow-inset-edge px-4 py-3 rounded-[12px] flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"></span>
                                     </div>
                                 </div>
                             )}
                             <div ref={coachChatEndRef} />
                         </div>
 
-                        {/* Input */}
-                        <div className="p-4 border-t border-border bg-card">
-                            <div className="flex gap-2 items-center bg-background border border-input rounded-md px-2 py-1.5 transition-all">
+                        {/* Input — borderless, soft inset shadow, amber pill send */}
+                        <div className="px-7 pb-7 pt-2">
+                            <div className="flex gap-2 items-center bg-white shadow-inset-edge rounded-[12px] px-3 py-1.5">
                                 <Input
                                     value={coachChatInput}
                                     onChange={(e) => setCoachChatInput(e.target.value)}
-                                    placeholder="Type your question..."
-                                    className="flex-1 text-sm border-none shadow-none focus-visible:ring-0 bg-transparent h-9"
+                                    placeholder="Type your question…"
+                                    className="flex-1 text-body-sm border-none shadow-none focus-visible:ring-0 bg-transparent h-9 px-0"
                                     onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendCoachMessage()}
                                 />
-                                <Button
-                                    size="sm"
+                                <button
+                                    type="button"
                                     onClick={sendCoachMessage}
                                     disabled={!coachChatInput.trim() || coachChatLoading}
-                                    className="h-8 w-8 rounded-md bg-primary hover:bg-primary/90 p-0 shrink-0"
+                                    aria-label="Send"
+                                    className="h-8 w-8 rounded-full bg-[color:var(--primary)] text-white shrink-0 flex items-center justify-center hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-[filter,opacity]"
                                 >
                                     {coachChatLoading ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                     ) : (
                                         <Send className="h-3.5 w-3.5" />
                                     )}
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     </DialogContent>

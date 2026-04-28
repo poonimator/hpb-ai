@@ -305,36 +305,34 @@ function InsightsView({
     ];
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 overflow-y-auto pb-20">
-                {cols.map((col, ci) => (
-                    <div key={col.key} className="flex flex-col gap-3">
-                        <div className="sticky top-0 z-10 bg-[color:var(--canvas)] pb-3 pt-1">
-                            <div className="flex items-center gap-2 mb-1">
-                                <div className={cn(
-                                    "p-1.5 rounded-[8px] shadow-inset-edge flex items-center justify-center",
-                                    col.iconWrap,
-                                )}>
-                                    {col.icon}
-                                </div>
-                                <h3 className="font-semibold text-foreground text-sm">{col.title}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {cols.map((col, ci) => (
+                <div key={col.key} className="flex flex-col gap-3">
+                    <div className="sticky top-0 z-10 bg-[color:var(--canvas)] pb-3 pt-1">
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className={cn(
+                                "p-1.5 rounded-[8px] shadow-inset-edge flex items-center justify-center",
+                                col.iconWrap,
+                            )}>
+                                {col.icon}
                             </div>
-                            <p className="text-[11.5px] text-muted-foreground pl-9">{col.sub}</p>
+                            <h3 className="font-semibold text-foreground text-sm">{col.title}</h3>
                         </div>
-                        <div className="space-y-3">
-                            {col.items.map((item, i) => (
-                                <div
-                                    key={i}
-                                    className="animate-in slide-in-from-bottom-2 fade-in duration-500"
-                                    style={{ animationDelay: `${i * 100 + ci * 100}ms` }}
-                                >
-                                    <InsightCard item={item} />
-                                </div>
-                            ))}
-                        </div>
+                        <p className="text-[11.5px] text-muted-foreground pl-9">{col.sub}</p>
                     </div>
-                ))}
-            </div>
+                    <div className="space-y-3">
+                        {col.items.map((item, i) => (
+                            <div
+                                key={i}
+                                className="animate-in slide-in-from-bottom-2 fade-in duration-500"
+                                style={{ animationDelay: `${i * 100 + ci * 100}ms` }}
+                            >
+                                <InsightCard item={item} />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }

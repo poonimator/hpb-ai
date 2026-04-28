@@ -51,3 +51,5 @@ next-env.d.ts
 .superpowers/
 docs/demos/family-sugar-habits-walkthrough.md
 docs/demos/family-sugar-habits-transcripts.md
+docs/demos/deck-source/Family Sugar Habits.html
+docs/demos/deck-source/deck-stage.js

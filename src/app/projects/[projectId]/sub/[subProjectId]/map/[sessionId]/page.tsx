@@ -306,31 +306,33 @@ function InsightsView({
 
     return (
         <div>
-            {/* Single full-width sticky header bar — three column headers
-                share one bg-canvas strip so as cards scroll up they're
-                masked uniformly across all columns. `-top-8 pt-10 -mt-8`
-                extends the bg into the WorkspaceFrame main's pt-8 padding
-                zone so the mask covers the full top of the scroll port. */}
-            <div className="sticky -top-8 z-20 bg-[color:var(--canvas)] pb-5 pt-10 -mt-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    {cols.map((col) => (
-                        <div key={col.key}>
-                            <div className="flex items-center gap-2 mb-1">
-                                <div className={cn(
-                                    "p-1.5 rounded-[8px] shadow-inset-edge flex items-center justify-center",
-                                    col.iconWrap,
-                                )}>
-                                    {col.icon}
+            {/* Single full-width sticky header bar. `-mx-10 px-10` extends the
+                bg-canvas band across main's horizontal padding so cards are
+                masked end-to-end. `-top-8 pt-10 -mt-8 pb-7` extends the band
+                into main's pt-8 zone (top mask) and gives a solid bottom
+                mask + breathing room before the cards begin. */}
+            <div className="sticky -top-8 -mx-10 -mt-8 z-20 bg-[color:var(--canvas)]">
+                <div className="px-10 pt-10 pb-7">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {cols.map((col) => (
+                            <div key={col.key}>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className={cn(
+                                        "p-1.5 rounded-[8px] shadow-inset-edge flex items-center justify-center",
+                                        col.iconWrap,
+                                    )}>
+                                        {col.icon}
+                                    </div>
+                                    <h3 className="font-semibold text-foreground text-sm">{col.title}</h3>
                                 </div>
-                                <h3 className="font-semibold text-foreground text-sm">{col.title}</h3>
+                                <p className="text-[11.5px] text-muted-foreground pl-9">{col.sub}</p>
                             </div>
-                            <p className="text-[11.5px] text-muted-foreground pl-9">{col.sub}</p>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
                 {cols.map((col, ci) => (
                     <div key={col.key} className="space-y-3">
                         {col.items.map((item, i) => (

@@ -206,7 +206,7 @@ function InsightCard({ item }: { item: InsightItem }) {
                     <div className="flex flex-col gap-1.5 rounded-[10px] bg-[color:var(--surface-muted)] shadow-inset-edge p-2.5">
                         <div className="flex items-start gap-1.5">
                             <FileText className="h-3 w-3 mt-0.5 flex-shrink-0 opacity-70 text-muted-foreground" />
-                            <span className="text-[11.5px] text-muted-foreground italic leading-snug break-words line-clamp-2" title={item.citation}>
+                            <span className="text-[11.5px] text-muted-foreground italic leading-snug break-words line-clamp-2">
                                 {item.citation}
                             </span>
                         </div>

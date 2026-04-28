@@ -1085,11 +1085,10 @@ function SimulationPageContent({ params }: PageProps) {
                                     In Progress
                                 </span>
                                 <Button
-                                    variant="outline"
+                                    variant="destructive-outline"
                                     size="sm"
                                     onClick={endSimulation}
                                     disabled={isEnding}
-                                    className="gap-1.5 border-[color:var(--border)] text-[color:var(--destructive)] hover:bg-[color:var(--destructive)]/10 hover:text-[color:var(--destructive)]"
                                 >
                                     {isEnding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" />}
                                     End Session
@@ -1622,11 +1621,10 @@ function SimulationPageContent({ params }: PageProps) {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setShowConfig(!showConfig)}
-                                    className="gap-1.5"
                                 >
                                     <SlidersHorizontal className="h-3.5 w-3.5" />
                                     Settings
-                                    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showConfig ? "rotate-180" : ""}`} />
+                                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConfig ? "rotate-180" : ""}`} />
                                 </Button>
                                 <Button
                                     size="sm"
@@ -1636,7 +1634,6 @@ function SimulationPageContent({ params }: PageProps) {
                                         ? selectedArchetypeIds.length < 2
                                         : (!selectedPersonaId || (personas.length === 0 && archetypes.length === 0))
                                     }
-                                    className="gap-1.5"
                                 >
                                     {loading ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1885,11 +1882,11 @@ function SimulationPageContent({ params }: PageProps) {
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            className="w-full text-caption text-[color:var(--primary)] bg-[color:var(--primary-soft)] hover:bg-[color:var(--primary-soft)]/80 h-8"
+                                                            className="w-full text-[color:var(--primary)] bg-[color:var(--primary-soft)] hover:bg-[color:var(--primary-soft)]/80"
                                                             onClick={saveRecommendedSettings}
                                                             disabled={isSavingSettings}
                                                         >
-                                                            {isSavingSettings ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Sparkles className="h-3 w-3 mr-1.5" />}
+                                                            {isSavingSettings ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                                                             Update Default Settings
                                                         </Button>
                                                     </div>
@@ -1911,7 +1908,7 @@ function SimulationPageContent({ params }: PageProps) {
                                 <p className="text-muted-foreground text-body-sm mb-6 max-w-xs">Upload a persona to the project Knowledge Base or generate profiles to get started.</p>
                                 <Link href={`/projects/${projectId}/kb`}>
                                     <Button variant="outline">
-                                        <Plus className="h-4 w-4 mr-2" />
+                                        <Plus className="h-4 w-4" />
                                         Upload Persona
                                     </Button>
                                 </Link>

@@ -325,7 +325,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                                         <p className="text-caption text-muted-foreground mt-1">Create and complete a mapping session first.</p>
                                         <Link href={`/projects/${projectId}/sub/${subProjectId}/map/new`} className="mt-4 inline-block">
                                             <Button variant="outline" size="sm" className="rounded-full">
-                                                Create Mapping <ChevronRight className="h-3 w-3 ml-1" />
+                                                Create Mapping <ChevronRight className="h-3.5 w-3.5" />
                                             </Button>
                                         </Link>
                                     </div>
@@ -403,7 +403,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                                 className="rounded-full px-8"
                             >
                                 Generate Profiles
-                                <Sparkles className="h-4 w-4 ml-2" />
+                                <Sparkles className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>

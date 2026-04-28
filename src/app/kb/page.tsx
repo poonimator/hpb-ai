@@ -371,16 +371,15 @@ export default function KnowledgeBasePage() {
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    className="h-7 text-xs"
                                                     onClick={() => handleApprove(doc.id)}
                                                     disabled={processingId === doc.id}
                                                 >
-                                                    {processingId === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
+                                                    {processingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Approve"}
                                                 </Button>
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
-                                                    className="h-7 text-xs text-[color:var(--danger)] hover:text-[color:var(--danger)]"
+                                                    className="text-[color:var(--danger)] hover:text-[color:var(--danger)]"
                                                     onClick={() => handleReject(doc.id)}
                                                     disabled={processingId === doc.id}
                                                 >
@@ -390,17 +389,17 @@ export default function KnowledgeBasePage() {
                                         )}
                                         <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button
-                                                size="icon"
+                                                size="icon-sm"
                                                 variant="ghost"
-                                                className="h-7 w-7 text-muted-foreground"
+                                                className="text-muted-foreground"
                                                 onClick={() => setViewDoc(doc)}
                                             >
                                                 <Eye className="h-3.5 w-3.5" />
                                             </Button>
                                             <Button
-                                                size="icon"
+                                                size="icon-sm"
                                                 variant="ghost"
-                                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                className="text-muted-foreground hover:text-destructive"
                                                 onClick={() => setDeleteDocId(doc.id)}
                                                 disabled={processingId === doc.id}
                                             >
@@ -527,7 +526,7 @@ export default function KnowledgeBasePage() {
                     {uploading ? (
                         <DialogFooter>
                             <Button disabled>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <Loader2 className="h-4 w-4 animate-spin" />
                                 Processing...
                             </Button>
                         </DialogFooter>
@@ -540,7 +539,7 @@ export default function KnowledgeBasePage() {
                                 onClick={handleUpload}
                                 disabled={!file || !title || !classificationConfirmed}
                             >
-                                <Upload className="h-4 w-4 mr-2" />
+                                <Upload className="h-4 w-4" />
                                 Upload document
                             </Button>
                         </DialogFooter>

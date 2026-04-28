@@ -1029,11 +1029,11 @@ function GuideSetupPageContent() {
     const leftRail = (
         <>
             <RailHeader>
-                <h2 className="text-display-5 text-foreground leading-tight">
+                <h2 className="text-display-4 text-foreground leading-tight">
                     {guideName || "Moderator Guide"}
                 </h2>
                 {project?.name && (
-                    <p className="text-body-sm text-muted-foreground">
+                    <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
                         For <span className="text-foreground">{project.name}</span>
                     </p>
                 )}
@@ -1186,17 +1186,17 @@ function GuideSetupPageContent() {
 
     const rightRail = (
         <>
-            {/* Rail header — matches interview simulation.jsx:510-532 */}
-            {/* Header — matches left-rail RailHeader padding (px-6 pt-6 pb-5) for consistency */}
-            <div className="px-6 pt-6 pb-5 flex items-center justify-between border-b border-[color:var(--border-subtle)]">
-                {/* text-display-4 — matches display fontSize:18 */}
-                <div className="text-display-4 text-foreground">AI Feedback</div>
-                {/* "N found" pill — matches interview simulation.jsx:516-517 Badge color="amber" */}
-                <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--primary)]" />
-                    <span className="text-[11.5px] font-semibold text-foreground">{allFeedbackItems.length} found</span>
-                </span>
-            </div>
+            {/* Rail header — uses shared RailHeader primitive for cross-tool consistency */}
+            <RailHeader>
+                <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-display-4 text-foreground leading-tight">AI Feedback</h2>
+                    {/* "N found" pill — matches interview simulation.jsx:516-517 Badge color="amber" */}
+                    <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--primary)]" />
+                        <span className="text-[11.5px] font-semibold text-foreground">{allFeedbackItems.length} found</span>
+                    </span>
+                </div>
+            </RailHeader>
 
             {/* Filter tabs — matches interview simulation.jsx:518-531 */}
             {/* Filter tabs — px-6 matches rail-section padding for consistency */}
@@ -1552,11 +1552,11 @@ What we want to uncover: Understanding how participants structure their day
                                     {importText && (
                                         <Button
                                             variant="ghost"
-                                            size="sm"
+                                            size="icon-sm"
                                             onClick={() => setImportText("")}
-                                            className="absolute top-2 right-2 h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                            className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
                                         >
-                                            <X className="h-4 w-4" />
+                                            <X className="h-3.5 w-3.5" />
                                         </Button>
                                     )}
                                 </div>
@@ -1608,16 +1608,15 @@ What we want to uncover: Understanding how participants structure their day
                                 <Button
                                     onClick={importGuide}
                                     disabled={importing || !importText.trim() || !!importSuccess}
-                                    className=""
                                 >
                                     {importing ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <Loader2 className="h-4 w-4 animate-spin" />
                                             Parsing...
                                         </>
                                     ) : (
                                         <>
-                                            <Sparkles className="h-4 w-4 mr-2" />
+                                            <Sparkles className="h-4 w-4" />
                                             Import
                                         </>
                                     )}
@@ -1675,22 +1674,21 @@ What we want to uncover: Understanding how participants structure their day
                                                     size="sm"
                                                     onClick={() => runQualityCheck(set.id)}
                                                     disabled={set.isChecking}
-                                                    className="text-xs h-8"
                                                 >
                                                     {set.isChecking ? (
-                                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                     ) : (
-                                                        <RefreshCw className="h-3 w-3 mr-1" />
+                                                        <RefreshCw className="h-3.5 w-3.5" />
                                                     )}
                                                     Check
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
-                                                    size="icon"
+                                                    size="icon-sm"
                                                     onClick={() => removeGuideSet(set.id)}
-                                                    className="text-muted-foreground hover:text-[color:var(--danger)] h-8 w-8"
+                                                    className="text-muted-foreground hover:text-[color:var(--danger)]"
                                                 >
-                                                    <Trash2 className="h-4 w-4" />
+                                                    <Trash2 className="h-3.5 w-3.5" />
                                                 </Button>
                                             </div>
                                         </div>
@@ -1722,12 +1720,12 @@ What we want to uncover: Understanding how participants structure their day
                                                                     />
                                                                     <Button
                                                                         variant="ghost"
-                                                                        size="icon"
+                                                                        size="icon-sm"
                                                                         onClick={() => removeQuestion(set.id, question.id)}
                                                                         aria-label="Remove question"
-                                                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity h-8 w-8 shrink-0"
+                                                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity shrink-0"
                                                                     >
-                                                                        <Trash2 className="h-4 w-4" />
+                                                                        <Trash2 className="h-3.5 w-3.5" />
                                                                     </Button>
                                                                 </div>
                                                                 {/* Follow-up button */}
@@ -1822,12 +1820,12 @@ What we want to uncover: Understanding how participants structure their day
                                                                         />
                                                                         <Button
                                                                             variant="ghost"
-                                                                            size="icon"
+                                                                            size="icon-sm"
                                                                             onClick={() => removeSubQuestion(set.id, question.id, subQ.id)}
                                                                             aria-label="Remove follow-up"
-                                                                            className="opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity h-8 w-8 shrink-0"
+                                                                            className="opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity shrink-0"
                                                                         >
-                                                                            <Trash2 className="h-4 w-4" />
+                                                                            <Trash2 className="h-3.5 w-3.5" />
                                                                         </Button>
                                                                     </div>
                                                                 </div>
@@ -1901,7 +1899,7 @@ What we want to uncover: Understanding how participants structure their day
                                                     onClick={() => addQuestion(set.id)}
                                                     className="text-primary hover:text-primary/90 hover:bg-accent"
                                                 >
-                                                    <Plus className="h-4 w-4 mr-1" />
+                                                    <Plus className="h-3.5 w-3.5" />
                                                     Add Question
                                                 </Button>
                                             </div>
@@ -1916,7 +1914,7 @@ What we want to uncover: Understanding how participants structure their day
                                 onClick={addGuideSet}
                                 className="mt-6 w-full border-dashed border-2 border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-accent"
                             >
-                                <Plus className="h-4 w-4 mr-2" />
+                                <Plus className="h-4 w-4" />
                                 Add Topic Section
                             </Button>
                         </div>

@@ -365,7 +365,6 @@ export default function NewMappingPage({ params }: PageProps) {
                                     size="lg"
                                     onClick={handleNext}
                                     disabled={!name || files.length === 0}
-                                    className="gap-2"
                                 >
                                     Next Step
                                     <Wand2 className="h-4 w-4" />
@@ -439,7 +438,7 @@ export default function NewMappingPage({ params }: PageProps) {
                                             onKeyDown={(e) => e.key === 'Enter' && handleAddTheme()}
                                             className="max-w-md"
                                         />
-                                        <Button variant="outline" onClick={handleAddTheme} className="gap-2">
+                                        <Button variant="outline" onClick={handleAddTheme}>
                                             <Plus className="h-4 w-4" />
                                             Add
                                         </Button>
@@ -454,7 +453,6 @@ export default function NewMappingPage({ params }: PageProps) {
                                 <Button
                                     size="lg"
                                     onClick={handleBeginMapping}
-                                    className="gap-2"
                                 >
                                     Begin Mapping
                                     <Network className="h-4 w-4" />

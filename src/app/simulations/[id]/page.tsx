@@ -836,7 +836,6 @@ export default function ViewSessionPage({ params }: PageProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => setSummaryDialogOpen(true)}
-                    className="gap-1.5"
                 >
                     <FileText className="h-3.5 w-3.5" />
                     View summary
@@ -847,7 +846,6 @@ export default function ViewSessionPage({ params }: PageProps) {
                 size="sm"
                 onClick={regenerateReview}
                 disabled={regenerating}
-                className="gap-1.5"
             >
                 {regenerating ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1328,7 +1326,6 @@ export default function ViewSessionPage({ params }: PageProps) {
                             <Button
                                 onClick={regenerateReview}
                                 disabled={regenerating}
-                                className="gap-1.5"
                             >
                                 {regenerating ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

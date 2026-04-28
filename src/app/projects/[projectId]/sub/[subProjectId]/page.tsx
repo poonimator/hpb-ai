@@ -500,7 +500,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <p className="text-muted-foreground">{error || "Workspace not found"}</p>
                         <Link href={`/projects/${projectId}`} className="mt-4 inline-block">
                             <Button variant="outline">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                <ArrowLeft className="h-4 w-4" />
                                 Back to Project
                             </Button>
                         </Link>
@@ -716,10 +716,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     }}
                                                 />
                                                 <div className="flex gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={saveGuideName} className="h-7 w-7 text-primary hover:bg-accent">
+                                                    <Button variant="ghost" size="icon-sm" onClick={saveGuideName} className="text-primary hover:bg-accent">
                                                         <Check className="h-3.5 w-3.5" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => setEditingGuideId(null)} className="h-7 w-7 text-muted-foreground hover:bg-muted">
+                                                    <Button variant="ghost" size="icon-sm" onClick={() => setEditingGuideId(null)} className="text-muted-foreground hover:bg-muted">
                                                         <X className="h-3.5 w-3.5" />
                                                     </Button>
                                                 </div>
@@ -1252,7 +1252,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 Cancel
                             </Button>
                             <Button variant="primary" onClick={handleSaveEdit} disabled={isSavingEdit}>
-                                {isSavingEdit ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                                {isSavingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                 Save Changes
                             </Button>
                         </DialogFooter>

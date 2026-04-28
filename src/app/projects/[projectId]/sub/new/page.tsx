@@ -235,13 +235,13 @@ export default function NewSubProjectPage({ params }: PageProps) {
                                     >
                                         {creating ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                <Loader2 className="h-4 w-4 animate-spin" />
                                                 Creating...
                                             </>
                                         ) : (
                                             <>
                                                 Create workspace
-                                                <ArrowRight className="h-4 w-4 ml-2" />
+                                                <ArrowRight className="h-4 w-4" />
                                             </>
                                         )}
                                     </Button>

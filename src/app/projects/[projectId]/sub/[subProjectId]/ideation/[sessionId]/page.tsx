@@ -194,7 +194,7 @@ export default function IdeationResultsPage({ params }: PageProps) {
                     { label: session.name },
                 ]}
                 action={
-                    <Button variant="outline" size="sm" onClick={handleRegenerate} className="gap-2">
+                    <Button variant="outline" size="sm" onClick={handleRegenerate}>
                         <RefreshCw className="h-3.5 w-3.5" />
                         Regenerate
                     </Button>

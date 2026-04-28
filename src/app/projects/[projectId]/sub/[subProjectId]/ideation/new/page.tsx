@@ -350,7 +350,7 @@ export default function NewIdeationPage({ params }: PageProps) {
                             </p>
                             <Link href={`/projects/${projectId}/sub/${subProjectId}/map/new`}>
                                 <Button className="mt-5" variant="outline">
-                                    <Network className="h-4 w-4 mr-2" /> Create a Mapping
+                                    <Network className="h-4 w-4" /> Create a Mapping
                                 </Button>
                             </Link>
                         </div>
@@ -554,9 +554,10 @@ export default function NewIdeationPage({ params }: PageProps) {
                                 onClick={handleGenerate}
                                 disabled={!selectedMappingId || isGenerating}
                                 size="lg"
-                                className="w-full h-12 text-base font-semibold rounded-[12px] bg-[color:var(--primary)] text-white hover:bg-[color:var(--primary)]/90"
+                                variant="primary"
+                                className="w-full h-12 text-base font-semibold rounded-[12px]"
                             >
-                                <Sparkles className="h-5 w-5 mr-2" />
+                                <Sparkles className="h-5 w-5" />
                                 Ideate — Generate 8 Concepts
                             </Button>
                         </div>

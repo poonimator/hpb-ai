@@ -322,7 +322,6 @@ function InsightsView({
                         size="sm"
                         variant="outline"
                         onClick={onRegenerate}
-                        className="gap-1.5"
                     >
                         <RefreshCw className="h-3.5 w-3.5" />
                         Regenerate
@@ -691,7 +690,6 @@ export default function MappingSessionPage({ params }: PageProps) {
             variant={viewMode === "insights" ? "secondary" : "outline"}
             size="sm"
             onClick={handleToggleView}
-            className="gap-2"
         >
             {viewMode === "insights" ? (
                 <>

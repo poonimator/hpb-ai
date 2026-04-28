@@ -197,7 +197,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                         <p className="text-muted-foreground">{error || "Project not found"}</p>
                         <Button variant="outline" className="mt-4" asChild>
                             <Link href="/dashboard">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                <ArrowLeft className="h-4 w-4" />
                                 Back to Dashboard
                             </Link>
                         </Button>
@@ -395,7 +395,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                             Cancel
                         </Button>
                         <Button onClick={handleSaveEdit} disabled={isSaving}>
-                            {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                             Save Changes
                         </Button>
                     </DialogFooter>

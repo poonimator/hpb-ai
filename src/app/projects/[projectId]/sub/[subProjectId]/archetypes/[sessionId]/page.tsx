@@ -105,7 +105,7 @@ export default function ArchetypeViewPage({ params }: PageProps) {
                 <div className="text-center">
                     <p className="text-body-sm text-[color:var(--danger)] mb-4">{error || "Not found"}</p>
                     <Link href={`/projects/${projectId}/sub/${subProjectId}?tab=archetypes`}>
-                        <Button variant="outline"><ArrowLeft className="h-4 w-4 mr-2" /> Back</Button>
+                        <Button variant="outline"><ArrowLeft className="h-4 w-4" /> Back</Button>
                     </Link>
                 </div>
             </div>

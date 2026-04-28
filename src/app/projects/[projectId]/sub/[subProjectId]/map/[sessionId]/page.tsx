@@ -308,11 +308,14 @@ function InsightsView({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {cols.map((col, ci) => (
                 <div key={col.key} className="flex flex-col">
-                    {/* Sticky header — bg-canvas extends through where the
-                        flex gap used to be (pb-5 instead of pb-3 + gap-3) so
-                        cards scrolling up are masked all the way to the
-                        header's content edge with no transparent strip. */}
-                    <div className="sticky top-0 z-10 bg-[color:var(--canvas)] pb-5 pt-2 -mt-2">
+                    {/* Sticky header — `-top-8` pulls the stuck position
+                        UP into the WorkspaceFrame main's pt-8 padding zone
+                        so cards scrolling up are masked from the very top
+                        of the visible scroll port. The matching `pt-10`
+                        + `-mt-8` keeps the header's visual content where
+                        it should be while extending its bg-canvas region
+                        upward. */}
+                    <div className="sticky -top-8 z-10 bg-[color:var(--canvas)] pb-5 pt-10 -mt-8">
                         <div className="flex items-center gap-2 mb-1">
                             <div className={cn(
                                 "p-1.5 rounded-[8px] shadow-inset-edge flex items-center justify-center",

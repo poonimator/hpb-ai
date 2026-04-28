@@ -251,12 +251,9 @@ function InsightCard({ item }: { item: InsightItem }) {
 function InsightsView({
     data,
     loading,
-    onRegenerate,
 }: {
     data: InsightsData | null;
     loading: boolean;
-    onRegenerate: () => void;
-    onClose: () => void;
 }) {
     if (loading) {
         return (
@@ -309,26 +306,6 @@ function InsightsView({
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            {/* Header */}
-            <div className="shrink-0 pb-6 flex items-center justify-between">
-                <div>
-                    <h2 className="text-lg font-semibold text-foreground">Research Insights</h2>
-                    <p className="text-[12px] text-muted-foreground mt-0.5">
-                        Patterns cross-referenced with your Knowledge Base
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={onRegenerate}
-                    >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        Regenerate
-                    </Button>
-                </div>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 overflow-y-auto pb-20">
                 {cols.map((col, ci) => (
                     <div key={col.key} className="flex flex-col gap-3">
@@ -686,23 +663,36 @@ export default function MappingSessionPage({ params }: PageProps) {
     if (!enabled) return null; // Wait for DND
 
     const viewToggle = (
-        <Button
-            variant={viewMode === "insights" ? "secondary" : "outline"}
-            size="sm"
-            onClick={handleToggleView}
-        >
-            {viewMode === "insights" ? (
-                <>
-                    <Network className="h-3.5 w-3.5" />
-                    View Mapping
-                </>
-            ) : (
-                <>
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Insights View
-                </>
+        <>
+            {viewMode === "insights" && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRegenerate}
+                    disabled={generatingInsights}
+                >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Regenerate Insights
+                </Button>
             )}
-        </Button>
+            <Button
+                variant={viewMode === "insights" ? "secondary" : "outline"}
+                size="sm"
+                onClick={handleToggleView}
+            >
+                {viewMode === "insights" ? (
+                    <>
+                        <Network className="h-3.5 w-3.5" />
+                        View Mapping
+                    </>
+                ) : (
+                    <>
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Insights View
+                    </>
+                )}
+            </Button>
+        </>
     );
 
     const uniqueThemeCount = new Set(localClusters.map(c => c.themeName)).size;
@@ -772,8 +762,6 @@ export default function MappingSessionPage({ params }: PageProps) {
                     <InsightsView
                         data={insightsData}
                         loading={generatingInsights}
-                        onRegenerate={handleRegenerate}
-                        onClose={() => setViewMode("mapping")}
                     />
                 ) : (
                     <DragDropContext onDragEnd={handleDragEnd}>

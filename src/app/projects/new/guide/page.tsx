@@ -1388,7 +1388,7 @@ function GuideSetupPageContent() {
     );
 
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0">
             <PageBar
                 back={{
                     href: subProjectId
@@ -1472,7 +1472,7 @@ function GuideSetupPageContent() {
             />
 
             {/* Main Content Container */}
-            <WorkspaceFrame variant="platform" leftRail={leftRail} rightRail={rightRail}>
+            <WorkspaceFrame variant="platform" scrollContained leftRail={leftRail} rightRail={rightRail}>
                 {/* Hero — session-review-v2.jsx:411-419: maxWidth:820, marginBottom:28 */}
                 <div className="max-w-[820px] mb-7">
                     <h1 className="text-display-1 text-foreground">Moderator Guide</h1>

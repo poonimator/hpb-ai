@@ -305,29 +305,34 @@ function InsightsView({
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {cols.map((col, ci) => (
-                <div key={col.key} className="flex flex-col">
-                    {/* Sticky header — `-top-8` pulls the stuck position
-                        UP into the WorkspaceFrame main's pt-8 padding zone
-                        so cards scrolling up are masked from the very top
-                        of the visible scroll port. The matching `pt-10`
-                        + `-mt-8` keeps the header's visual content where
-                        it should be while extending its bg-canvas region
-                        upward. */}
-                    <div className="sticky -top-8 z-10 bg-[color:var(--canvas)] pb-5 pt-10 -mt-8">
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className={cn(
-                                "p-1.5 rounded-[8px] shadow-inset-edge flex items-center justify-center",
-                                col.iconWrap,
-                            )}>
-                                {col.icon}
+        <div>
+            {/* Single full-width sticky header bar — three column headers
+                share one bg-canvas strip so as cards scroll up they're
+                masked uniformly across all columns. `-top-8 pt-10 -mt-8`
+                extends the bg into the WorkspaceFrame main's pt-8 padding
+                zone so the mask covers the full top of the scroll port. */}
+            <div className="sticky -top-8 z-20 bg-[color:var(--canvas)] pb-5 pt-10 -mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {cols.map((col) => (
+                        <div key={col.key}>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className={cn(
+                                    "p-1.5 rounded-[8px] shadow-inset-edge flex items-center justify-center",
+                                    col.iconWrap,
+                                )}>
+                                    {col.icon}
+                                </div>
+                                <h3 className="font-semibold text-foreground text-sm">{col.title}</h3>
                             </div>
-                            <h3 className="font-semibold text-foreground text-sm">{col.title}</h3>
+                            <p className="text-[11.5px] text-muted-foreground pl-9">{col.sub}</p>
                         </div>
-                        <p className="text-[11.5px] text-muted-foreground pl-9">{col.sub}</p>
-                    </div>
-                    <div className="space-y-3">
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {cols.map((col, ci) => (
+                    <div key={col.key} className="space-y-3">
                         {col.items.map((item, i) => (
                             <div
                                 key={i}
@@ -338,8 +343,8 @@ function InsightsView({
                             </div>
                         ))}
                     </div>
-                </div>
-            ))}
+                ))}
+            </div>
         </div>
     );
 }

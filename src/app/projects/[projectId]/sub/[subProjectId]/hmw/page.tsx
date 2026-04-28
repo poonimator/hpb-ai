@@ -959,9 +959,6 @@ export default function HMWPage({ params }: PageProps) {
 
                     {/* Composer */}
                     <div className="mb-6 rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-5 shadow-composer">
-                        <label className="mb-2 block text-ui-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                            Your HMW statement
-                        </label>
                         <div className="flex items-start gap-3">
                             <span className="flex-shrink-0 select-none text-display-4 font-bold leading-[1.4] text-[color:var(--primary)]">
                                 HMW

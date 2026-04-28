@@ -260,15 +260,15 @@ function InsightsView({
 }) {
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-24 animate-in fade-in duration-700">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in duration-700">
                 <div className="relative h-14 w-14 flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-[color:var(--knowledge-soft)] animate-pulse" />
-                    <Loader2 className="h-7 w-7 text-[color:var(--knowledge)] animate-spin relative z-10" />
+                    <div className="absolute inset-0 rounded-full bg-[color:var(--primary-soft)] animate-pulse" />
+                    <Loader2 className="h-7 w-7 text-[color:var(--primary)] animate-spin relative z-10" />
                 </div>
                 <h3 className="mt-6 text-lg font-semibold text-foreground">
                     Analysing Patterns
                 </h3>
-                <Eyebrow className="mt-1 justify-center text-[color:var(--knowledge)]">
+                <Eyebrow className="mt-1 justify-center text-[color:var(--primary)]">
                     Research Cross-Validation
                 </Eyebrow>
                 <p className="text-[12px] text-muted-foreground text-center max-w-md mt-2">
@@ -333,7 +333,7 @@ function InsightsView({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 overflow-y-auto pb-20">
                 {cols.map((col, ci) => (
                     <div key={col.key} className="flex flex-col gap-3">
-                        <div className="sticky top-0 z-10 bg-gradient-to-b from-[color:var(--bg)] via-[color:var(--bg)]/95 to-transparent pb-3 pt-1">
+                        <div className="sticky top-0 z-10 bg-[color:var(--canvas)] pb-3 pt-1">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className={cn(
                                     "p-1.5 rounded-[8px] shadow-inset-edge flex items-center justify-center",
@@ -672,12 +672,12 @@ export default function MappingSessionPage({ params }: PageProps) {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--surface)]/80 backdrop-blur-xl">
                 <div className="flex flex-col items-center gap-4">
                     <div className="relative h-12 w-12 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full bg-[color:var(--knowledge-soft)] animate-pulse" />
-                        <Loader2 className="h-6 w-6 text-[color:var(--knowledge)] animate-spin relative z-10" />
+                        <div className="absolute inset-0 rounded-full bg-[color:var(--primary-soft)] animate-pulse" />
+                        <Loader2 className="h-6 w-6 text-[color:var(--primary)] animate-spin relative z-10" />
                     </div>
                     <div className="flex flex-col items-center gap-1">
                         <span className="text-sm font-medium text-foreground">Loading</span>
-                        <Eyebrow className="text-[color:var(--knowledge)]">Initialising Workspace</Eyebrow>
+                        <Eyebrow className="text-[color:var(--primary)]">Initialising Workspace</Eyebrow>
                     </div>
                 </div>
             </div>

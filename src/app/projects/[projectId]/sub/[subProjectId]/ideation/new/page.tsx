@@ -301,9 +301,6 @@ export default function NewIdeationPage({ params }: PageProps) {
                 leftRail={
                     <>
                         <RailHeader>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary">Wizard</Badge>
-                            </div>
                             <h2 className="text-display-4 text-foreground leading-tight">
                                 New Ideation
                             </h2>

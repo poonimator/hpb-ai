@@ -194,12 +194,9 @@ export default function NewMappingPage({ params }: PageProps) {
     const leftRail = (
         <>
             <RailHeader>
-                <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Wizard</Badge>
-                    <span className="text-caption text-muted-foreground">
-                        Step {step} / 4
-                    </span>
-                </div>
+                <span className="text-caption text-muted-foreground">
+                    Step {step} / 4
+                </span>
                 <h2 className="text-display-4 text-foreground leading-tight">
                     New Mapping Session
                 </h2>
@@ -379,15 +376,15 @@ export default function NewMappingPage({ params }: PageProps) {
 
                     {/* Step 2: Loading State */}
                     {step === 2 && (
-                        <div className="flex flex-col items-center justify-center py-24 animate-in fade-in duration-700">
+                        <div className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in duration-700">
                             <div className="relative h-14 w-14 flex items-center justify-center">
-                                <div className="absolute inset-0 rounded-full bg-[color:var(--knowledge-soft)] animate-pulse" />
-                                <Loader2 className="h-7 w-7 text-[color:var(--knowledge)] animate-spin relative z-10" />
+                                <div className="absolute inset-0 rounded-full bg-[color:var(--primary-soft)] animate-pulse" />
+                                <Loader2 className="h-7 w-7 text-[color:var(--primary)] animate-spin relative z-10" />
                             </div>
                             <h2 className="mt-6 text-lg font-semibold text-foreground">
                                 Analysing Context
                             </h2>
-                            <Eyebrow className="mt-1 justify-center text-[color:var(--knowledge)]">
+                            <Eyebrow className="mt-1 justify-center text-[color:var(--primary)]">
                                 Reading transcripts
                             </Eyebrow>
                             <p className="text-[12px] text-muted-foreground text-center max-w-md mt-2">
@@ -468,15 +465,15 @@ export default function NewMappingPage({ params }: PageProps) {
 
                     {/* Step 4: Final Processing */}
                     {step === 4 && (
-                        <div className="flex flex-col items-center justify-center py-24 animate-in fade-in duration-700">
+                        <div className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in duration-700">
                             <div className="relative h-14 w-14 flex items-center justify-center">
-                                <div className="absolute inset-0 rounded-full bg-[color:var(--knowledge-soft)] animate-pulse" />
-                                <Loader2 className="h-7 w-7 text-[color:var(--knowledge)] animate-spin relative z-10" />
+                                <div className="absolute inset-0 rounded-full bg-[color:var(--primary-soft)] animate-pulse" />
+                                <Loader2 className="h-7 w-7 text-[color:var(--primary)] animate-spin relative z-10" />
                             </div>
                             <h3 className="mt-6 text-lg font-semibold text-foreground">
                                 Generating Map
                             </h3>
-                            <Eyebrow className="mt-1 justify-center text-[color:var(--knowledge)]">
+                            <Eyebrow className="mt-1 justify-center text-[color:var(--primary)]">
                                 AI Clustering
                             </Eyebrow>
                             <p className="text-[12px] text-muted-foreground text-center max-w-md mt-2">

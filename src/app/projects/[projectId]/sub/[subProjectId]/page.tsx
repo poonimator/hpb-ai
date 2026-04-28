@@ -626,14 +626,6 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             {archetypeCount > 0 && <Mono className="ml-1">{archetypeCount}</Mono>}
                         </TabsTrigger>
                         <TabsTrigger
-                            value="ideation"
-                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
-                        >
-                            <Zap className="h-3.5 w-3.5" />
-                            Ideation
-                            {ideationCount > 0 && <Mono className="ml-1">{ideationCount}</Mono>}
-                        </TabsTrigger>
-                        <TabsTrigger
                             value="hmw"
                             className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
                         >
@@ -648,6 +640,14 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             <FileText className="h-3.5 w-3.5" />
                             Insights
                             {insightCount > 0 && <Mono className="ml-1">{insightCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="ideation"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <Zap className="h-3.5 w-3.5" />
+                            Ideation
+                            {ideationCount > 0 && <Mono className="ml-1">{ideationCount}</Mono>}
                         </TabsTrigger>
                     </TabsList>
 

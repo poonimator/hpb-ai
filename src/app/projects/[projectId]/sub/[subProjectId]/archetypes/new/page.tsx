@@ -197,12 +197,9 @@ export default function NewArchetypePage({ params }: PageProps) {
     const railNode = (
         <>
             <RailHeader>
-                <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Wizard</Badge>
-                    <span className="text-caption text-muted-foreground">
-                        Step {step} / 3
-                    </span>
-                </div>
+                <span className="text-caption text-muted-foreground">
+                    Step {step} / 3
+                </span>
                 <h2 className="text-display-4 text-foreground leading-tight">
                     {subProject?.name || "Archetypes"}
                 </h2>

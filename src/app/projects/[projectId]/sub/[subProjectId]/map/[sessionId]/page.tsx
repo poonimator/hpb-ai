@@ -768,15 +768,6 @@ export default function MappingSessionPage({ params }: PageProps) {
             />
 
             <WorkspaceFrame variant="review" leftRail={leftRail} scrollContained>
-                {/* Sub-header with insight + theme counts */}
-                <div className="pb-4">
-                    <Eyebrow>
-                        <span>{session.clusters.length} insights</span>
-                        <span className="opacity-40">/</span>
-                        <span>{themes.length} themes</span>
-                    </Eyebrow>
-                </div>
-
                 {viewMode === "insights" ? (
                     <InsightsView
                         data={insightsData}

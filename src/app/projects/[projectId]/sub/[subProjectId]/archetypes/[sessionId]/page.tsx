@@ -8,7 +8,6 @@ import { WorkspaceFrame } from "@/components/layout/workspace-frame";
 import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
 import { MetaRow } from "@/components/layout/meta-row";
-import { Badge } from "@/components/ui/badge";
 import { type WorkspaceRailSubProject } from "@/components/tools/workspace-rail";
 import { PersonaPanel, type PersonaLike } from "@/components/tools/persona-panel";
 import {
@@ -151,9 +150,6 @@ export default function ArchetypeViewPage({ params }: PageProps) {
     const railNode = (
         <>
             <RailHeader>
-                <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Archetype</Badge>
-                </div>
                 <h2 className="text-display-4 text-foreground leading-tight">
                     {archetype?.name || "Loading..."}
                 </h2>

@@ -713,9 +713,6 @@ export default function MappingSessionPage({ params }: PageProps) {
     const leftRail = (
         <>
             <RailHeader>
-                <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Synthesis</Badge>
-                </div>
                 <h2 className="text-display-4 text-foreground leading-tight">
                     {session?.name || "Mapping"}
                 </h2>

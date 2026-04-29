@@ -21,7 +21,6 @@ import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
 import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
-import { Badge } from "@/components/ui/badge";
 import { Mono } from "@/components/ui/mono";
 import { cn } from "@/lib/utils";
 import { LensCard, adaptCriteria } from "@/components/tools/lens-card";
@@ -125,6 +124,15 @@ function scoreFromVerdict(v: string | undefined) {
     if (v === "NEEDS_WORK") return 3;
     if (v === "FAIL") return 1;
     return 0;
+}
+
+// Count strict PASSes across the 5 criteria for the history-list progress bar.
+// Falls back to the overall verdict if per-criterion data is missing.
+function countCriteriaPasses(critique: InsightCritiqueResult): number {
+    if (critique.criteria && critique.criteria.length > 0) {
+        return critique.criteria.filter(c => c.verdict === "PASS").length;
+    }
+    return scoreFromVerdict(critique.overallVerdict);
 }
 
 // Map an insight criterion name to its soft-tinted highlight background.
@@ -577,9 +585,6 @@ export default function InsightsPage({ params }: PageProps) {
                 leftRail={
                     <>
                         <RailHeader>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary">Tool</Badge>
-                            </div>
                             <h2 className="text-display-4 text-foreground leading-tight">
                                 Insight Statement Analyser
                             </h2>
@@ -594,7 +599,7 @@ export default function InsightsPage({ params }: PageProps) {
                             ) : (
                                 <div className="flex flex-col">
                                     {history.slice(0, 8).map((entry, i) => {
-                                        const score = scoreFromVerdict(entry.critique.overallVerdict);
+                                        const score = countCriteriaPasses(entry.critique);
                                         const isActive = i === 0;
                                         const isLast = i === Math.min(history.length, 8) - 1;
                                         return (
@@ -639,7 +644,7 @@ export default function InsightsPage({ params }: PageProps) {
                                                             key={n}
                                                             className={cn(
                                                                 "h-[3px] w-3.5 rounded-full",
-                                                                n <= score ? "bg-[color:var(--primary)]" : "bg-[color:var(--border)]"
+                                                                n <= score ? "bg-[color:var(--success)]" : "bg-[color:var(--border)]"
                                                             )}
                                                         />
                                                     ))}
@@ -669,19 +674,22 @@ export default function InsightsPage({ params }: PageProps) {
                 }
                 rightRail={
                     <>
-                        <RailSection title="The 5 criteria">
+                        <RailSection title="The 5 Criteria">
                             <div className="flex flex-col gap-2.5">
                                 {[
-                                    { color: "var(--cat-1)", label: "Well-Informed" },
-                                    { color: "var(--cat-2)", label: "More Than an Observation" },
-                                    { color: "var(--cat-3)", label: "So What?" },
-                                    { color: "var(--cat-4)", label: "Sticky" },
-                                    { color: "var(--cat-5)", label: "Actionable" },
+                                    { color: "var(--cat-1)", label: "Well-Informed",            desc: "Grounded in real evidence from your research, not assumption." },
+                                    { color: "var(--cat-2)", label: "More Than an Observation", desc: "Interprets what was seen, doesn't just restate it." },
+                                    { color: "var(--cat-3)", label: "So What?",                 desc: "Makes clear why this finding matters for the project." },
+                                    { color: "var(--cat-4)", label: "Sticky",                   desc: "Memorable enough to anchor decisions later on." },
+                                    { color: "var(--cat-5)", label: "Actionable",               desc: "Points to a clear opportunity teams can act on." },
                                 ].map((c) => (
                                     <div key={c.label} className="flex gap-2.5">
                                         <span className="w-2 h-2 rounded-full mt-[6px] shrink-0" style={{ background: c.color }} />
                                         <div className="flex-1 min-w-0">
                                             <div className="text-body-sm text-foreground font-medium">{c.label}</div>
+                                            <div className="text-caption mt-0.5 text-muted-foreground">
+                                                {c.desc}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -698,8 +706,9 @@ export default function InsightsPage({ params }: PageProps) {
 
                         <RailSection title="Sources">
                             <div className="text-body-sm text-muted-foreground leading-relaxed">
-                                UX Research best practices · insight writing guides<br/>
-                                Project research corpus · aligned via RAG
+                                UX Research Best Practices<br/>
+                                Project Research from KB<br/>
+                                LUMA Institute · Human-centred Design Principles
                             </div>
                         </RailSection>
 

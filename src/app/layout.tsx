@@ -23,7 +23,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={inter.variable}>
+      <body className={inter.variable} suppressHydrationWarning>
         {/* Mobile disclaimer — desktop-only app */}
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background p-8 md:hidden">
           <div className="flex flex-col items-center text-center max-w-sm">

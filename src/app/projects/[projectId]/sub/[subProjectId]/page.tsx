@@ -622,7 +622,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
                         >
                             <Users className="h-3.5 w-3.5" />
-                            Archetypes
+                            Profiles
                             {archetypeCount > 0 && <Mono className="ml-1">{archetypeCount}</Mono>}
                         </TabsTrigger>
                         <TabsTrigger

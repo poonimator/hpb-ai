@@ -201,7 +201,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                     Step {step} / 3
                 </span>
                 <h2 className="text-display-4 text-foreground leading-tight">
-                    {subProject?.name || "Archetypes"}
+                    {subProject?.name || "Profiles"}
                 </h2>
                 {subProject?.researchStatement && (
                     <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
@@ -293,7 +293,7 @@ export default function NewArchetypePage({ params }: PageProps) {
                     label: "Back",
                 }}
                 crumbs={[
-                    { label: "Archetypes", href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes` },
+                    { label: "Profiles", href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes` },
                     { label: "Generate Profiles" },
                 ]}
             />

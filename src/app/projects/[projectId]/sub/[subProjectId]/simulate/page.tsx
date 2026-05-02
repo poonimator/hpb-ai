@@ -1678,7 +1678,7 @@ function SimulationPageContent({ params }: PageProps) {
                                         }
                                     />
                                     <MetaRow
-                                        k={isFocusGroup ? "Archetypes" : "Persona"}
+                                        k={isFocusGroup ? "Profiles" : "Persona"}
                                         v={
                                             isFocusGroup
                                                 ? (selectedArchetypeIds.length > 0 ? String(selectedArchetypeIds.length) : "—")

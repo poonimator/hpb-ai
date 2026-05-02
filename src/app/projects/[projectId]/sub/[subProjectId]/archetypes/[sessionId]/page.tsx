@@ -185,7 +185,7 @@ export default function ArchetypeViewPage({ params }: PageProps) {
                     label: "Back",
                 }}
                 crumbs={[
-                    { label: "Archetypes", href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes` },
+                    { label: "Profiles", href: `/projects/${projectId}/sub/${subProjectId}?tab=archetypes` },
                     { label: archetype.name },
                 ]}
             />

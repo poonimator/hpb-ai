@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useRef, use } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
-    ArrowLeft,
     Upload,
     FileText,
     X,
@@ -17,10 +15,15 @@ import {
     Wand2,
     Plus,
     Network,
-    Sparkles,
-    Trash2
+    Sparkles
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { PageBar } from "@/components/layout/page-bar";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
 
 interface PageProps {
     params: Promise<{ projectId: string; subProjectId: string }>;
@@ -188,61 +191,111 @@ export default function NewMappingPage({ params }: PageProps) {
         }
     };
 
-    return (
-        <div className="flex flex-col relative">
-            {/* Edge-to-edge header bar */}
-            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
-                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={`/projects/${projectId}/sub/${subProjectId}?tab=mapping`}
-                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label="Back to Workspace"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Back</span>
-                        </Link>
-                        <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600">
-                            <Network className="h-4 w-4" />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-foreground">New Mapping Session</h1>
-                            <p className="text-[11px] text-muted-foreground">
-                                Upload transcripts and map participant insights
-                            </p>
-                        </div>
-                    </div>
+    const leftRail = (
+        <>
+            <RailHeader>
+                <span className="text-caption text-muted-foreground">
+                    Step {step} / 4
+                </span>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    New Mapping Session
+                </h2>
+                <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                    Upload transcripts, suggest themes, and process clusters for thematic mapping.
+                </p>
+            </RailHeader>
+
+            <RailSection title="Session">
+                <MetaRow k="Name" v={name || "—"} />
+                <MetaRow k="Files" v={files.length} />
+                <MetaRow k="Themes" v={themes.length > 0 ? themes.length : "—"} />
+            </RailSection>
+
+            <RailSection title="Progress">
+                <div className="flex flex-col gap-1.5">
+                    {[
+                        { n: 1, label: "Upload & name" },
+                        { n: 2, label: "Analyse context" },
+                        { n: 3, label: "Select themes" },
+                        { n: 4, label: "Process map" },
+                    ].map(({ n, label }) => {
+                        const done = step > n;
+                        const active = step === n;
+                        return (
+                            <div key={n} className="flex items-center gap-2.5">
+                                <span
+                                    className={cn(
+                                        "inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold shadow-inset-edge",
+                                        done && "bg-[color:var(--primary)] text-[color:var(--on-primary,#fff)]",
+                                        active && "bg-[color:var(--primary-soft)] text-[color:var(--primary)]",
+                                        !done && !active && "bg-[color:var(--surface)] text-muted-foreground"
+                                    )}
+                                >
+                                    {done ? "✓" : n}
+                                </span>
+                                <span
+                                    className={cn(
+                                        "text-body-sm",
+                                        active ? "text-foreground font-medium" : "text-muted-foreground"
+                                    )}
+                                >
+                                    {label}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
-            </div>
+            </RailSection>
 
-            {/* Background Glow */}
-            <div className="absolute top-[64px] left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-to-b from-violet-50 to-transparent blur-3xl -z-10 pointer-events-none" />
+            <div className="flex-1" />
+        </>
+    );
 
-            <div className="py-8">
-                <div className="w-full">
+    return (
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{
+                    href: `/projects/${projectId}/sub/${subProjectId}?tab=mapping`,
+                    label: "Back",
+                }}
+                crumbs={[
+                    { label: "Mapping", href: `/projects/${projectId}/sub/${subProjectId}?tab=mapping` },
+                    { label: "New session" },
+                ]}
+            />
 
-                {/* STEPS */}
+            <WorkspaceFrame variant="review" leftRail={leftRail} scrollContained>
+                <div className="max-w-3xl mx-auto w-full">
 
-                {/* Step 1: Upload & Name */}
-                {step === 1 && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <Card className="border-violet-100/50 shadow-lg shadow-violet-500/5 bg-white/80 backdrop-blur-xl">
-                            <CardContent className="p-8 space-y-8">
+                    {/* STEPS */}
+
+                    {/* Step 1: Upload & Name */}
+                    {step === 1 && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-8 space-y-8">
                                 <div className="space-y-3">
-                                    <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Session Name</Label>
+                                    <Label
+                                        htmlFor="name"
+                                        className="text-eyebrow text-muted-foreground"
+                                    >
+                                        Session Name
+                                    </Label>
                                     <Input
                                         id="name"
                                         placeholder="e.g. Youth Mental Health Interviews - Batch 1"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="h-12 bg-white border-border focus:border-violet-500 focus:ring-violet-500/20 text-lg"
+                                        className="h-11 text-base"
                                     />
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Interview Transcripts</Label>
+                                    <Label className="text-eyebrow text-muted-foreground">
+                                        Interview Transcripts
+                                    </Label>
                                     <div
-                                        className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-violet-400 hover:bg-violet-50/30 transition-all cursor-pointer relative group"
+                                        className="group relative cursor-pointer rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all p-8 text-center"
                                         onDragOver={(e) => e.preventDefault()}
                                         onDrop={handleDrop}
                                         onClick={() => fileInputRef.current?.click()}
@@ -256,95 +309,128 @@ export default function NewMappingPage({ params }: PageProps) {
                                             onChange={handleFileSelect}
                                         />
                                         <div className="flex flex-col items-center gap-3">
-                                            <div className="h-12 w-12 rounded-full bg-violet-50 flex items-center justify-center text-violet-500 group-hover:scale-110 transition-transform">
-                                                <Upload className="h-6 w-6" />
+                                            <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center text-[color:var(--knowledge)]">
+                                                <Upload className="h-5 w-5" />
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-foreground">Click to upload or drag & drop</p>
-                                                <p className="text-sm text-muted-foreground">Custom Text (.txt), Markdown (.md)</p>
+                                                <p className="text-sm font-semibold text-foreground">
+                                                    Click to upload or drag &amp; drop
+                                                </p>
+                                                <p className="text-[12px] text-muted-foreground mt-0.5">
+                                                    Plain text (.txt), Markdown (.md)
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* File List */}
                                     {files.length > 0 && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
                                             {files.map((f) => (
-                                                <div key={f.id} className="flex items-center gap-3 p-3 bg-white border border-border rounded-xl shadow-sm">
-                                                    <div className="h-8 w-8 rounded-lg bg-accent flex items-center justify-center text-muted-foreground">
-                                                        <FileText className="h-4 w-4" />
+                                                <div
+                                                    key={f.id}
+                                                    className="flex items-center gap-3 p-2.5 rounded-[10px] shadow-inset-edge bg-[color:var(--surface-muted)]"
+                                                >
+                                                    <div className="h-7 w-7 rounded-[8px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center text-muted-foreground shrink-0">
+                                                        <FileText className="h-3.5 w-3.5" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-foreground truncate">{f.file.name}</p>
-                                                        <p className="text-xs text-muted-foreground">{(f.file.size / 1024).toFixed(1)} KB</p>
+                                                        <p className="text-sm font-medium text-foreground truncate">
+                                                            {f.file.name}
+                                                        </p>
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {(f.file.size / 1024).toFixed(1)} KB
+                                                        </p>
                                                     </div>
-                                                    <button onClick={() => removeFile(f.id)} className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                                        <X className="h-4 w-4" />
+                                                    {f.status === "done" ? (
+                                                        <Check className="h-3.5 w-3.5 text-[color:var(--success,theme(colors.emerald.500))]" />
+                                                    ) : null}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile(f.id)}
+                                                        className="p-1 rounded-[6px] text-muted-foreground hover:text-[color:var(--danger)] hover:bg-[color:var(--danger-soft)] transition-colors"
+                                                        aria-label={`Remove ${f.file.name}`}
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        <div className="flex justify-end">
-                            <Button
-                                size="lg"
-                                onClick={handleNext}
-                                disabled={!name || files.length === 0}
-                                className="bg-violet-600 hover:bg-violet-700 text-white rounded-full px-8 shadow-lg shadow-violet-600/20"
-                            >
-                                Next Step
-                                <Wand2 className="h-4 w-4 ml-2" />
-                            </Button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 2: Loading State */}
-                {step === 2 && (
-                    <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-700">
-                        <div className="h-20 w-20 rounded-3xl bg-violet-50 flex items-center justify-center mb-6 relative">
-                            <div className="absolute inset-0 bg-violet-400/20 blur-xl rounded-full animate-pulse" />
-                            <Loader2 className="h-10 w-10 text-violet-600 animate-spin relative z-10" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-foreground mb-2">Analyzing Context</h2>
-                        <p className="text-muted-foreground text-center max-w-md">
-                            Reading uploaded transcripts and identifying key themes for mapping...
-                        </p>
-                    </div>
-                )}
-
-                {/* Step 3: Theme Selection */}
-                {step === 3 && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-violet-50/50 border border-violet-100 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
-                            <div className="h-10 w-10 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
-                                <Sparkles className="h-5 w-5 text-violet-600" />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-foreground">Suggested Clustering Themes</h3>
-                                <p className="text-sm text-muted-foreground">Based on the transcripts, we've identified these key themes. Customize them as needed.</p>
+
+                            <div className="flex justify-end">
+                                <Button
+                                    size="lg"
+                                    onClick={handleNext}
+                                    disabled={!name || files.length === 0}
+                                >
+                                    Next Step
+                                    <Wand2 className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
+                    )}
 
-                        <Card className="border-border shadow-sm">
-                            <CardContent className="p-8">
-                                <div className="space-y-6">
-                                    <div className="flex flex-wrap gap-3">
+                    {/* Step 2: Loading State */}
+                    {step === 2 && (
+                        <div className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in duration-700">
+                            <div className="relative h-14 w-14 flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-full bg-[color:var(--primary-soft)] animate-pulse" />
+                                <Loader2 className="h-7 w-7 text-[color:var(--primary)] animate-spin relative z-10" />
+                            </div>
+                            <h2 className="mt-6 text-lg font-semibold text-foreground">
+                                Analysing Context
+                            </h2>
+                            <Eyebrow className="mt-1 justify-center text-[color:var(--primary)]">
+                                Reading transcripts
+                            </Eyebrow>
+                            <p className="text-[12px] text-muted-foreground text-center max-w-md mt-2">
+                                Identifying key themes for mapping across your uploaded transcripts…
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Step 3: Theme Selection */}
+                    {step === 3 && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-5 flex items-start gap-4">
+                                <div className="h-9 w-9 rounded-[10px] bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] shadow-inset-edge flex items-center justify-center shrink-0">
+                                    <Sparkles className="h-4.5 w-4.5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-foreground">
+                                        Suggested Clustering Themes
+                                    </h3>
+                                    <p className="text-[12px] text-muted-foreground mt-0.5 leading-snug">
+                                        Based on the transcripts, we&apos;ve identified these key themes. Customise as needed.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6">
+                                <div className="space-y-5">
+                                    <div className="flex flex-wrap gap-2">
                                         {themes.map((theme) => (
-                                            <div key={theme} className="group flex items-center gap-2 pl-4 pr-2 py-2 bg-white border border-border rounded-full shadow-sm hover:border-violet-300 transition-colors">
-                                                <span className="font-medium text-sm text-foreground">{theme}</span>
-                                                <button onClick={() => handleRemoveTheme(theme)} className="p-1 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors">
-                                                    <X className="h-3.5 w-3.5" />
+                                            <div
+                                                key={theme}
+                                                className="group inline-flex items-center gap-1.5 rounded-full px-3 py-1 shadow-inset-edge bg-[color:var(--primary-soft)] text-[color:var(--primary)]"
+                                            >
+                                                <span className="text-[12.5px] font-medium">{theme}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveTheme(theme)}
+                                                    className="p-0.5 rounded-full text-[color:var(--primary)]/70 hover:text-[color:var(--danger)] hover:bg-[color:var(--danger-soft)] transition-colors"
+                                                    aria-label={`Remove ${theme}`}
+                                                >
+                                                    <X className="h-3 w-3" />
                                                 </button>
                                             </div>
                                         ))}
                                     </div>
 
-                                    <div className="flex items-center gap-3 pt-6 border-t border-border">
+                                    <div className="flex items-center gap-3 pt-5 border-t border-[color:var(--border-subtle)]">
                                         <Input
                                             placeholder="Add a custom theme..."
                                             value={customTheme}
@@ -353,68 +439,48 @@ export default function NewMappingPage({ params }: PageProps) {
                                             className="max-w-md"
                                         />
                                         <Button variant="outline" onClick={handleAddTheme}>
-                                            <Plus className="h-4 w-4 mr-2" />
+                                            <Plus className="h-4 w-4" />
                                             Add
                                         </Button>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
 
-                        <div className="flex justify-end gap-3">
-                            <Button variant="ghost" onClick={() => setStep(1)} className="rounded-full">Back</Button>
-                            <Button
-                                size="lg"
-                                onClick={handleBeginMapping}
-                                className="bg-violet-600 hover:bg-violet-700 text-white rounded-full px-8 shadow-lg shadow-violet-600/20"
-                            >
-                                Begin Mapping
-                                <Network className="h-4 w-4 ml-2" />
-                            </Button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 4: Final Processing */}
-                {step === 4 && (
-                    <div className="flex flex-col items-center justify-center h-[60vh] animate-in fade-in duration-1000">
-
-                        <div className="relative group">
-                            {/* Outer Glow */}
-                            <div className="absolute -inset-4 bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 rounded-full blur-2xl opacity-75 group-hover:opacity-100 transition-opacity duration-1000 animate-pulse" />
-
-                            {/* Rotating Rings */}
-                            <div className="relative h-24 w-24">
-                                {/* Ring 1 - Slow Spin */}
-                                <div className="absolute inset-0 rounded-full border border-white/20 border-t-violet-400/80 animate-[spin_3s_linear_infinite]" />
-
-                                {/* Ring 2 - Fast Reverse Spin */}
-                                <div className="absolute inset-2 rounded-full border border-white/10 border-b-fuchsia-400/80 animate-[spin_2s_linear_infinite_reverse]" />
-
-                                {/* Core - Breathing */}
-                                <div className="absolute inset-6 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-inner flex items-center justify-center animate-[pulse_2s_ease-in-out_infinite]">
-                                    <div className="h-3 w-3 rounded-full bg-violet-400 shadow-[0_0_10px_rgba(167,139,250,0.8)]" />
-                                </div>
+                            <div className="flex justify-end gap-3">
+                                <Button variant="ghost" onClick={() => setStep(1)}>
+                                    Back
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    onClick={handleBeginMapping}
+                                >
+                                    Begin Mapping
+                                    <Network className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
+                    )}
 
-                        <div className="mt-8 text-center space-y-3 relative z-10">
-                            <h3 className="text-xl font-light tracking-tight text-foreground">
+                    {/* Step 4: Final Processing */}
+                    {step === 4 && (
+                        <div className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in duration-700">
+                            <div className="relative h-14 w-14 flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-full bg-[color:var(--primary-soft)] animate-pulse" />
+                                <Loader2 className="h-7 w-7 text-[color:var(--primary)] animate-spin relative z-10" />
+                            </div>
+                            <h3 className="mt-6 text-lg font-semibold text-foreground">
                                 Generating Map
                             </h3>
-                            <div className="flex flex-col gap-1 items-center">
-                                <p className="text-[11px] font-medium tracking-widest text-violet-500 uppercase">
-                                    AI CLUSTERING
-                                </p>
-                                <p className="text-[10px] text-muted-foreground animate-pulse">
-                                    The AI is clustering insights across {files.length} transcripts...
-                                </p>
-                            </div>
+                            <Eyebrow className="mt-1 justify-center text-[color:var(--primary)]">
+                                AI Clustering
+                            </Eyebrow>
+                            <p className="text-[12px] text-muted-foreground text-center max-w-md mt-2">
+                                Clustering insights across {files.length} transcripts…
+                            </p>
                         </div>
-                    </div>
-                )}
+                    )}
                 </div>
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

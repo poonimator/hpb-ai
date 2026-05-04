@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, use, useRef, useCallback } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +20,17 @@ import {
     ShieldCheck,
     Trash2,
     FileText,
-    ArrowLeft,
     ArrowRight,
+    Plus,
 } from "lucide-react";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { Mono } from "@/components/ui/mono";
+import { cn } from "@/lib/utils";
+import { LensCard, adaptLens } from "@/components/tools/lens-card";
+import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -94,6 +101,9 @@ interface SubProject {
     id: string;
     name: string;
     researchStatement: string;
+    ageRange?: string | null;
+    lifeStage?: string | null;
+    createdAt?: string | null;
     project: {
         id: string;
         name: string;
@@ -115,41 +125,102 @@ const LENS_ICONS: Record<string, typeof Target> = {
 };
 
 const VERDICT_CONFIG = {
-    PASS: { color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200", icon: CheckCircle2, label: "Pass" },
-    PARTIAL: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", icon: AlertTriangle, label: "Needs Work" },
-    FAIL: { color: "text-red-600", bg: "bg-red-50", border: "border-red-200", icon: XCircle, label: "Fail" },
-    NEEDS_WORK: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", icon: AlertTriangle, label: "Needs Work" },
+    PASS: { fg: "text-[color:var(--success)]", bg: "bg-[color:var(--success-soft)]", border: "border-[color:var(--success-soft)]", icon: CheckCircle2, label: "Pass" },
+    PARTIAL: { fg: "text-[color:var(--warning)]", bg: "bg-[color:var(--warning-soft)]", border: "border-[color:var(--warning-soft)]", icon: AlertTriangle, label: "Needs Work" },
+    FAIL: { fg: "text-[color:var(--danger)]", bg: "bg-[color:var(--danger-soft)]", border: "border-[color:var(--danger-soft)]", icon: XCircle, label: "Fail" },
+    NEEDS_WORK: { fg: "text-[color:var(--warning)]", bg: "bg-[color:var(--warning-soft)]", border: "border-[color:var(--warning-soft)]", icon: AlertTriangle, label: "Needs Work" },
 };
+
+function scoreFromVerdict(v: string | undefined) {
+    if (v === "PASS") return 5;
+    if (v === "NEEDS_WORK") return 3;
+    if (v === "FAIL") return 1;
+    return 0;
+}
+
+// Count strict PASSes across the 5 lenses for the history-list progress bar.
+// Falls back to the overall verdict if per-lens data is missing.
+function countLensPasses(critique: HMWCritiqueResult): number {
+    if (critique.lenses && critique.lenses.length > 0) {
+        return critique.lenses.filter(l => l.verdict === "PASS").length;
+    }
+    return scoreFromVerdict(critique.overallVerdict);
+}
+
+// Map a lens id/name to its soft-tinted highlight background.
+// Matches the lens palette used in the right rail + exploration prototype.
+function lensHighlightBg(key: string | undefined): string {
+    if (!key) return "bg-[color:var(--cat-1-soft)]";
+    const k = key.toLowerCase();
+    if (k.includes("action") || k.includes("intended")) return "bg-[color:var(--cat-1-soft)]";
+    if (k.includes("user") || k.includes("potential") || k.includes("audience") || k.includes("broad")) return "bg-[color:var(--cat-2-soft)]";
+    if (k.includes("timing") || k.includes("moment") || k.includes("grounded") || k.includes("real problem")) return "bg-[color:var(--cat-3-soft)]";
+    if (k.includes("outcome") || k.includes("desired")) return "bg-[color:var(--cat-4-soft)]";
+    if (k.includes("research") || k.includes("grounding") || k.includes("aligned")) return "bg-[color:var(--cat-5-soft)]";
+    return "bg-[color:var(--cat-1-soft)]";
+}
+
+// Lens-card tint + accent palette (matches exploration prototype).
+// Index maps to 5-lens ordering: intended-action, potential-user, timing, outcome, research.
+const LENS_PALETTE: { accent: string; bg: string }[] = [
+    { accent: "var(--cat-1)", bg: "var(--cat-1-soft)" },  // intended action
+    { accent: "var(--cat-2)", bg: "var(--cat-2-soft)" },  // potential user
+    { accent: "var(--cat-3)", bg: "var(--cat-3-soft)" },  // timing / moment
+    { accent: "var(--cat-4)", bg: "var(--cat-4-soft)" },  // desired outcome
+    { accent: "var(--cat-5)", bg: "var(--cat-5-soft)" },  // research grounding
+];
+
+function lensPalette(key: string | undefined, fallbackIdx: number) {
+    if (!key) return LENS_PALETTE[fallbackIdx % LENS_PALETTE.length];
+    const k = key.toLowerCase();
+    if (k.includes("action") || k.includes("intended")) return LENS_PALETTE[0];
+    if (k.includes("user") || k.includes("potential") || k.includes("audience") || k.includes("broad")) return LENS_PALETTE[1];
+    if (k.includes("timing") || k.includes("moment") || k.includes("grounded") || k.includes("real problem")) return LENS_PALETTE[2];
+    if (k.includes("outcome") || k.includes("desired")) return LENS_PALETTE[3];
+    if (k.includes("research") || k.includes("grounding") || k.includes("aligned")) return LENS_PALETTE[4];
+    return LENS_PALETTE[fallbackIdx % LENS_PALETTE.length];
+}
+
+// Extract the lens key from an annotation so we can pick a highlight color.
+function annotationLensKey(ann: StatementAnnotation, fallbackIdx: number): string {
+    if (typeof ann.lensCritique === "object" && ann.lensCritique !== null) {
+        return ann.lensCritique.lens || "";
+    }
+    if (typeof ann.lensCritique === "string") return ann.lensCritique;
+    // Fall back to ordered palette by position.
+    const ordered = ["intended-action", "potential-user", "timing-moment", "desired-outcome", "research-grounding"];
+    return ordered[fallbackIdx % ordered.length];
+}
 
 // ─── Helper Components ───────────────────────────────────────────────────
 
 function HMWFormula() {
     return (
-        <div className="flex items-center justify-center gap-2 flex-wrap text-sm text-muted-foreground mb-10">
-            <span className="font-bold text-foreground text-base">How Might We</span>
-            <span className="text-primary font-bold text-lg">+</span>
-            <span className="px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">
-                Intended Action
-                <span className="block text-[10px] font-normal text-muted-foreground">(an action verb)</span>
+        <div className="mb-10 flex flex-wrap items-center justify-center gap-2 text-body-sm text-muted-foreground">
+            <span className="text-ui-sm font-bold text-foreground">How Might We</span>
+            <span className="text-caption text-[color:var(--primary)]/60">+</span>
+            <span className="inline-flex flex-col items-center rounded-full bg-[color:var(--primary-soft)] px-2.5 py-1 shadow-inset-edge">
+                <span className="text-ui-sm font-semibold text-[color:var(--primary)]">Intended Action</span>
+                <span className="text-[10px] font-normal text-muted-foreground">(an action verb)</span>
             </span>
-            <span className="text-primary font-bold text-lg">+</span>
-            <span className="font-medium text-foreground">For</span>
-            <span className="text-primary font-bold text-lg">+</span>
-            <span className="px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">
-                Potential User
-                <span className="block text-[10px] font-normal text-muted-foreground">(the subject)</span>
+            <span className="text-caption text-[color:var(--primary)]/60">+</span>
+            <span className="text-ui-sm font-medium text-foreground">For</span>
+            <span className="text-caption text-[color:var(--primary)]/60">+</span>
+            <span className="inline-flex flex-col items-center rounded-full bg-[color:var(--primary-soft)] px-2.5 py-1 shadow-inset-edge">
+                <span className="text-ui-sm font-semibold text-[color:var(--primary)]">Potential User</span>
+                <span className="text-[10px] font-normal text-muted-foreground">(the subject)</span>
             </span>
-            <span className="text-primary font-bold text-lg">+</span>
-            <span className="font-medium text-foreground">So That</span>
-            <span className="text-primary font-bold text-lg">+</span>
-            <span className="px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">
-                Desired Outcome
+            <span className="text-caption text-[color:var(--primary)]/60">+</span>
+            <span className="text-ui-sm font-medium text-foreground">So That</span>
+            <span className="text-caption text-[color:var(--primary)]/60">+</span>
+            <span className="inline-flex items-center rounded-full bg-[color:var(--primary-soft)] px-2.5 py-1 shadow-inset-edge">
+                <span className="text-ui-sm font-semibold text-[color:var(--primary)]">Desired Outcome</span>
             </span>
         </div>
     );
 }
 
-function HighlightedHMW({ statement, highlights, activeLens }: {
+function HighlightedHMW({ statement, highlights }: {
     statement: string;
     highlights: HighlightedPart[];
     activeLens: number | null;
@@ -160,8 +231,6 @@ function HighlightedHMW({ statement, highlights, activeLens }: {
 
     // Build intervals and mark highlighted ranges
     const parts: { text: string; highlight: HighlightedPart | null; startIdx: number }[] = [];
-    let remaining = statement;
-    let offset = 0;
 
     // Sort highlights by position in the statement
     const sortedHighlights = [...highlights]
@@ -191,17 +260,12 @@ function HighlightedHMW({ statement, highlights, activeLens }: {
         <span>
             {parts.map((part, i) =>
                 part.highlight ? (
-                    <span
-                        key={i}
-                        className="relative inline group/highlight"
-                    >
-                        <span className="bg-amber-200/60 border-b-2 border-amber-400 px-0.5 rounded-sm cursor-help transition-colors hover:bg-amber-200/90">
+                    <span key={i} className="relative inline group/highlight">
+                        <span className="cursor-help rounded-sm bg-[color:var(--warning-soft)] px-0.5 shadow-inset-edge transition-colors">
                             {part.text}
                         </span>
-                        {/* Tooltip */}
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-white text-foreground text-xs leading-relaxed rounded-lg shadow-xl border border-border opacity-0 group-hover/highlight:opacity-100 transition-opacity duration-200 pointer-events-none break-words z-20">
+                        <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 break-words rounded-[10px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] px-3 py-2 text-caption leading-relaxed text-foreground opacity-0 shadow-outline-ring transition-opacity duration-200 group-hover/highlight:opacity-100">
                             {part.highlight.issue}
-                            <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-white" />
                         </span>
                     </span>
                 ) : (
@@ -212,7 +276,7 @@ function HighlightedHMW({ statement, highlights, activeLens }: {
     );
 }
 
-// ─── Annotated HMW with Connector Lines ────────────────────────────────
+// ─── Annotated HMW ──────────────────────────────────────────────────────
 
 function parseAnnotatedParts(statement: string, annotations: StatementAnnotation[]) {
     const stmtLower = statement.toLowerCase();
@@ -275,67 +339,6 @@ function parseAnnotatedParts(statement: string, annotations: StatementAnnotation
     return { parts, sorted: resolved };
 }
 
-// Each annotation gets a unique colour so you can trace which highlight matches which card
-// Muted desaturated tones from distinct hue families — neutral-feeling but visually distinct
-const ANNOTATION_PALETTE = [
-    { text: "text-slate-700", mark: "bg-blue-100/70", bg: "bg-blue-50/50", border: "border-blue-200/60" },
-    { text: "text-stone-700", mark: "bg-amber-100/70", bg: "bg-amber-50/40", border: "border-amber-200/60" },
-    { text: "text-slate-700", mark: "bg-indigo-100/70", bg: "bg-indigo-50/50", border: "border-indigo-200/60" },
-    { text: "text-stone-700", mark: "bg-rose-100/60", bg: "bg-rose-50/40", border: "border-rose-200/60" },
-    { text: "text-slate-700", mark: "bg-teal-100/70", bg: "bg-teal-50/50", border: "border-teal-200/60" },
-];
-
-function InlineLensCard({ lensCritique }: { lensCritique: string | LensCritiqueInline }) {
-    const lc = typeof lensCritique === "string" ? null : lensCritique;
-    const [expanded, setExpanded] = useState(() => {
-        if (!lc) return true;
-        return lc.verdict !== "PASS";
-    });
-
-    if (!lc) {
-        return (
-            <div className="flex items-start gap-1.5">
-                <Target className="h-3 w-3 mt-0.5 text-primary/60 flex-shrink-0" />
-                <p className="text-[11px] leading-relaxed">{lensCritique as string}</p>
-            </div>
-        );
-    }
-
-    const vConfig = VERDICT_CONFIG[lc.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
-    const VIcon = vConfig.icon;
-    const isPass = lc.verdict === "PASS";
-
-    return (
-        <div className="rounded-md border border-border/50 bg-white shadow-sm overflow-hidden">
-            <button
-                onClick={() => setExpanded(!expanded)}
-                className="w-full flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-muted/30 transition-colors"
-            >
-                <Target className="h-3 w-3 text-primary/60 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-muted-foreground flex-1 text-left">{lc.lens}</span>
-                {!expanded && !isPass && (
-                    <VIcon className={`h-3 w-3 flex-shrink-0 ${vConfig.color}`} />
-                )}
-                {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />}
-            </button>
-            {expanded && (
-                <div className="px-2.5 pb-2 pt-0.5 border-t border-border/30 space-y-1.5">
-                    <p className="text-[11px] leading-relaxed text-foreground/80">{lc.explanation}</p>
-                    {lc.suggestion && (
-                        <p className="text-[11px] leading-relaxed text-primary/80 italic">
-                            Try: &ldquo;{lc.suggestion}&rdquo;
-                        </p>
-                    )}
-                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${vConfig.bg} ${vConfig.color} border ${vConfig.border}`}>
-                        <VIcon className="h-2.5 w-2.5" />
-                        {vConfig.label}
-                    </span>
-                </div>
-            )}
-        </div>
-    );
-}
-
 function InlineResearchCard({ researchPointer }: { researchPointer: string | ResearchPointerInline }) {
     const rp = typeof researchPointer === "string" ? null : researchPointer;
     const [expanded, setExpanded] = useState(false);
@@ -343,29 +346,42 @@ function InlineResearchCard({ researchPointer }: { researchPointer: string | Res
     if (!rp) {
         return (
             <div className="flex items-start gap-1.5">
-                <BookOpen className="h-3 w-3 mt-0.5 text-emerald-500/70 flex-shrink-0" />
-                <p className="text-[11px] leading-relaxed">{researchPointer as string}</p>
+                <BookOpen className="mt-0.5 size-3 shrink-0 text-[color:var(--success)]/70" strokeWidth={1.5} />
+                <p className="text-caption leading-relaxed text-muted-foreground">
+                    {researchPointer as string}
+                </p>
             </div>
         );
     }
 
     return (
-        <div className="rounded-md border border-border/50 bg-white shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] shadow-outline-ring">
             <button
+                type="button"
                 onClick={() => setExpanded(!expanded)}
-                className="w-full flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-muted/30 transition-colors"
+                className="w-full transition-colors hover:bg-[color:var(--surface-muted)]"
             >
-                <BookOpen className="h-3 w-3 text-emerald-600/70 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-muted-foreground flex-1 text-left">Research Alignment</span>
-                {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground/50" /> : <ChevronDown className="h-3 w-3 text-muted-foreground/50" />}
+                <div className="flex items-center gap-2 px-3 py-2">
+                    <BookOpen className="size-3.5 shrink-0 text-[color:var(--success)]" strokeWidth={1.5} />
+                    <span className="flex-1 truncate text-left text-[12px] font-semibold text-foreground">
+                        Research Alignment
+                    </span>
+                    {expanded ? (
+                        <ChevronUp className="size-3.5 text-muted-foreground" />
+                    ) : (
+                        <ChevronDown className="size-3.5 text-muted-foreground" />
+                    )}
+                </div>
             </button>
             {expanded && (
-                <div className="px-2.5 pb-2 pt-0.5 border-t border-border/30 space-y-1.5">
-                    <p className="text-[11px] leading-relaxed text-foreground/80">{rp.explanation}</p>
+                <div className="flex flex-col gap-2 border-t border-[color:var(--border-subtle)] px-3 py-2.5">
+                    <p className="text-body-sm leading-relaxed text-muted-foreground">
+                        {rp.explanation}
+                    </p>
                     {rp.source && rp.source !== "General Assessment" && (
                         <div className="flex items-center gap-1.5 pt-0.5">
-                            <FileText className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
-                            <span className="text-[10px] text-muted-foreground leading-snug">
+                            <FileText className="size-3 shrink-0 text-muted-foreground/60" />
+                            <span className="text-caption leading-snug text-muted-foreground">
                                 {rp.source}
                             </span>
                         </div>
@@ -384,65 +400,77 @@ function AnnotatedHMW({ statement, annotations }: {
 
     return (
         <div>
-            {/* HMW Statement with background highlights */}
-            <p className="text-xl md:text-2xl font-bold text-center leading-relaxed px-4 text-foreground mb-6">
-                <span className="text-primary">HMW </span>
+            {/* HMW Statement — display font, each fragment tinted by its lens. */}
+            <div
+                className="mb-[22px] font-light leading-[1.4] tracking-[-0.01em] text-foreground"
+                style={{ fontSize: 20 }}
+            >
+                <span className="font-semibold text-[color:var(--primary)]">HMW </span>
                 {parts.map((part, i) => {
                     if (part.annIdx !== null) {
-                        const colors = ANNOTATION_PALETTE[part.annIdx % ANNOTATION_PALETTE.length];
+                        const ann = annotations[part.annIdx];
+                        const bg = lensHighlightBg(annotationLensKey(ann, part.annIdx));
                         return (
-                            <span key={i} className={`${colors.mark} rounded-sm px-0.5`}>
+                            <span
+                                key={i}
+                                className={cn("rounded-[3px] px-1 py-px", bg)}
+                            >
                                 {part.text}
                             </span>
                         );
                     }
                     return <span key={i}>{part.text}</span>;
                 })}
-                ?
-            </p>
+            </div>
 
-            {/* Annotation cards grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {annotations.map((ann, i) => {
-                    const colors = ANNOTATION_PALETTE[i % ANNOTATION_PALETTE.length];
-                    const hasNewFormat = !!(ann.lensCritique || ann.researchPointer) && !ann.note;
-                    return (
-                        <div
-                            key={i}
-                            className={`text-[11px] leading-relaxed rounded-lg border ${colors.bg} ${colors.border} ${colors.text} overflow-hidden`}
-                        >
-                            {/* Top sub-card: positive rationale */}
-                            {ann.rationale && (
-                                <div className="bg-white border-b border-border/30 px-3 py-2.5">
-                                    <div className="flex items-start gap-1.5">
-                                        <Lightbulb className="h-3 w-3 mt-0.5 text-amber-500 flex-shrink-0" />
-                                        <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                            {ann.rationale}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                            {/* Bottom section: quoted text + lens critique + research pointer */}
-                            <div className="px-3 py-2.5">
-                                <p className={`font-semibold mb-1.5 ${colors.mark} rounded-sm inline`}>
-                                    &ldquo;{ann.text}&rdquo;
-                                </p>
-                                {hasNewFormat ? (
-                                    <div className="mt-2 space-y-2">
-                                        {ann.lensCritique && (
-                                            <InlineLensCard lensCritique={ann.lensCritique} />
-                                        )}
-                                        {ann.researchPointer && (
-                                            <InlineResearchCard researchPointer={ann.researchPointer} />
-                                        )}
-                                    </div>
-                                ) : (
-                                    ann.note && <p className="mt-1.5">{ann.note}</p>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+            {/* Lens-card grid — two parallel flex columns so cards don't
+                reflow between columns when expanded/collapsed. */}
+            <div className="grid grid-cols-2 gap-3 items-start">
+                {[0, 1].map((col) => (
+                    <div key={col} className="flex flex-col gap-3">
+                        {annotations
+                            .map((ann, i) => ({ ann, i }))
+                            .filter(({ i }) => i % 2 === col)
+                            .map(({ ann, i }) => {
+                                const hasLens = typeof ann.lensCritique === "object" && ann.lensCritique !== null;
+                                const lensKey = annotationLensKey(ann, i);
+                                const palette = lensPalette(lensKey, i);
+                                const lens = hasLens ? (ann.lensCritique as LensCritiqueInline) : null;
+
+                                // Body copy: prefer the lens explanation, fall back to rationale/note.
+                                const body = lens?.explanation || ann.rationale || ann.note || "";
+                                const verdict = lens?.verdict;
+                                const needsWork =
+                                    verdict && verdict !== "PASS"
+                                        ? (lens?.suggestion || lens?.explanation || "")
+                                        : undefined;
+
+                                // Research pointer → research card on this lens.
+                                const rp = ann.researchPointer;
+                                const research =
+                                    typeof rp === "string"
+                                        ? rp
+                                        : rp?.explanation;
+                                const researchTitle =
+                                    typeof rp === "object" && rp?.source && rp.source !== "General Assessment"
+                                        ? rp.source
+                                        : undefined;
+
+                                return (
+                                    <LensCard
+                                        key={i}
+                                        accent={palette.accent}
+                                        lensName={lens?.lens || "Lens"}
+                                        fragment={`"${ann.text}"`}
+                                        body={body}
+                                        needsWork={needsWork}
+                                        research={research}
+                                        researchTitle={researchTitle}
+                                    />
+                                );
+                            })}
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -452,65 +480,10 @@ function VerdictBadge({ verdict }: { verdict: string }) {
     const config = VERDICT_CONFIG[verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.NEEDS_WORK;
     const Icon = config.icon;
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${config.bg} ${config.color} ${config.border} border`}>
-            <Icon className="h-3.5 w-3.5" />
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-ui-sm font-bold ${config.bg} ${config.fg} ${config.border}`}>
+            <Icon className="size-3.5" />
             {config.label}
         </span>
-    );
-}
-
-function LensRow({ lens }: { lens: LensCritique }) {
-    const [expanded, setExpanded] = useState(false);
-    const Icon = LENS_ICONS[lens.lensName] || Target;
-    const config = VERDICT_CONFIG[lens.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
-    const VerdictIcon = config.icon;
-    const hasDetail = lens.explanation || lens.highlightedParts.length > 0 || lens.suggestedImprovement;
-
-    return (
-        <div>
-            <button
-                onClick={() => hasDetail && setExpanded(!expanded)}
-                className={`w-full flex items-center gap-3 py-2.5 text-left transition-colors ${hasDetail ? 'cursor-pointer hover:bg-muted/20' : 'cursor-default'} rounded-lg px-2 -mx-2`}
-            >
-                <VerdictIcon className={`h-4 w-4 flex-shrink-0 ${config.color}`} />
-                <span className="text-[13px] font-medium text-foreground flex-1 min-w-0 truncate">{lens.lensName}</span>
-                <span className={`text-[11px] font-bold uppercase tracking-wide ${config.color}`}>{config.label}</span>
-                {hasDetail && (
-                    expanded
-                        ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                )}
-            </button>
-
-            {expanded && hasDetail && (
-                <div className="pl-9 pr-2 pb-2 animate-in slide-in-from-top-1 fade-in duration-150">
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-2">{lens.explanation}</p>
-
-                    {lens.highlightedParts.length > 0 && (
-                        <div className="space-y-1.5 mb-2">
-                            {lens.highlightedParts.map((hp, i) => (
-                                <div key={i} className="flex items-start gap-2 pl-2.5 border-l-2 border-amber-300">
-                                    <div className="flex-1">
-                                        <span className="text-[11px] font-mono bg-amber-100 text-amber-800 px-1 py-0.5 rounded">
-                                            &ldquo;{hp.text}&rdquo;
-                                        </span>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5">{hp.issue}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {lens.suggestedImprovement && (
-                        <div className="bg-muted/30 rounded-md p-2 border border-border/60">
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                <span className="font-semibold text-foreground">Tip: </span>{lens.suggestedImprovement}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
     );
 }
 
@@ -523,88 +496,147 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
     const ra = critique.researchAlignment;
 
     return (
-        <div id={`hmw-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500">
-            {/* HMW Statement — annotated with connectors or fallback to highlights */}
-            <div className="bg-white rounded-2xl border border-border p-6 mb-3 shadow-sm">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
-                        Checked at {entry.timestamp.toLocaleTimeString()}
-                    </p>
+        <div id={`hmw-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500 space-y-3">
+            {/* HMW Statement card — exploration layout: white, rounded-16, p-6, outline ring. */}
+            <div className="rounded-[16px] bg-[color:var(--surface)] p-6 shadow-outline-ring">
+                <div className="mb-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <VerdictBadge verdict={critique.overallVerdict} />
+                        <span className="text-caption uppercase tracking-wide text-muted-foreground">
+                            Checked at {entry.timestamp.toLocaleTimeString()}
+                        </span>
+                    </div>
                     <button
                         onClick={() => onDelete(entry.id)}
-                        className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="rounded-[10px] p-1.5 text-muted-foreground/60 transition-colors hover:bg-[color:var(--danger-soft)] hover:text-[color:var(--danger)]"
                         title="Delete this critique"
                     >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="size-3.5" />
                     </button>
                 </div>
 
                 {hasBreakdown ? (
                     <AnnotatedHMW statement={hmwStatement} annotations={critique.statementBreakdown!} />
                 ) : (
-                    <p className="text-lg text-foreground leading-relaxed">
-                        <span className="font-bold text-primary">HMW </span>
+                    <p className="text-display-4 leading-snug text-foreground">
+                        <span className="font-semibold text-[color:var(--primary)]">HMW </span>
                         <HighlightedHMW statement={hmwStatement} highlights={allHighlights} activeLens={null} />
                     </p>
                 )}
 
-                <p className="text-sm text-muted-foreground leading-relaxed border-t border-border/60 pt-3 mt-4">
-                    {critique.overallSummary}
-                </p>
+                {/* Summary — stone-muted inset panel. */}
+                <div className="mt-[18px] rounded-[12px] bg-[color:var(--surface-muted)] px-4 py-[14px] shadow-inset-edge">
+                    <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[color:var(--ink-muted)]">
+                        Summary
+                    </div>
+                    <p className="text-[12.5px] leading-[1.65] tracking-[0.01em] text-[color:var(--ink-secondary)]">
+                        {critique.overallSummary}
+                    </p>
+                </div>
             </div>
 
             {/* Old-format critiques: show separate 5-lens and research sections */}
             {!hasNewFormat && (
                 <>
-                    {/* 5 Lenses — compact single card */}
-                    <div className="bg-white rounded-xl border border-border p-4 mb-3 shadow-sm">
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">5-Lens Assessment</p>
-                        <div className="divide-y divide-border/60">
+                    {/* 5 Lenses */}
+                    <div className="rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-5 shadow-outline-ring">
+                        <p className="mb-3 text-ui-sm font-bold uppercase tracking-widest text-muted-foreground">
+                            5-Lens Assessment
+                        </p>
+                        <div className="flex flex-col gap-2">
                             {critique.lenses.map((lens, i) => (
-                                <LensRow key={i} lens={lens} />
+                                <LensCard
+                                    key={i}
+                                    lens={{
+                                        name: lens.lensName,
+                                        verdict: lens.verdict,
+                                        rationale: lens.explanation,
+                                        suggestion: lens.suggestedImprovement || null,
+                                    }}
+                                />
                             ))}
                         </div>
                     </div>
 
                     {/* Research Alignment */}
-                    <div className={`rounded-xl border p-4 mb-3 ${ra.isAligned ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30'}`}>
-                        <div className="flex items-center gap-2 mb-3">
-                            <BookOpen className={`h-3.5 w-3.5 ${ra.isAligned ? 'text-emerald-600' : 'text-amber-600'}`} />
-                            <span className="text-[13px] font-semibold text-foreground">Research Alignment</span>
-                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ra.isAligned
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-amber-100 text-amber-700'
-                            }`}>
+                    <div
+                        className={`rounded-[14px] border p-5 shadow-outline-ring ${
+                            ra.isAligned
+                                ? "border-[color:var(--success-soft)] bg-[color:var(--success-soft)]"
+                                : "border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)]"
+                        }`}
+                    >
+                        <div className="mb-3 flex items-center gap-2">
+                            <BookOpen
+                                className={`size-3.5 ${
+                                    ra.isAligned ? "text-[color:var(--success)]" : "text-[color:var(--warning)]"
+                                }`}
+                                strokeWidth={1.5}
+                            />
+                            <span className="text-ui-sm font-semibold text-foreground">
+                                Research Alignment
+                            </span>
+                            <span
+                                className={`rounded-full px-2 py-0.5 text-caption font-bold ${
+                                    ra.isAligned
+                                        ? "bg-[color:var(--success-soft)] text-[color:var(--success)]"
+                                        : "bg-[color:var(--warning-soft)] text-[color:var(--warning)]"
+                                }`}
+                            >
                                 {ra.isAligned ? "Aligned" : "Gaps Found"}
                             </span>
                         </div>
-                        <p className="text-[13px] text-foreground leading-relaxed mb-2">{ra.explanation}</p>
+                        <p className="mb-2 text-body-sm leading-relaxed text-foreground">
+                            {ra.explanation}
+                        </p>
                         {ra.soWhat && (
-                            <div className={`rounded-lg px-3 py-2 mb-3 ${ra.isAligned ? 'bg-emerald-100/50 border border-emerald-200/60' : 'bg-amber-100/50 border border-amber-200/60'}`}>
-                                <p className={`text-[12px] font-medium leading-relaxed ${ra.isAligned ? 'text-emerald-800' : 'text-amber-800'}`}>
-                                    <ArrowRight className="h-3 w-3 inline mr-1 -mt-0.5" />
+                            <div
+                                className={`mb-3 rounded-[10px] px-3 py-2 shadow-inset-edge ${
+                                    ra.isAligned
+                                        ? "bg-[color:var(--success-soft)]"
+                                        : "bg-[color:var(--warning-soft)]"
+                                }`}
+                            >
+                                <p
+                                    className={`text-body-sm font-medium leading-relaxed ${
+                                        ra.isAligned
+                                            ? "text-[color:var(--success)]"
+                                            : "text-[color:var(--warning)]"
+                                    }`}
+                                >
+                                    <ArrowRight className="mr-1 -mt-0.5 inline size-3" />
                                     {ra.soWhat}
                                 </p>
                             </div>
                         )}
                         {hasEvidence && (
-                            <div className="space-y-1.5">
+                            <div className="flex flex-col gap-2">
                                 {ra.evidence!.map((ev, i) => (
-                                    <div key={i} className="bg-white/70 rounded-lg border border-border/40 px-3 py-2">
-                                        <p className="text-[12px] text-foreground leading-relaxed italic mb-1">
+                                    <div
+                                        key={i}
+                                        className="rounded-[10px] bg-[color:var(--surface)] px-3 py-2 shadow-inset-edge"
+                                    >
+                                        <p className="mb-1 text-caption italic leading-relaxed text-foreground">
                                             &ldquo;{ev.quote}&rdquo;
-                                            <span className="not-italic text-[10px] font-semibold text-muted-foreground ml-1.5 uppercase tracking-wide">— {ev.source}</span>
+                                            <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide not-italic text-muted-foreground">
+                                                — {ev.source}
+                                            </span>
                                         </p>
-                                        <p className="text-[11px] text-muted-foreground leading-relaxed">{ev.connection}</p>
+                                        <p className="text-caption leading-relaxed text-muted-foreground">
+                                            {ev.connection}
+                                        </p>
                                     </div>
                                 ))}
                             </div>
                         )}
                         {!hasEvidence && ra.relevantFindings.length > 0 && (
-                            <div className="space-y-1 mt-1">
+                            <div className="mt-1 space-y-1">
                                 {ra.relevantFindings.map((finding, i) => (
-                                    <div key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
-                                        <span className="text-primary mt-0.5">•</span>
+                                    <div
+                                        key={i}
+                                        className="flex items-start gap-1.5 text-caption text-muted-foreground"
+                                    >
+                                        <span className="mt-0.5 text-[color:var(--primary)]">•</span>
                                         <span>{finding}</span>
                                     </div>
                                 ))}
@@ -705,10 +737,10 @@ export default function HMWPage({ params }: PageProps) {
             if (res.ok) {
                 setHistory(prev => prev.filter(e => e.id !== id));
             } else {
-                alert("Failed to delete");
+                toast.error("Failed to delete");
             }
         } catch {
-            alert("Failed to delete");
+            toast.error("Failed to delete");
         }
     }, [subProjectId]);
 
@@ -741,11 +773,11 @@ export default function HMWPage({ params }: PageProps) {
                     historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }, 300);
             } else {
-                alert(data.error || "Failed to critique HMW statement");
+                toast.error(data.error || "Failed to critique HMW statement");
             }
         } catch (err) {
             console.error("HMW critique error:", err);
-            alert("Failed to check HMW statement. Please try again.");
+            toast.error("Failed to check HMW statement. Please try again.");
         } finally {
             setIsChecking(false);
         }
@@ -760,58 +792,180 @@ export default function HMWPage({ params }: PageProps) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="flex flex-1 items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading...</p>
+                    <Loader2 className="mx-auto mb-4 size-10 animate-spin text-[color:var(--primary)]" />
+                    <p className="text-body-sm text-muted-foreground">Loading...</p>
                 </div>
             </div>
         );
     }
 
+    const crumbs = subProject
+        ? [
+            { label: subProject.project.name, href: `/projects/${projectId}` },
+            { label: subProject.name, href: `/projects/${projectId}/sub/${subProjectId}?tab=hmw` },
+            { label: "How Might We Analyser" },
+        ]
+        : undefined;
+
     return (
-        <div className="flex flex-col pb-20">
-            {/* Edge-to-edge header bar */}
-            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
-                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={`/projects/${projectId}/sub/${subProjectId}?tab=hmw`}
-                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label={`Back to ${subProject?.name || "Workspace"}`}
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Back</span>
-                        </Link>
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                            <Lightbulb className="h-4 w-4" />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-foreground">How Might We Analyser</h1>
-                            <p className="text-[11px] text-muted-foreground">
-                                Critique HMW statements against the NN/g 5-lens framework
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{
+                    href: `/projects/${projectId}/sub/${subProjectId}?tab=hmw`,
+                    label: "Back",
+                }}
+                crumbs={crumbs}
+            />
+
+            <WorkspaceFrame
+                variant="analyser"
+                scrollContained
+                leftRail={
+                    <>
+                        <RailHeader>
+                            <h2 className="text-display-4 text-foreground leading-tight">
+                                How Might We Analyser
+                            </h2>
+                            <p className="text-body-sm text-muted-foreground leading-relaxed">
+                                Critique HMW statements against the NN/g 5-lens framework, enriched with project research.
                             </p>
+                        </RailHeader>
+
+                        <RailSection title="History">
+                            {history.length === 0 ? (
+                                <p className="text-body-sm text-muted-foreground">No analyses yet.</p>
+                            ) : (
+                                <div className="flex flex-col">
+                                    {history.slice(0, 8).map((entry, i) => {
+                                        const score = countLensPasses(entry.critique);
+                                        const isActive = i === 0;
+                                        const isLast = i === Math.min(history.length, 8) - 1;
+                                        return (
+                                            <div key={entry.id} className="relative pl-[18px] pt-1 pb-3">
+                                                <span
+                                                    className={cn(
+                                                        "absolute left-1 top-2.5 w-[9px] h-[9px] rounded-full",
+                                                        isActive
+                                                            ? "bg-[color:var(--primary)] shadow-[0_0_0_3px_var(--primary-soft)]"
+                                                            : "bg-[color:var(--surface)] shadow-inset-edge"
+                                                    )}
+                                                />
+                                                {!isLast && (
+                                                    <span className="absolute left-[8px] top-[22px] bottom-0 w-px bg-[color:var(--border)]" />
+                                                )}
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <Mono className="text-[11px] text-muted-foreground">
+                                                        {new Date(entry.timestamp || entry.id).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                                    </Mono>
+                                                    {isActive && (
+                                                        <span className="text-[9.5px] font-bold tracking-[0.1em] text-[color:var(--primary)]">
+                                                            ACTIVE
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const el = document.getElementById(`hmw-critique-${entry.id}`);
+                                                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                                    }}
+                                                    className={cn(
+                                                        "text-left text-body-sm leading-snug line-clamp-2",
+                                                        isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
+                                                    )}
+                                                >
+                                                    {entry.hmwStatement}
+                                                </button>
+                                                <div className="flex gap-0.5 mt-1.5">
+                                                    {[1, 2, 3, 4, 5].map((n) => (
+                                                        <span
+                                                            key={n}
+                                                            className={cn(
+                                                                "h-[3px] w-3.5 rounded-full",
+                                                                n <= score ? "bg-[color:var(--success)]" : "bg-[color:var(--border)]"
+                                                            )}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </RailSection>
+
+                        <div className="flex-1" />
+
+                        <div className="px-8 py-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-center"
+                                onClick={() => inputRef.current?.focus()}
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                                New HMW
+                            </Button>
                         </div>
-                    </div>
-                </div>
-            </div>
+                    </>
+                }
+                rightRail={
+                    <>
+                        <RailSection title="The 5 NN/G HCD Lenses">
+                            <div className="flex flex-col gap-2.5">
+                                {[
+                                    { color: "var(--cat-1)", label: "Intended Action",    desc: "Frames a problem to solve, not a baked-in solution." },
+                                    { color: "var(--cat-2)", label: "Potential User",     desc: "Broad enough to invite ideas without naming a niche." },
+                                    { color: "var(--cat-3)", label: "Timing / Moment",    desc: "Anchored to a real moment in the user's life." },
+                                    { color: "var(--cat-4)", label: "Desired Outcome",    desc: "Names the change you seek, not how to get there." },
+                                    { color: "var(--cat-5)", label: "Research Grounding", desc: "Traceable to a finding from project research." },
+                                ].map((l) => (
+                                    <div key={l.label} className="flex gap-2.5">
+                                        <span className="w-2 h-2 rounded-full mt-[6px] shrink-0" style={{ background: l.color }} />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-body-sm text-foreground font-medium">{l.label}</div>
+                                            <div className="text-caption mt-0.5 text-muted-foreground">
+                                                {l.desc}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </RailSection>
 
-            <div className="py-8 animate-in fade-in zoom-in-95 duration-500">
-                {/* Page intro */}
-                <div className="max-w-3xl mx-auto">
-                    <div className="text-center mb-8">
-                        <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-                            Critique your HMW statements against the NN/g 5-lens framework, enriched with LUMA&apos;s human-centred design principles, and your project&apos;s research.
-                        </p>
-                    </div>
+                        <RailSection title="Formula">
+                            <div className="text-body-sm text-foreground leading-[1.7] tracking-[0.01em]">
+                                <b>HMW</b> +{" "}
+                                <span className="text-[color:var(--cat-1)]">action</span> +{" "}
+                                <b>for</b> +{" "}
+                                <span className="text-[color:var(--cat-2)]">user</span> +{" "}
+                                <b>so that</b> +{" "}
+                                <span className="text-[color:var(--cat-4)]">outcome</span>
+                            </div>
+                        </RailSection>
 
-                    {/* HMW Formula */}
-                    <HMWFormula />
+                        <RailSection title="Sources">
+                            <div className="text-body-sm text-muted-foreground leading-relaxed">
+                                Nielsen Norman Group · 5-Lens Framework<br/>
+                                LUMA Institute · Human-centred Design Principles
+                            </div>
+                        </RailSection>
 
-                    {/* Input Area */}
-                    <div className="bg-white rounded-2xl border border-border shadow-sm p-6 mb-6 transition-shadow hover:shadow-md">
+                        <div className="flex-1" />
+                    </>
+                }
+            >
+                <div className="animate-in fade-in duration-500">
+                    <div className="mx-auto max-w-5xl">
+
+                    {/* Composer */}
+                    <div className="mb-6 rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-5 shadow-composer">
                         <div className="flex items-start gap-3">
-                            <span className="text-xl font-bold text-primary mt-1 flex-shrink-0 select-none">
+                            <span className="flex-shrink-0 select-none text-display-4 font-bold leading-[1.4] text-[color:var(--primary)]">
                                 HMW
                             </span>
                             <textarea
@@ -819,7 +973,7 @@ export default function HMWPage({ params }: PageProps) {
                                 value={hmwInput}
                                 onChange={(e) => setHmwInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                className="flex-1 resize-none border-0 bg-transparent text-foreground text-lg leading-relaxed focus:outline-none min-h-[80px]"
+                                className="flex-1 resize-none border-0 bg-transparent text-display-4 leading-[1.4] text-foreground placeholder:text-muted-foreground/50 focus:outline-none min-h-[80px] p-0"
                                 disabled={isChecking}
                                 rows={3}
                             />
@@ -827,25 +981,26 @@ export default function HMWPage({ params }: PageProps) {
                     </div>
 
                     {/* Check Button */}
-                    <div className="flex justify-center mb-10">
+                    <div className="mb-10 flex justify-center">
                         <Button
                             onClick={handleCheck}
                             disabled={!hmwInput.trim() || isChecking}
-                            className="px-8 py-3 h-auto rounded-full text-sm font-bold uppercase tracking-wide bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-40"
+                            size="lg"
+                            className="h-11 rounded-full px-8 text-ui-sm font-bold uppercase tracking-wide bg-[color:var(--primary)] text-[color:var(--primary-fg)] hover:bg-[color:var(--primary-hover)] shadow-card transition-all duration-200 hover:shadow-warm-lift disabled:opacity-40"
                         >
                             {isChecking ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    <Loader2 className="mr-2 size-4 animate-spin" />
                                     Analysing...
                                 </>
                             ) : history.length > 0 ? (
                                 <>
-                                    <RotateCcw className="h-4 w-4 mr-2" />
+                                    <RotateCcw className="mr-2 size-4" />
                                     Check Again
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    <Sparkles className="mr-2 size-4" />
                                     Check
                                 </>
                             )}
@@ -856,36 +1011,44 @@ export default function HMWPage({ params }: PageProps) {
                     {isChecking && (
                         <div className="flex flex-col items-center justify-center py-12 animate-in fade-in duration-300">
                             <div className="relative mb-6">
-                                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <div className="flex size-16 items-center justify-center rounded-full bg-[color:var(--primary-soft)] shadow-inset-edge">
+                                    <Loader2 className="size-8 animate-spin text-[color:var(--primary)]" />
                                 </div>
-                                <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
+                                <div
+                                    className="absolute inset-0 rounded-full border-2 border-[color:var(--primary)]/20 animate-ping"
+                                    style={{ animationDuration: "2s" }}
+                                />
                             </div>
-                            <p className="text-sm font-medium text-foreground mb-1">Analysing your HMW statement</p>
-                            <p className="text-xs text-muted-foreground">Cross-referencing with your research knowledge base...</p>
+                            <p className="mb-1 text-body-sm font-medium text-foreground">
+                                Analysing your HMW statement
+                            </p>
+                            <p className="text-caption text-muted-foreground">
+                                Cross-referencing with your research knowledge base...
+                            </p>
                         </div>
                     )}
 
                     {/* History of Critiques */}
                     {history.length > 0 && (
                         <div ref={historyRef} className="mt-12">
-                            <div className="flex items-center gap-3 mb-10">
-                                <div className="h-px flex-1 bg-border" />
-                                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            <div className="mb-8 flex items-center gap-3">
+                                <div className="h-px flex-1 bg-[color:var(--border-subtle)]" />
+                                <span className="text-ui-sm font-bold uppercase tracking-widest text-muted-foreground">
                                     History
                                 </span>
-                                <div className="h-px flex-1 bg-border" />
+                                <div className="h-px flex-1 bg-[color:var(--border-subtle)]" />
                             </div>
 
-                            <div className="space-y-10">
+                            <div className="space-y-8">
                                 {history.map((entry) => (
                                     <CritiqueDisplay key={entry.id} entry={entry} onDelete={handleDelete} />
                                 ))}
                             </div>
                         </div>
                     )}
+                    </div>
                 </div>
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

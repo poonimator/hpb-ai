@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog,
     DialogContent,
@@ -14,8 +14,17 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     Select,
     SelectContent,
@@ -23,27 +32,23 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
 import {
     Upload,
     FileText,
-    CheckCircle,
-    Clock,
-    ShieldCheck,
     Loader2,
     Trash2,
-    AlertCircle,
     Eye,
-    XCircle,
-    Download,
     BookOpenText,
-    ArrowUpDown,
-    User,
     BookOpen,
     FileSearch,
     Shield,
     HelpCircle,
-    Briefcase,
-    Heart
+    User,
 } from "lucide-react";
 
 interface KBDocument {
@@ -58,15 +63,6 @@ interface KBDocument {
     _count: {
         chunks: number;
     };
-}
-
-interface ParsedPersona {
-    name?: string;
-    age?: string;
-    occupation?: string;
-    summary?: string;
-    gains?: string;
-    pains?: string;
 }
 
 const DOC_TYPES = ["FRAMEWORK", "RESEARCH", "POLICY", "OTHER"] as const;
@@ -85,25 +81,14 @@ const DOC_TYPE_LABELS: Record<string, string> = {
     OTHER: "Other",
 };
 
-function parsePersonaMeta(jsonStr?: string): ParsedPersona | null {
-    if (!jsonStr) return null;
-    try {
-        return JSON.parse(jsonStr);
-    } catch {
-        return null;
-    }
-}
-
 export default function KnowledgeBasePage() {
     const [docs, setDocs] = useState<KBDocument[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [processingId, setProcessingId] = useState<string | null>(null);
 
-    // Filter State
-    const [activeTab, setActiveTab] = useState("FRAMEWORK");
+    const [activeTab, setActiveTab] = useState<string>("FRAMEWORK");
 
-    // Upload Form State
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [title, setTitle] = useState("");
@@ -111,8 +96,8 @@ export default function KnowledgeBasePage() {
     const [classificationConfirmed, setClassificationConfirmed] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Dialog State
     const [viewDoc, setViewDoc] = useState<KBDocument | null>(null);
+    const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchDocs();
@@ -159,11 +144,11 @@ export default function KnowledgeBasePage() {
                 fetchDocs();
             } else {
                 const err = await res.json();
-                alert(err.error || "Upload failed");
+                toast.error(err.error || "Upload failed");
             }
         } catch (error) {
             console.error(error);
-            alert("Upload failed");
+            toast.error("Upload failed");
         } finally {
             setUploading(false);
         }
@@ -177,12 +162,8 @@ export default function KnowledgeBasePage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ documentId: id }),
             });
-
-            if (res.ok) {
-                fetchDocs();
-            } else {
-                alert("Failed to approve");
-            }
+            if (res.ok) fetchDocs();
+            else toast.error("Failed to approve");
         } catch (error) {
             console.error(error);
         } finally {
@@ -198,12 +179,8 @@ export default function KnowledgeBasePage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ documentId: id }),
             });
-
-            if (res.ok) {
-                fetchDocs();
-            } else {
-                alert("Failed to reject");
-            }
+            if (res.ok) fetchDocs();
+            else toast.error("Failed to reject");
         } catch (error) {
             console.error(error);
         } finally {
@@ -211,20 +188,12 @@ export default function KnowledgeBasePage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) return;
-
+    const confirmDelete = async (id: string) => {
         setProcessingId(id);
         try {
-            const res = await fetch(`/api/kb/documents/${id}`, {
-                method: "DELETE",
-            });
-
-            if (res.ok) {
-                fetchDocs();
-            } else {
-                alert("Failed to delete");
-            }
+            const res = await fetch(`/api/kb/documents/${id}`, { method: "DELETE" });
+            if (res.ok) fetchDocs();
+            else toast.error("Failed to delete");
         } catch (error) {
             console.error(error);
         } finally {
@@ -232,439 +201,354 @@ export default function KnowledgeBasePage() {
         }
     };
 
-    const filteredDocs = docs.filter(d => d.docType === activeTab);
+    const filteredDocs = docs.filter((d) => d.docType === activeTab);
     const docCounts = DOC_TYPES.reduce((acc, type) => {
-        acc[type] = docs.filter(d => d.docType === type).length;
+        acc[type] = docs.filter((d) => d.docType === type).length;
         return acc;
     }, {} as Record<string, number>);
+    const totalDocs = docs.length;
+    const pendingCount = docs.filter((d) => d.status === "DRAFT").length;
+
+    const leftRail = (
+        <>
+            <RailHeader>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Knowledge base</Badge>
+                </div>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    Global library
+                </h2>
+                <p className="text-body-sm text-muted-foreground leading-relaxed">
+                    Shared frameworks, policies, and research accessible across all projects.
+                </p>
+            </RailHeader>
+
+            <RailSection title="Library">
+                <MetaRow k="Documents" v={totalDocs} />
+                {pendingCount > 0 && <MetaRow k="Pending review" v={pendingCount} />}
+            </RailSection>
+
+            <RailSection title="Browse">
+                <div className="flex flex-col gap-0.5">
+                    {DOC_TYPES.map((type) => {
+                        const Icon = DOC_TYPE_ICONS[type];
+                        const isActive = activeTab === type;
+                        return (
+                            <button
+                                key={type}
+                                type="button"
+                                onClick={() => setActiveTab(type)}
+                                className={`group flex items-center justify-between gap-3 w-full px-2 py-2 rounded-[8px] text-left transition-colors ${
+                                    isActive
+                                        ? "bg-[color:var(--primary-soft)] text-foreground"
+                                        : "hover:bg-[color:var(--surface-muted)] text-muted-foreground hover:text-foreground"
+                                }`}
+                            >
+                                <span className="flex items-center gap-2.5 min-w-0">
+                                    <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-[color:var(--primary)]" : ""}`} />
+                                    <span className="text-ui-sm truncate">{DOC_TYPE_LABELS[type]}</span>
+                                </span>
+                                <span className={`text-[11px] tabular-nums shrink-0 ${isActive ? "text-[color:var(--primary)]" : "text-muted-foreground"}`}>
+                                    {docCounts[type]}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </RailSection>
+
+            <div className="flex-1" />
+
+            <div className="px-8 py-4">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center"
+                    onClick={() => {
+                        setDocType(activeTab);
+                        setUploadDialogOpen(true);
+                    }}
+                >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload document
+                </Button>
+            </div>
+        </>
+    );
 
     if (loading) {
         return (
-            <div className="h-screen flex items-center justify-center">
+            <div className="flex items-center justify-center py-20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
         );
     }
 
     return (
-        <div className="py-8">
-            {/* Header */}
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-1">
-                    <div className="h-8 w-8 rounded-md flex items-center justify-center" style={{ backgroundColor: 'var(--color-knowledge-muted)', color: 'var(--color-knowledge)' }}>
-                        <BookOpenText className="h-4 w-4" />
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{ href: "/dashboard", label: "Back" }}
+                crumbs={[{ label: "Knowledge base" }]}
+            />
+
+            <WorkspaceFrame variant="review" scrollContained leftRail={leftRail}>
+                <div className="mb-6 flex items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-display-2 text-foreground">{DOC_TYPE_LABELS[activeTab]}</h1>
+                        <p className="text-body-sm text-muted-foreground mt-1">
+                            {filteredDocs.length > 0
+                                ? `${filteredDocs.length} document${filteredDocs.length === 1 ? "" : "s"} in this section`
+                                : `No ${DOC_TYPE_LABELS[activeTab].toLowerCase()} yet`}
+                        </p>
                     </div>
-                    <h1 className="text-3xl font-semibold tracking-tight">
-                        Global Knowledge Base
-                    </h1>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1 ml-11">
-                    Shared frameworks, policies, and research accessible across all projects
-                </p>
-            </div>
-
-            {/* Main Content */}
-            <div>
-                {/* Tabs with Upload Button */}
-                <div className="flex items-center justify-between mb-6">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-                        <TabsList className="bg-muted p-1 gap-0 h-auto">
-                            {DOC_TYPES.map((type) => (
-                                <TabsTrigger
-                                    key={type}
-                                    value={type}
-                                    className="px-3 py-1.5 text-sm font-medium"
-                                >
-                                    {DOC_TYPE_LABELS[type]}
-                                    {docCounts[type] > 0 && (
-                                        <Badge
-                                            variant="secondary"
-                                            className="ml-1.5 h-5 min-w-[20px] px-1.5 text-[11px] rounded-full"
-                                        >
-                                            {docCounts[type]}
-                                        </Badge>
-                                    )}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </Tabs>
-
-                    <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-                        <DialogTrigger asChild>
-                            <button className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
-                                <Upload className="h-3.5 w-3.5" />
-                                <span>Upload Document</span>
-                            </button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[480px]">
-                            <DialogHeader>
-                                <DialogTitle>Upload Document</DialogTitle>
-                                <DialogDescription>
-                                    Documents uploaded here will be accessible across all projects.
-                                </DialogDescription>
-                            </DialogHeader>
-
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="title">Document Title</Label>
-                                    <Input
-                                        id="title"
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        placeholder="e.g., Youth Health Trends Report 2024"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="docType">Document Type</Label>
-                                    <Select value={docType} onValueChange={setDocType}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="FRAMEWORK">Framework</SelectItem>
-                                            <SelectItem value="RESEARCH">Research</SelectItem>
-                                            <SelectItem value="POLICY">Policy</SelectItem>
-                                            <SelectItem value="OTHER">Other</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="file">Source File</Label>
-                                    <div className="relative group">
-                                        <Input
-                                            id="file"
-                                            type="file"
-                                            ref={fileInputRef}
-                                            accept=".txt,.pdf"
-                                            onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                            className="hidden"
-                                        />
-                                        <label
-                                            htmlFor="file"
-                                            className={`
-                                                flex flex-col items-center justify-center w-full h-28
-                                                border-2 border-dashed rounded-md cursor-pointer transition-colors
-                                                ${file
-                                                    ? 'border-primary/40 bg-accent'
-                                                    : 'border-input bg-background hover:border-primary/30 hover:bg-[var(--color-interact-subtle)]'}
-                                            `}
-                                        >
-                                            {file ? (
-                                                <div className="flex flex-col items-center text-foreground">
-                                                    <FileText className="h-7 w-7 mb-2 text-muted-foreground" />
-                                                    <span className="text-sm font-medium truncate max-w-[200px]">{file.name}</span>
-                                                    <span className="text-xs text-muted-foreground mt-0.5">
-                                                        {(file.size / 1024).toFixed(1)} KB
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center text-muted-foreground group-hover:text-foreground transition-colors">
-                                                    <Upload className="h-7 w-7 mb-2" />
-                                                    <span className="text-sm font-medium">Click to upload file</span>
-                                                    <span className="text-xs mt-0.5">PDF or TXT (Max 10MB)</span>
-                                                </div>
-                                            )}
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {/* Data Classification Confirmation */}
-                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                                    <div className="flex items-start gap-3">
-                                        <div className="flex items-center h-5 pt-0.5">
-                                            <input
-                                                type="checkbox"
-                                                id="classificationConfirmGlobal"
-                                                checked={classificationConfirmed}
-                                                onChange={(e) => setClassificationConfirmed(e.target.checked)}
-                                                className="w-4 h-4 rounded border-amber-300"
-                                            />
-                                        </div>
-                                        <label htmlFor="classificationConfirmGlobal" className="text-sm select-none">
-                                            <span className="block font-medium text-amber-900 text-xs mb-1">Compliance Check</span>
-                                            <p className="text-xs text-amber-800 leading-relaxed">
-                                                I confirm this document contains no data classified above <strong>OFFICIAL (CLOSED) / SENSITIVE-NORMAL</strong> and complies with IM8.
-                                            </p>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <DialogFooter>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setUploadDialogOpen(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    onClick={handleUpload}
-                                    disabled={uploading || !file || !title || !classificationConfirmed}
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Processing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="h-4 w-4 mr-2" />
-                                            Upload Document
-                                        </>
-                                    )}
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
                 </div>
 
-                {/* Documents Grid - Matching Project KB style */}
                 {filteredDocs.length === 0 ? (
-                    <Card>
-                        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                            <BookOpenText className="h-10 w-10 text-muted-foreground/40 mb-4" />
-                            <h3 className="text-base font-medium mb-1">
-                                No {DOC_TYPE_LABELS[activeTab].toLowerCase()} yet
-                            </h3>
-                            <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                                Upload {DOC_TYPE_LABELS[activeTab].toLowerCase()} to make them available across all projects.
-                            </p>
-                            <Button
-                                onClick={() => {
-                                    setDocType(activeTab);
-                                    setUploadDialogOpen(true);
-                                }}
-                                variant="outline"
-                            >
-                                <Upload className="h-4 w-4 mr-2" />
-                                Upload {DOC_TYPE_LABELS[activeTab]}
-                            </Button>
-                        </CardContent>
-                    </Card>
+                    <div className="rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] p-10 flex flex-col items-center justify-center text-center">
+                        <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center mb-3">
+                            <BookOpenText className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-sm font-semibold text-foreground mb-1">
+                            No {DOC_TYPE_LABELS[activeTab].toLowerCase()} yet
+                        </h3>
+                        <p className="text-[12px] text-muted-foreground max-w-sm mb-4">
+                            Upload {DOC_TYPE_LABELS[activeTab].toLowerCase()} to make them available across all projects.
+                        </p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                setDocType(activeTab);
+                                setUploadDialogOpen(true);
+                            }}
+                        >
+                            <Upload className="h-3.5 w-3.5" />
+                            Upload {DOC_TYPE_LABELS[activeTab].toLowerCase()}
+                        </Button>
+                    </div>
                 ) : (
-                    <div className={`grid gap-4 ${activeTab === 'PERSONA' ? 'md:grid-cols-2 lg:grid-cols-2' : 'grid-cols-1'}`}>
+                    <div className="flex flex-col gap-2">
                         {filteredDocs.map((doc) => {
                             const IconComponent = DOC_TYPE_ICONS[doc.docType] || FileText;
                             const isPending = doc.status === "DRAFT";
                             const isRejected = doc.status === "REJECTED";
-                            const isPersona = doc.docType === "PERSONA";
-                            const persona = isPersona ? parsePersonaMeta(doc.parsedMetaJson) : null;
-
-                            // Parsing State Card for Personas
-                            if (isPersona && !persona) {
-                                return (
-                                    <Card key={doc.id} className="relative min-h-[320px] group">
-                                        <div className="absolute top-4 right-4 z-20">
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100"
-                                                onClick={() => handleDelete(doc.id)}
-                                                disabled={processingId === doc.id}
-                                                title="Delete Stuck Persona"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                            return (
+                                <div
+                                    key={doc.id}
+                                    className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 px-4 py-3 flex items-center gap-4"
+                                >
+                                    <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center shrink-0">
+                                        <IconComponent className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-foreground text-sm leading-tight truncate">
+                                            {doc.title}
+                                        </h3>
+                                        <div className="flex items-center gap-2 mt-0.5 text-[12px] text-muted-foreground">
+                                            <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                                            <span className="opacity-50">·</span>
+                                            <span className="uppercase tracking-wider text-caption">{doc.docType}</span>
+                                            {isPending && (
+                                                <>
+                                                    <span className="opacity-50">·</span>
+                                                    <span className="text-[color:var(--warning)] font-medium">Pending review</span>
+                                                </>
+                                            )}
+                                            {isRejected && (
+                                                <>
+                                                    <span className="opacity-50">·</span>
+                                                    <span className="text-[color:var(--danger)] font-medium">Rejected</span>
+                                                </>
+                                            )}
                                         </div>
+                                    </div>
 
-                                        <CardContent className="p-8 flex flex-col items-center justify-center text-center h-full">
-                                            <Loader2 className="h-8 w-8 text-muted-foreground animate-spin mb-4" />
-                                            <h3 className="font-semibold text-base mb-2">Analyzing Persona...</h3>
-                                            <p className="text-sm text-muted-foreground max-w-[220px]">
-                                                Extracting motivations, frustrations, and demographics from {doc.originalFileName}...
-                                            </p>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            }
-
-                            // Persona Card
-                            if (isPersona && persona) {
-                                return (
-                                    <Card
-                                        key={doc.id}
-                                        className={`group relative flex flex-col transition-colors hover:bg-[var(--color-interact-subtle)] ${isPending ? 'border-amber-200' : isRejected ? 'border-destructive/30' : ''}`}
-                                    >
-                                        <CardContent className="px-5 py-4 flex-1 flex flex-col">
-                                            <div className="mb-3">
-                                                <h3 className="font-medium text-base mb-1">
-                                                    {persona.name || doc.title}
-                                                </h3>
-                                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                    {persona.age && (
-                                                        <span>{persona.age} years old</span>
-                                                    )}
-                                                    {persona.age && persona.occupation && (
-                                                        <span className="text-border">•</span>
-                                                    )}
-                                                    {persona.occupation && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Briefcase className="h-3 w-3" />
-                                                            {persona.occupation}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {persona.summary && (
-                                                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 mb-3">
-                                                    {persona.summary}
-                                                </p>
-                                            )}
-
-                                            <div className="border-t border-border mb-3" />
-
-                                            {(persona.gains || persona.pains) && (
-                                                <div className="grid grid-cols-2 gap-x-5 gap-y-2">
-                                                    {persona.gains && (
-                                                        <div className="space-y-1.5">
-                                                            <div className="flex items-center gap-1.5 text-foreground">
-                                                                <Heart className="h-3.5 w-3.5" />
-                                                                <span className="text-[10px] font-medium uppercase tracking-wider">Motivations</span>
-                                                            </div>
-                                                            <p className="text-xs text-muted-foreground leading-snug">
-                                                                {persona.gains}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    {persona.pains && (
-                                                        <div className="space-y-1.5">
-                                                            <div className="flex items-center gap-1.5 text-foreground">
-                                                                <AlertCircle className="h-3.5 w-3.5" />
-                                                                <span className="text-[10px] font-medium uppercase tracking-wider">Frustrations</span>
-                                                            </div>
-                                                            <p className="text-xs text-muted-foreground leading-snug">
-                                                                {persona.pains}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            <div className="mt-auto pt-3 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {isPending && (
-                                                    <div className="flex items-center gap-1 mr-auto opacity-100">
-                                                        <Button
-                                                            size="sm"
-                                                            className="h-7 text-xs"
-                                                            onClick={() => handleApprove(doc.id)}
-                                                            disabled={processingId === doc.id}
-                                                        >
-                                                            {processingId === doc.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                                                            Approve
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="h-7 text-xs text-destructive hover:text-destructive"
-                                                            onClick={() => handleReject(doc.id)}
-                                                            disabled={processingId === doc.id}
-                                                        >
-                                                            Reject
-                                                        </Button>
-                                                    </div>
-                                                )}
-
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        {isPending && (
+                                            <>
                                                 <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-7 w-7 text-muted-foreground"
-                                                    onClick={() => setViewDoc(doc)}
-                                                >
-                                                    <Eye className="h-3.5 w-3.5" />
-                                                </Button>
-
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                                    onClick={() => handleDelete(doc.id)}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleApprove(doc.id)}
                                                     disabled={processingId === doc.id}
                                                 >
-                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    {processingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Approve"}
                                                 </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            }
-
-                            // Standard Document Card - Compact Row Design
-                            return (
-                                <Card key={doc.id} className="group transition-colors hover:bg-[var(--color-interact-subtle)]">
-                                    <CardContent className="px-4 py-3">
-                                        <div className="flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <div className={`
-                                                    h-9 w-9 rounded-md flex items-center justify-center shrink-0
-                                                    ${isPending ? 'bg-amber-50 text-amber-600' : isRejected ? 'bg-destructive/10 text-destructive' : ''}
-                                                `}
-                                                    style={!isPending && !isRejected ? { backgroundColor: 'var(--color-knowledge-muted)', color: 'var(--color-knowledge)' } : undefined}
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="text-[color:var(--danger)] hover:text-[color:var(--danger)]"
+                                                    onClick={() => handleReject(doc.id)}
+                                                    disabled={processingId === doc.id}
                                                 >
-                                                    <IconComponent className="h-4 w-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0 flex items-center gap-4">
-                                                    <h3 className="font-medium text-sm truncate">{doc.title}</h3>
-
-                                                    <div className="flex items-center gap-3 text-xs text-muted-foreground hidden sm:flex shrink-0">
-                                                        <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
-                                                        <span className="text-border">•</span>
-                                                        <span className="uppercase tracking-wider text-[10px]">{doc.docType}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                                {isPending ? (
-                                                    <div className="flex gap-1">
-                                                        <Button size="sm" onClick={() => handleApprove(doc.id)} className="h-7 text-xs px-2.5">
-                                                            {processingId === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Approve'}
-                                                        </Button>
-                                                        <Button size="sm" variant="ghost" onClick={() => handleReject(doc.id)} className="h-7 text-xs text-destructive hover:text-destructive px-2.5">
-                                                            Reject
-                                                        </Button>
-                                                    </div>
-                                                ) : (
-                                                    <Badge variant={isRejected ? "destructive" : "secondary"} className="text-[10px] uppercase tracking-wider">
-                                                        {doc.status}
-                                                    </Badge>
-                                                )}
-
-                                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="h-7 px-2 text-xs text-muted-foreground"
-                                                        onClick={() => setViewDoc(doc)}
-                                                    >
-                                                        <Eye className="h-3.5 w-3.5 mr-1" />
-                                                        <span className="hidden sm:inline">View</span>
-                                                    </Button>
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                                        onClick={() => handleDelete(doc.id)}
-                                                        disabled={processingId === doc.id}
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </div>
+                                                    Reject
+                                                </Button>
+                                            </>
+                                        )}
+                                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button
+                                                size="icon-sm"
+                                                variant="ghost"
+                                                className="text-muted-foreground"
+                                                onClick={() => setViewDoc(doc)}
+                                            >
+                                                <Eye className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button
+                                                size="icon-sm"
+                                                variant="ghost"
+                                                className="text-muted-foreground hover:text-destructive"
+                                                onClick={() => setDeleteDocId(doc.id)}
+                                                disabled={processingId === doc.id}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                    </div>
+                                </div>
                             );
                         })}
                     </div>
                 )}
-            </div>
+            </WorkspaceFrame>
 
-            {/* View Dialog */}
+            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+                <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                        <DialogTitle>Upload document</DialogTitle>
+                        <DialogDescription>
+                            Documents uploaded here will be accessible across all projects.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {uploading ? (
+                        <div className="py-8 flex flex-col items-center justify-center text-center">
+                            <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center mb-4">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                            <span className="text-eyebrow text-muted-foreground mb-1">Uploading</span>
+                            <h3 className="text-display-4 text-foreground mb-2">Processing your document…</h3>
+                            <p className="text-body-sm text-muted-foreground mb-5 max-w-xs">
+                                This can take up to 30 seconds for larger PDFs.
+                            </p>
+                            <div className="w-full max-w-xs h-1 bg-[color:var(--surface-muted)] rounded-full overflow-hidden">
+                                <div className="h-full w-1/3 bg-[color:var(--primary)] animate-pulse rounded-full" />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="title">Document title</Label>
+                                <Input
+                                    id="title"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="e.g. Youth Health Trends Report 2024"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="docType">Document type</Label>
+                                <Select value={docType} onValueChange={setDocType}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="FRAMEWORK">Framework</SelectItem>
+                                        <SelectItem value="RESEARCH">Research</SelectItem>
+                                        <SelectItem value="POLICY">Policy</SelectItem>
+                                        <SelectItem value="OTHER">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="file">Source file</Label>
+                                <div className="relative group">
+                                    <Input
+                                        id="file"
+                                        type="file"
+                                        ref={fileInputRef}
+                                        accept=".txt,.pdf"
+                                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                        className="hidden"
+                                    />
+                                    <label
+                                        htmlFor="file"
+                                        className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-md cursor-pointer transition-colors ${
+                                            file
+                                                ? "border-[color:var(--primary)]/40 bg-[color:var(--primary-soft)]"
+                                                : "border-input bg-background hover:border-[color:var(--primary)]/30 hover:bg-[color:var(--surface-muted)]"
+                                        }`}
+                                    >
+                                        {file ? (
+                                            <div className="flex flex-col items-center text-foreground">
+                                                <FileText className="h-7 w-7 mb-2 text-muted-foreground" />
+                                                <span className="text-sm font-medium truncate max-w-[200px]">{file.name}</span>
+                                                <span className="text-xs text-muted-foreground mt-0.5">
+                                                    {(file.size / 1024).toFixed(1)} KB
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center text-muted-foreground group-hover:text-foreground transition-colors">
+                                                <Upload className="h-7 w-7 mb-2" />
+                                                <span className="text-sm font-medium">Click to upload file</span>
+                                                <span className="text-xs mt-0.5">PDF or TXT (Max 10MB)</span>
+                                            </div>
+                                        )}
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="p-3 bg-[color:var(--warning-soft)] border border-[color:var(--warning)]/25 rounded-md">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex items-center h-5 pt-0.5">
+                                        <Checkbox
+                                            id="classificationConfirmGlobal"
+                                            checked={classificationConfirmed}
+                                            onCheckedChange={(checked) => setClassificationConfirmed(checked === true)}
+                                            aria-label="Confirm data classification compliance"
+                                        />
+                                    </div>
+                                    <label htmlFor="classificationConfirmGlobal" className="text-sm select-none">
+                                        <span className="block font-medium text-[color:var(--warning)] text-caption uppercase tracking-wider mb-1">Compliance check</span>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                            I confirm this document contains no data classified above <strong>OFFICIAL (CLOSED) / SENSITIVE-NORMAL</strong> and complies with IM8.
+                                        </p>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {uploading ? (
+                        <DialogFooter>
+                            <Button disabled>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Processing...
+                            </Button>
+                        </DialogFooter>
+                    ) : (
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleUpload}
+                                disabled={!file || !title || !classificationConfirmed}
+                            >
+                                <Upload className="h-4 w-4" />
+                                Upload document
+                            </Button>
+                        </DialogFooter>
+                    )}
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={!!viewDoc} onOpenChange={(open) => !open && setViewDoc(null)}>
-                <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-6">
+                <DialogContent className="!max-w-[min(1400px,95vw)] w-[min(1400px,95vw)] h-[92vh] flex flex-col p-6">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <FileText className="h-5 w-5 text-muted-foreground" />
@@ -679,15 +563,37 @@ export default function KnowledgeBasePage() {
                         {viewDoc && (
                             <iframe
                                 src={`/api/kb/documents/${viewDoc.id}/view`}
-                                className="w-full h-full bg-white"
+                                className="w-full h-full bg-card"
                                 title="Document Viewer"
                             />
                         )}
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
 
+            <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This removes the document from the global Knowledge Base. Projects that reference it will lose access. This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteDocId) await confirmDelete(deleteDocId);
+                                setDeleteDocId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     );
 }
 // Created by Swapnil Bapat © 2026

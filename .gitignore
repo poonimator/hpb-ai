@@ -48,3 +48,44 @@ next-env.d.ts
 # Claude Code
 .claude/
 .agent/
+.superpowers/
+docs/demos/family-sugar-habits-walkthrough.md
+docs/demos/family-sugar-habits-transcripts.md
+docs/demos/deck-source/Family Sugar Habits.html
+docs/demos/deck-source/deck-stage.js
+docs/demos/platform-ad/my-video/AGENTS.md
+docs/demos/platform-ad/my-video/CLAUDE.md
+docs/demos/platform-ad/my-video/hyperframes.json
+docs/demos/platform-ad/my-video/index.html
+docs/demos/platform-ad/my-video/meta.json
+docs/demos/platform-ad/my-video/renders/my-video_2026-04-28_15-57-24.mp4
+docs/demos/platform-ad/my-video/renders/my-video_2026-04-28_16-41-21.mp4
+docs/demos/platform-ad/my-video/renders/my-video_2026-04-28_17-52-25.mp4
+docs/demos/demo topics/1. Sugar Habits/HMWs.txt
+docs/demos/demo topics/1. Sugar Habits/Insights.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P01.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P02.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P03.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P04.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P05.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P06.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P07.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P08.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P09.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P10.txt
+docs/demos/demo topics/1. Sugar Habits/Interview Transcripts/P11.txt
+docs/demos/demo topics/1. Sugar Habits/Moderator Guide.txt
+docs/demos/demo topics/2. Tapao Habits/HMWs.txt
+docs/demos/demo topics/2. Tapao Habits/Insights.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P01.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P02.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P03.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P04.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P05.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P06.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P07.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P08.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P09.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P10.txt
+docs/demos/demo topics/2. Tapao Habits/Interview Transcripts/P11.txt
+docs/demos/demo topics/2. Tapao Habits/Moderator Guide.txt

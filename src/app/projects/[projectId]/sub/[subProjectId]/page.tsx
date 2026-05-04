@@ -3,6 +3,7 @@
 import { useState, useEffect, use, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,23 @@ import {
     Lightbulb,
     Zap
 } from "lucide-react";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { Mono } from "@/components/ui/mono";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const LIFE_STAGE_OPTIONS = [
     { value: "Primary", label: "Primary School" },
@@ -166,7 +184,6 @@ export default function SubProjectHomePage({ params }: PageProps) {
     const [error, setError] = useState<string | null>(null);
 
     // Dialog States
-    const [isResearchDescriptionOpen, setIsResearchDescriptionOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
 
     // Edit Form State
@@ -198,6 +215,17 @@ export default function SubProjectHomePage({ params }: PageProps) {
         window.history.replaceState({}, "", url.toString());
     }, []);
 
+    // Delete dialog state — one per destructive flow
+    const [deleteGuideId, setDeleteGuideId] = useState<string | null>(null);
+    const [deleteSimId, setDeleteSimId] = useState<string | null>(null);
+    const [deleteMappingId, setDeleteMappingId] = useState<string | null>(null);
+    const [deleteArchetypeId, setDeleteArchetypeId] = useState<string | null>(null);
+    const [deleteIdeationId, setDeleteIdeationId] = useState<string | null>(null);
+    const [deleteHmwId, setDeleteHmwId] = useState<string | null>(null);
+    const [deleteInsightId, setDeleteInsightId] = useState<string | null>(null);
+    // Research-statement expansion dialog (triggered from rail 'Read more')
+    const [researchOpen, setResearchOpen] = useState(false);
+
     useEffect(() => {
         fetchSubProject();
     }, [subProjectId]);
@@ -208,12 +236,12 @@ export default function SubProjectHomePage({ params }: PageProps) {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || "Failed to fetch sub-project");
+                throw new Error(data.error || "Failed to fetch workspace");
             }
 
             setSubProject(data.data);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load sub-project");
+            setError(err instanceof Error ? err.message : "Failed to load workspace");
         } finally {
             setLoading(false);
         }
@@ -270,10 +298,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 await fetchSubProject();
                 setIsEditOpen(false);
             } else {
-                alert("Failed to update workspace");
+                toast.error("Failed to update workspace");
             }
         } catch (err) {
-            alert("Failed to update workspace");
+            toast.error("Failed to update workspace");
         } finally {
             setIsSavingEdit(false);
         }
@@ -304,10 +332,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 // Navigate to edit the new guide
                 window.location.href = `/projects/new/guide?projectId=${projectId}&subProjectId=${subProjectId}&guideId=${data.data.guide.id}`;
             } else {
-                alert(data.error || "Failed to create guide");
+                toast.error(data.error || "Failed to create guide");
             }
         } catch (err) {
-            alert("Failed to create guide");
+            toast.error("Failed to create guide");
         } finally {
             setIsCreatingGuide(false);
         }
@@ -335,10 +363,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 await fetchSubProject();
                 setEditingGuideId(null);
             } else {
-                alert("Failed to rename guide");
+                toast.error("Failed to rename guide");
             }
         } catch (err) {
-            alert("Failed to rename guide");
+            toast.error("Failed to rename guide");
         } finally {
             setIsSavingGuide(false);
         }
@@ -346,10 +374,6 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
     // Delete a guide
     const handleDeleteGuide = async (guideId: string) => {
-        if (!confirm("Are you sure you want to delete this guide? This action cannot be undone.")) {
-            return;
-        }
-
         try {
             const res = await fetch(`/api/guides/${guideId}`, {
                 method: "DELETE"
@@ -358,22 +382,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
             if (res.ok) {
                 await fetchSubProject();
             } else {
-                alert("Failed to delete guide");
+                toast.error("Failed to delete guide");
             }
         } catch (err) {
-            alert("Failed to delete guide");
+            toast.error("Failed to delete guide");
         }
     };
 
     // Delete a simulation
-    const handleDeleteSimulation = async (e: React.MouseEvent, simulationId: string) => {
-        e.preventDefault(); // Prevent navigation
-        e.stopPropagation();
-
-        if (!confirm("Are you sure you want to delete this simulation? This action cannot be undone.")) {
-            return;
-        }
-
+    const handleDeleteSimulation = async (simulationId: string) => {
         try {
             const res = await fetch(`/api/simulations/${simulationId}`, {
                 method: "DELETE"
@@ -382,22 +399,15 @@ export default function SubProjectHomePage({ params }: PageProps) {
             if (res.ok) {
                 await fetchSubProject();
             } else {
-                alert("Failed to delete simulation");
+                toast.error("Failed to delete simulation");
             }
         } catch (err) {
-            alert("Failed to delete simulation");
+            toast.error("Failed to delete simulation");
         }
     };
 
     // Delete a mapping session
-    const handleDeleteMappingSession = async (e: React.MouseEvent, sessionId: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (!confirm("Are you sure you want to delete this mapping session? This action cannot be undone.")) {
-            return;
-        }
-
+    const handleDeleteMappingSession = async (sessionId: string) => {
         try {
             const res = await fetch(`/api/mapping/${sessionId}`, {
                 method: "DELETE"
@@ -406,36 +416,91 @@ export default function SubProjectHomePage({ params }: PageProps) {
             if (res.ok) {
                 await fetchSubProject();
             } else {
-                alert("Failed to delete mapping session");
+                toast.error("Failed to delete mapping session");
             }
         } catch (err) {
-            alert("Failed to delete mapping session");
+            toast.error("Failed to delete mapping session");
+        }
+    };
+
+    // Delete an archetype
+    const handleDeleteArchetype = async (archetypeId: string) => {
+        try {
+            const res = await fetch(`/api/archetypes/single/${archetypeId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                toast.error("Failed to delete archetype");
+            }
+        } catch {
+            toast.error("Failed to delete archetype");
+        }
+    };
+
+    // Delete an ideation session
+    const handleDeleteIdeation = async (sessionId: string) => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}/ideations/${sessionId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                toast.error(data.error || "Failed to delete ideation session");
+            }
+        } catch (err) {
+            console.error("Delete failed:", err);
+            toast.error("Failed to delete ideation session");
+        }
+    };
+
+    // Delete a HMW critique
+    const handleDeleteHmw = async (critiqueId: string) => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques/${critiqueId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                toast.error("Failed to delete HMW critique");
+            }
+        } catch {
+            toast.error("Failed to delete HMW critique");
+        }
+    };
+
+    // Delete an insight critique
+    const handleDeleteInsight = async (critiqueId: string) => {
+        try {
+            const res = await fetch(`/api/sub-projects/${subProjectId}/insight-critiques/${critiqueId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                toast.error("Failed to delete insight critique");
+            }
+        } catch {
+            toast.error("Failed to delete insight critique");
         }
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading workspace...</p>
-                </div>
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
         );
     }
 
     if (error || !subProject) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="flex items-center justify-center py-20">
                 <Card className="max-w-md">
                     <CardHeader>
-                        <CardTitle className="text-red-600">Error</CardTitle>
+                        <CardTitle className="text-[color:var(--danger)]">Error</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground">{error || "Workspace not found"}</p>
                         <Link href={`/projects/${projectId}`} className="mt-4 inline-block">
                             <Button variant="outline">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                <ArrowLeft className="h-4 w-4" />
                                 Back to Project
                             </Button>
                         </Link>
@@ -447,231 +512,157 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
     const hasGuide = subProject.guideVersions.length > 0;
 
+    // Tab count derivations (consumed by the <TabsTrigger> labels below)
+    const guideCount = subProject.guideVersions?.length ?? 0;
+    const simulationCount = subProject.simulations?.length ?? 0;
+    const mappingCount = subProject.mappingSessions?.length ?? 0;
+    const archetypeCount = subProject.archetypeSessions?.reduce((sum, s) => sum + s.archetypes.length, 0) ?? 0;
+    const ideationCount = subProject.ideationSessions?.length ?? 0;
+    const hmwCount = subProject.hmwCritiques?.length ?? 0;
+    const insightCount = subProject.insightCritiques?.length ?? 0;
+
+    // Format created date if available on the subProject payload
+    const createdLabel = subProject.createdAt
+        ? new Date(subProject.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+          })
+        : null;
+
+    const leftRail = (
+        <>
+            <RailHeader>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    {subProject.name}
+                </h2>
+                {subProject.researchStatement && (
+                    <div className="flex flex-col gap-1.5">
+                        <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                            {subProject.researchStatement}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setResearchOpen(true)}
+                            className="self-start text-ui-sm text-[color:var(--primary)] hover:underline outline-none focus-visible:shadow-focus rounded-[2px]"
+                        >
+                            Read more
+                        </button>
+                    </div>
+                )}
+            </RailHeader>
+
+            <RailSection title="Research">
+                <MetaRow k="Age range" v={subProject.ageRange || "—"} />
+                <MetaRow k="Life stage" v={subProject.lifeStage || "—"} />
+                {createdLabel && <MetaRow k="Created" v={createdLabel} />}
+            </RailSection>
+
+            <div className="px-8 py-4">
+                <Button variant="outline" size="sm" className="w-full justify-center" onClick={openEditDialog}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit workspace
+                </Button>
+            </div>
+
+            <div className="flex-1" />
+        </>
+    );
+
     return (
-        <div className="relative overflow-hidden pb-20">
-            {/* Ambient Background */}
+        // App-shell: flex-1 fills main's computed height exactly, so the rail always
+        // reaches the footer without depending on viewport math. WorkspaceFrame
+        // scrollContained handles internal overflow.
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{ href: `/projects/${projectId}`, label: "Back" }}
+                crumbs={
+                    subProject.project?.name && subProject.name
+                        ? [
+                            { label: subProject.project.name, href: `/projects/${projectId}` },
+                            { label: subProject.name },
+                        ]
+                        : undefined
+                }
+            />
 
-            <div className="py-8 animate-in fade-in zoom-in-95 duration-500">
+            <WorkspaceFrame variant="platform" leftRail={leftRail} scrollContained>
+                {/* Workspace identity lives in the left rail; main column is tool-focused. */}
 
-                {/* Back Link */}
-                <Link
-                    href={`/projects/${projectId}`}
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to {subProject.project.name}
-                </Link>
-
-                {/* Header Section */}
-                <div className="mb-8">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                        <div className="max-w-3xl">
-                            <div className="flex items-center gap-4 mb-4 group">
-                                <h1 className="text-3xl font-semibold tracking-tight" aria-label={`Workspace: ${subProject.name}`}>
-                                    {subProject.name}
-                                </h1>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={openEditDialog}
-                                    className="h-8 w-8 text-border hover:text-primary hover:bg-accent rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                            </div>
-
-                            {/* Research Statement */}
-                            {subProject.researchStatement && (
-                                <div className="mb-6 relative">
-                                    <div className="prose prose-sm max-w-none text-muted-foreground font-normal text-lg leading-relaxed">
-                                        <p className="line-clamp-2">{subProject.researchStatement}</p>
-                                    </div>
-                                    {subProject.researchStatement.length > 150 && (
-                                        <button
-                                            className="text-primary hover:text-primary text-xs font-bold uppercase tracking-wide mt-2 flex items-center gap-1 transition-colors"
-                                            onClick={() => setIsResearchDescriptionOpen(true)}
-                                        >
-                                            Read More <ChevronRight className="h-3 w-3" />
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Badges - Hidden for now */}
-                            {/* <div className="flex flex-wrap items-center gap-3">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-md rounded-full border border-border shadow-sm text-xs font-medium text-foreground">
-                                    <Target className="h-3.5 w-3.5 text-primary" />
-                                    <span className="text-muted-foreground">Age:</span> {subProject.ageRange}
-                                </div>
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-md rounded-full border border-border shadow-sm text-xs font-medium text-foreground">
-                                    <Users className="h-3.5 w-3.5 text-primary" />
-                                    <span className="text-muted-foreground">Stage:</span> {subProject.lifeStage}
-                                </div>
-                            </div> */}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Tab Navigation */}
-                <div className="flex items-center justify-between mb-4 overflow-x-auto">
-                    <div className="inline-flex items-center p-1 bg-muted/50 backdrop-blur-sm rounded-full border border-border/60 shadow-inner whitespace-nowrap">
-                        <button
-                            onClick={() => switchTab("guides")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5
-                                ${activeContentTab === "guides"
-                                    ? "bg-white text-foreground shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
+                {/* Tab Navigation + Content — segmented-pill per platform-screens.jsx:182-194 */}
+                <Tabs value={activeContentTab} onValueChange={(v) => switchTab(v as "guides" | "simulations" | "mapping" | "archetypes" | "ideation" | "hmw" | "insights")}>
+                    <TabsList className="inline-flex items-center gap-0.5 w-fit self-start bg-[color:var(--surface-muted)] rounded-full p-1 shadow-inset-edge border-b-0 mb-6">
+                        <TabsTrigger
+                            value="guides"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
                         >
-                            <BookOpen className={`h-3.5 w-3.5 ${activeContentTab === "guides" ? "text-primary" : "text-muted-foreground"}`} />
-                            Moderator Guides
-                            {subProject.guideVersions.length > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "guides" ? "bg-accent text-primary" : "bg-muted text-muted-foreground"}`}>
-                                    {subProject.guideVersions.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("simulations")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "simulations"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "simulations" ? { color: 'var(--color-info)' } : undefined}
+                            <BookOpen className="h-3.5 w-3.5" />
+                            Moderator guides
+                            {guideCount > 0 && <Mono className="ml-1">{guideCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="simulations"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
                         >
-                            <PlayCircle className={`h-3.5 w-3.5 ${activeContentTab === "simulations" ? "" : "text-muted-foreground"}`} style={activeContentTab === "simulations" ? { color: 'var(--color-info)' } : undefined} />
+                            <PlayCircle className="h-3.5 w-3.5" />
                             Simulations
-                            {subProject.simulations.length > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "simulations" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "simulations" ? { backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)' } : undefined}>
-                                    {subProject.simulations.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("mapping")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "mapping"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "mapping" ? { color: 'var(--color-knowledge)' } : undefined}
+                            {simulationCount > 0 && <Mono className="ml-1">{simulationCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="mapping"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
                         >
-                            <Network className={`h-3.5 w-3.5 ${activeContentTab === "mapping" ? "" : "text-muted-foreground"}`} style={activeContentTab === "mapping" ? { color: 'var(--color-knowledge)' } : undefined} />
+                            <Network className="h-3.5 w-3.5" />
                             Mapping
-                            {subProject.mappingSessions && subProject.mappingSessions.length > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "mapping" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "mapping" ? { backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' } : undefined}>
-                                    {subProject.mappingSessions.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("archetypes")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "archetypes"
-                                    ? "bg-white text-foreground shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
+                            {mappingCount > 0 && <Mono className="ml-1">{mappingCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="archetypes"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
                         >
-                            <Users className={`h-3.5 w-3.5 ${activeContentTab === "archetypes" ? "text-primary" : "text-muted-foreground"}`} />
+                            <Users className="h-3.5 w-3.5" />
                             Profiles
-                            {(() => {
-                                const totalArchetypes = subProject.archetypeSessions?.reduce((sum, s) => sum + s.archetypes.length, 0) || 0;
-                                return totalArchetypes > 0 ? (
-                                    <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "archetypes" ? "bg-accent text-primary" : "bg-muted text-muted-foreground"}`}>
-                                        {totalArchetypes}
-                                    </span>
-                                ) : null;
-                            })()}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("ideation")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "ideation"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "ideation" ? { color: 'var(--color-interact)' } : undefined}
+                            {archetypeCount > 0 && <Mono className="ml-1">{archetypeCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="hmw"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
                         >
-                            <Zap className={`h-3.5 w-3.5 ${activeContentTab === "ideation" ? "" : "text-muted-foreground"}`} style={activeContentTab === "ideation" ? { color: 'var(--color-interact)' } : undefined} />
-                            Ideation
-                            {(subProject.ideationSessions?.length || 0) > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "ideation" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "ideation" ? { backgroundColor: 'var(--color-interact-subtle)', color: 'var(--color-interact)' } : undefined}>
-                                    {subProject.ideationSessions.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("hmw")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "hmw"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "hmw" ? { color: 'var(--color-knowledge)' } : undefined}
+                            <Lightbulb className="h-3.5 w-3.5" />
+                            HMW
+                            {hmwCount > 0 && <Mono className="ml-1">{hmwCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="insights"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
                         >
-                            <Lightbulb className={`h-3.5 w-3.5 ${activeContentTab === "hmw" ? "" : "text-muted-foreground"}`} style={activeContentTab === "hmw" ? { color: 'var(--color-knowledge)' } : undefined} />
-                            How Might We
-                            {(subProject.hmwCritiques?.length || 0) > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "hmw" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "hmw" ? { backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' } : undefined}>
-                                    {subProject.hmwCritiques.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => switchTab("insights")}
-                            className={`
-                                relative px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all duration-300 flex items-center gap-1.5 ml-0.5
-                                ${activeContentTab === "insights"
-                                    ? "bg-white shadow-sm ring-1 ring-black/5"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                }
-                            `}
-                            style={activeContentTab === "insights" ? { color: 'var(--color-info)' } : undefined}
-                        >
-                            <FileText className={`h-3.5 w-3.5 ${activeContentTab === "insights" ? "" : "text-muted-foreground"}`} style={activeContentTab === "insights" ? { color: 'var(--color-info)' } : undefined} />
+                            <FileText className="h-3.5 w-3.5" />
                             Insights
-                            {(subProject.insightCritiques?.length || 0) > 0 && (
-                                <span className={`flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-full text-[10px] ml-1.5 font-extrabold ${activeContentTab === "insights" ? "" : "bg-muted text-muted-foreground"}`} style={activeContentTab === "insights" ? { backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)' } : undefined}>
-                                    {subProject.insightCritiques.length}
-                                </span>
-                            )}
-                        </button>
-                    </div>
-                </div>
+                            {insightCount > 0 && <Mono className="ml-1">{insightCount}</Mono>}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="ideation"
+                            className="h-8 px-3 rounded-full text-ui-sm font-medium gap-1.5 hover:!bg-transparent hover:text-foreground data-[state=active]:bg-[color:var(--surface)] data-[state=active]:shadow-card data-[state=active]:text-foreground data-[state=active]:after:hidden"
+                        >
+                            <Zap className="h-3.5 w-3.5" />
+                            Ideation
+                            {ideationCount > 0 && <Mono className="ml-1">{ideationCount}</Mono>}
+                        </TabsTrigger>
+                    </TabsList>
 
-                {/* Content Area */}
-                <div className="min-h-[400px]">
                     {/* Moderator Guides */}
-                    {activeContentTab === "guides" && (
+                    <TabsContent value="guides">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Guide Card */}
                             <button
                                 onClick={handleCreateGuide}
                                 disabled={isCreatingGuide}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         {isCreatingGuide ? (
                                             <Loader2 className="h-5 w-5 text-primary animate-spin" />
                                         ) : (
@@ -680,7 +671,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">Create New Guide</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Start a new set of questions and persona configurations
                                         </p>
                                     </div>
@@ -692,20 +683,20 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 return (
                                     <div
                                         key={guide.id}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                        className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                     >
                                         {/* Hover actions */}
                                         {editingGuideId !== guide.id && (
                                             <div className="absolute top-2.5 right-2.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); startEditingGuide(guide); }}
-                                                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-primary transition-all"
+                                                    className="p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-primary transition-colors"
                                                 >
                                                     <Pencil className="h-3.5 w-3.5" />
                                                 </button>
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteGuide(guide.id); }}
-                                                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
+                                                    onClick={(e) => { e.stopPropagation(); setDeleteGuideId(guide.id); }}
+                                                    className="p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                                 >
                                                     <Trash2 className="h-3.5 w-3.5" />
                                                 </button>
@@ -725,10 +716,10 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     }}
                                                 />
                                                 <div className="flex gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={saveGuideName} className="h-7 w-7 text-primary hover:bg-accent">
+                                                    <Button variant="ghost" size="icon-sm" onClick={saveGuideName} className="text-primary hover:bg-accent">
                                                         <Check className="h-3.5 w-3.5" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => setEditingGuideId(null)} className="h-7 w-7 text-muted-foreground hover:bg-muted">
+                                                    <Button variant="ghost" size="icon-sm" onClick={() => setEditingGuideId(null)} className="text-muted-foreground hover:bg-muted">
                                                         <X className="h-3.5 w-3.5" />
                                                     </Button>
                                                 </div>
@@ -740,8 +731,8 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 {/* Icon */}
-                                                <div className="h-9 w-9 rounded-lg bg-accent border border-border flex items-center justify-center mb-auto">
-                                                    <FileText className="h-4.5 w-4.5 text-primary/80" />
+                                                <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center mb-auto">
+                                                    <FileText className="h-4.5 w-4.5" />
                                                 </div>
 
                                                 {/* Content at bottom */}
@@ -749,7 +740,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
                                                         {guide.name}
                                                     </h4>
-                                                    <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                                    <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
                                                         Created {new Date(guide.createdAt).toLocaleDateString()}
                                                     </p>
                                                 </div>
@@ -759,24 +750,24 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 );
                             })}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* Simulations */}
-                    {activeContentTab === "simulations" && (
+                    <TabsContent value="simulations">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Simulation Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/simulate`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                                        <PlayCircle className="h-5 w-5" style={{ color: 'var(--color-info)' }} />
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
+                                        <PlayCircle className="h-5 w-5 text-[color:var(--info)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Simulation</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Start a new practice session with an AI persona
                                         </p>
                                     </div>
@@ -796,19 +787,19 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     <Link
                                         key={sim.id}
                                         href={isCompleted ? `/simulations/${sim.id}` : `/projects/${projectId}/sub/${subProjectId}/simulate?resume=${sim.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                        className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                     >
                                         {/* Delete on hover */}
                                         <button
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                            onClick={(e) => { e.preventDefault(); handleDeleteSimulation(e, sim.id); }}
+                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteSimId(sim.id); }}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
 
                                         {/* Icon */}
                                         <div
-                                            className={`h-9 w-9 rounded-lg flex items-center justify-center mb-auto ${isCompleted ? 'bg-accent text-muted-foreground' : ''}`}
+                                            className={`h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto ${isCompleted ? 'bg-[color:var(--surface-muted)] text-muted-foreground' : ''}`}
                                             style={!isCompleted ? { backgroundColor: 'var(--color-info-subtle)', color: 'var(--color-info)' } : undefined}
                                         >
                                             {isCompleted ? (
@@ -821,12 +812,12 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         </div>
 
                                         {/* Content at bottom */}
-                                        <div className="mt-3">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                        <div className="mt-3 flex flex-col gap-1">
+                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2">
                                                 {personaName}
                                             </h4>
                                             {isFocusGroup && (
-                                                <div className="flex flex-wrap gap-1 mb-1">
+                                                <div className="flex flex-wrap gap-1">
                                                     {(sim.simulationArchetypes ?? []).map((sa) => (
                                                         <span key={sa.archetype.id} className="text-[10px] font-medium text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">
                                                             {sa.archetype.name}
@@ -834,37 +825,44 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                     ))}
                                                 </div>
                                             )}
-                                            <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
-                                                {new Date(sim.startedAt).toLocaleDateString()} &middot;{' '}
-                                                <span className="inline-flex items-center gap-1">
-                                                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-muted-foreground' : 'animate-pulse'}`} style={!isCompleted ? { backgroundColor: 'var(--color-info)' } : undefined} />
-                                                    {isCompleted ? 'Completed' : 'Active'}
-                                                </span>
-                                                {hasReview && ' · Reviewed'}
-                                            </p>
+                                            <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground leading-snug">
+                                                <span>{new Date(sim.startedAt).toLocaleDateString()}</span>
+                                                <span className="opacity-50">·</span>
+                                                <span
+                                                    className={`inline-block w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-muted-foreground' : 'animate-pulse'}`}
+                                                    style={!isCompleted ? { backgroundColor: 'var(--color-info)' } : undefined}
+                                                />
+                                                <span>{isCompleted ? 'Completed' : 'Active'}</span>
+                                                {hasReview && (
+                                                    <>
+                                                        <span className="opacity-50">·</span>
+                                                        <span>Reviewed</span>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </Link>
                                 );
                             })}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* Mapping */}
-                    {activeContentTab === "mapping" && (
+                    <TabsContent value="mapping">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Mapping Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/map/new`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                                        <Network className="h-5 w-5" style={{ color: 'var(--color-knowledge)' }} />
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
+                                        <Network className="h-5 w-5 text-[color:var(--knowledge)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Mapping</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Cluster insights from interview transcripts
                                         </p>
                                     </div>
@@ -879,21 +877,18 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                     <Link
                                         key={session.id}
                                         href={`/projects/${projectId}/sub/${subProjectId}/map/${session.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                        className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                     >
                                         {/* Delete on hover */}
                                         <button
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                            onClick={(e) => { e.preventDefault(); handleDeleteMappingSession(e, session.id); }}
+                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteMappingId(session.id); }}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
 
                                         {/* Icon */}
-                                        <div
-                                            className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto"
-                                            style={{ backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' }}
-                                        >
+                                        <div className="h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]">
                                             <Network className="h-4.5 w-4.5" />
                                         </div>
 
@@ -902,11 +897,11 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                             <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
                                                 {session.name}
                                             </h4>
-                                            <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                            <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
                                                 {new Date(session.createdAt).toLocaleDateString()} &middot; {session._count?.transcripts || 0} files
                                                 {!isComplete && (
                                                     <span className="inline-flex items-center gap-1 ml-1">
-                                                        &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> {session.status}
+                                                        &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-[color:var(--warning)] animate-pulse" /> {session.status}
                                                     </span>
                                                 )}
                                             </p>
@@ -915,106 +910,103 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 );
                             })}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* Archetypes */}
-                    {activeContentTab === "archetypes" && (() => {
-                        const CARD_ICON_BG = [
-                            "bg-muted text-primary",
-                            "bg-slate-50 text-slate-500",
-                            "bg-cyan-50 text-cyan-500",
-                            "bg-muted text-primary",
-                            "bg-sky-50 text-sky-500",
-                            "bg-violet-50 text-violet-400",
-                            "bg-stone-50 text-stone-500",
-                            "bg-muted text-primary",
-                        ];
+                    <TabsContent value="archetypes">
+                        {(() => {
+                            const CARD_ICON_BG = [
+                                "bg-muted text-primary",
+                                "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]",
+                                "bg-[color:var(--cat-2-soft)] text-[color:var(--cat-2)]",
+                                "bg-muted text-primary",
+                                "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]",
+                                "bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]",
+                                "bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)]",
+                                "bg-muted text-primary",
+                            ];
 
-                        const allArchetypes = subProject.archetypeSessions?.flatMap(s => s.archetypes) || [];
+                            const allArchetypes = subProject.archetypeSessions?.flatMap(s => s.archetypes) || [];
 
-                        return (
-                            <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            return (
+                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
-                                {/* Generate Card */}
-                                <Link
-                                    href={`/projects/${projectId}/sub/${subProjectId}/archetypes/new`}
-                                    className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
-                                >
-                                    <div className="flex flex-col items-center gap-3 text-center">
-                                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                                            <Sparkles className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate Profiles</h3>
-                                            <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
-                                                Create new persona profiles with AI
-                                            </p>
-                                        </div>
-                                    </div>
-                                </Link>
-
-                                {/* Archetype Cards */}
-                                {allArchetypes.map((archetype, index) => (
-                                    <div
-                                        key={archetype.id}
-                                        onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/archetypes/${archetype.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                    {/* Generate Card */}
+                                    <Link
+                                        href={`/projects/${projectId}/sub/${subProjectId}/archetypes/new`}
+                                        className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                                     >
-                                        {/* Delete button on hover */}
-                                        <button
-                                            onClick={async (e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                if (!confirm("Delete this archetype?")) return;
-                                                try {
-                                                    const res = await fetch(`/api/archetypes/single/${archetype.id}`, { method: "DELETE" });
-                                                    if (res.ok) await fetchSubProject();
-                                                    else alert("Failed to delete");
-                                                } catch { alert("Failed to delete"); }
-                                            }}
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-
-                                        {/* Icon */}
-                                        <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-auto ${CARD_ICON_BG[index % CARD_ICON_BG.length]}`}>
-                                            <Users className="h-4.5 w-4.5" />
-                                        </div>
-
-                                        {/* Content at bottom */}
-                                        <div className="mt-3">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
-                                                {archetype.name}
-                                            </h4>
-                                            {archetype.kicker && (
-                                                <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
-                                                    {archetype.kicker}
+                                        <div className="flex flex-col items-center gap-3 text-center">
+                                            <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
+                                                <Sparkles className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate Profiles</h3>
+                                                <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
+                                                    Create new persona profiles with AI
                                                 </p>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        );
-                    })()}
+                                    </Link>
+
+                                    {/* Archetype Cards */}
+                                    {allArchetypes.map((archetype, index) => (
+                                        <div
+                                            key={archetype.id}
+                                            onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/archetypes/${archetype.id}`}
+                                            className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
+                                        >
+                                            {/* Delete button on hover */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setDeleteArchetypeId(archetype.id);
+                                                }}
+                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+
+                                            {/* Icon */}
+                                            <div className={`h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto ${CARD_ICON_BG[index % CARD_ICON_BG.length]}`}>
+                                                <Users className="h-4.5 w-4.5" />
+                                            </div>
+
+                                            {/* Content at bottom */}
+                                            <div className="mt-3">
+                                                <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                                    {archetype.name}
+                                                </h4>
+                                                {archetype.kicker && (
+                                                    <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
+                                                        {archetype.kicker}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })()}
+                    </TabsContent>
 
                     {/* Ideation */}
-                    {activeContentTab === "ideation" && (
+                    <TabsContent value="ideation">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Ideation Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/ideation/new`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                                        <Zap className="h-5 w-5" style={{ color: 'var(--color-interact)' }} />
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
+                                        <Zap className="h-5 w-5 text-[color:var(--primary)]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">New Ideation</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Generate concepts using the Crazy 8s framework
                                         </p>
                                     </div>
@@ -1026,37 +1018,22 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 <div
                                     key={session.id}
                                     onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/ideation/${session.id}`}
-                                    className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                    className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
                                 >
                                     {/* Delete on hover */}
                                     <button
-                                        className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                        onClick={async (e) => {
+                                        className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
+                                        onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            if (!confirm("Delete this ideation session?")) return;
-                                            try {
-                                                const res = await fetch(`/api/sub-projects/${subProjectId}/ideations/${session.id}`, { method: "DELETE" });
-                                                if (res.ok) {
-                                                    await fetchSubProject();
-                                                } else {
-                                                    const data = await res.json().catch(() => ({}));
-                                                    alert(data.error || "Failed to delete");
-                                                }
-                                            } catch (err) {
-                                                console.error("Delete failed:", err);
-                                                alert("Failed to delete");
-                                            }
+                                            setDeleteIdeationId(session.id);
                                         }}
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </button>
 
                                     {/* Icon */}
-                                    <div
-                                        className="h-9 w-9 rounded-lg flex items-center justify-center mb-auto"
-                                        style={{ backgroundColor: 'var(--color-interact-subtle)', color: 'var(--color-interact)' }}
-                                    >
+                                    <div className="h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto bg-[color:var(--primary-soft)] text-[color:var(--primary)]">
                                         <Zap className="h-4.5 w-4.5" />
                                     </div>
 
@@ -1065,11 +1042,11 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                         <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
                                             {session.name}
                                         </h4>
-                                        <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                                        <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
                                             {new Date(session.createdAt).toLocaleDateString()}{session.status === "COMPLETE" ? " · 8 concepts" : ""}
                                             {session.status !== "COMPLETE" && (
                                                 <span className="inline-flex items-center gap-1 ml-1">
-                                                    &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> {session.status}
+                                                    &middot; <span className="inline-block w-1.5 h-1.5 rounded-full bg-[color:var(--warning)] animate-pulse" /> {session.status}
                                                 </span>
                                             )}
                                         </p>
@@ -1077,24 +1054,24 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 </div>
                             ))}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* How Might We */}
-                    {activeContentTab === "hmw" && (
+                    <TabsContent value="hmw">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New HMW Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/hmw`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         <Lightbulb className="h-5 w-5 text-primary" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">Analyse HMW</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Critique statements with the 5-lens framework
                                         </p>
                                     </div>
@@ -1103,59 +1080,54 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
                             {/* HMW Critique Cards */}
                             {subProject.hmwCritiques?.map((critique) => (
-                                    <div
-                                        key={critique.id}
-                                        onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/hmw?scrollTo=${critique.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                <div
+                                    key={critique.id}
+                                    onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/hmw?scrollTo=${critique.id}`}
+                                    className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
+                                >
+                                    {/* Delete button on hover */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setDeleteHmwId(critique.id);
+                                        }}
+                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                     >
-                                        {/* Delete button on hover */}
-                                        <button
-                                            onClick={async (e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                if (!confirm("Delete this HMW critique?")) return;
-                                                try {
-                                                    const res = await fetch(`/api/sub-projects/${subProjectId}/hmw-critiques/${critique.id}`, { method: "DELETE" });
-                                                    if (res.ok) await fetchSubProject();
-                                                    else alert("Failed to delete");
-                                                } catch { alert("Failed to delete"); }
-                                            }}
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
 
-                                        {/* Content */}
-                                        <div className="mt-auto">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
-                                                <span className="text-primary">HMW </span>
-                                                {critique.hmwStatement}
-                                            </h4>
-                                            <p className="text-[11px] text-muted-foreground leading-snug">
-                                                {new Date(critique.createdAt).toLocaleDateString()}
-                                            </p>
-                                        </div>
+                                    {/* Content */}
+                                    <div className="mt-auto">
+                                        <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
+                                            <span className="text-primary">HMW </span>
+                                            {critique.hmwStatement}
+                                        </h4>
+                                        <p className="text-[12px] text-muted-foreground leading-snug">
+                                            {new Date(critique.createdAt).toLocaleDateString()}
+                                        </p>
                                     </div>
+                                </div>
                             ))}
                         </div>
-                    )}
+                    </TabsContent>
 
                     {/* Insight Statements */}
-                    {activeContentTab === "insights" && (
+                    <TabsContent value="insights">
                         <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                             {/* Create New Insight Card */}
                             <Link
                                 href={`/projects/${projectId}/sub/${subProjectId}/insights`}
-                                className="group rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-[var(--color-interact-subtle)] transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[200px] cursor-pointer"
+                                className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                             >
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
                                         <FileText className="h-5 w-5 text-primary" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-semibold text-foreground mb-0.5">Analyse Insight</h3>
-                                        <p className="text-[11px] text-muted-foreground leading-snug max-w-[140px]">
+                                        <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
                                             Critique statements against 5 insight criteria
                                         </p>
                                     </div>
@@ -1164,46 +1136,43 @@ export default function SubProjectHomePage({ params }: PageProps) {
 
                             {/* Insight Critique Cards */}
                             {subProject.insightCritiques?.map((critique) => (
-                                    <div
-                                        key={critique.id}
-                                        onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/insights?scrollTo=${critique.id}`}
-                                        className="group rounded-xl border border-border bg-card hover:shadow-sm transition-all duration-200 p-4 min-h-[200px] flex flex-col cursor-pointer relative"
+                                <div
+                                    key={critique.id}
+                                    onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/insights?scrollTo=${critique.id}`}
+                                    className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
+                                >
+                                    {/* Delete button on hover */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setDeleteInsightId(critique.id);
+                                        }}
+                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
                                     >
-                                        {/* Delete button on hover */}
-                                        <button
-                                            onClick={async (e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                if (!confirm("Delete this insight critique?")) return;
-                                                try {
-                                                    const res = await fetch(`/api/sub-projects/${subProjectId}/insight-critiques/${critique.id}`, { method: "DELETE" });
-                                                    if (res.ok) await fetchSubProject();
-                                                    else alert("Failed to delete");
-                                                } catch { alert("Failed to delete"); }
-                                            }}
-                                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg hover:bg-muted text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-all"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
 
-                                        {/* Content */}
-                                        <div className="mt-auto">
-                                            <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
-                                                {critique.insightStatement}
-                                            </h4>
-                                            <p className="text-[11px] text-muted-foreground leading-snug">
-                                                {new Date(critique.createdAt).toLocaleDateString()}
-                                            </p>
-                                        </div>
+                                    {/* Content */}
+                                    <div className="mt-auto">
+                                        <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-3 mb-1">
+                                            {critique.insightStatement}
+                                        </h4>
+                                        <p className="text-[12px] text-muted-foreground leading-snug">
+                                            {new Date(critique.createdAt).toLocaleDateString()}
+                                        </p>
                                     </div>
+                                </div>
                             ))}
                         </div>
-                    )}
-                </div>
-            </div>
+                    </TabsContent>
+                </Tabs>
+
+            </WorkspaceFrame>
+
             {/* Edit Workspace Dialog */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm border-border shadow-lg rounded-md p-8 ring-1 ring-black/5 overflow-y-auto max-h-[90vh]">
+                <DialogContent className="sm:max-w-2xl overflow-y-auto max-h-[90vh]">
                     <DialogHeader className="mb-6">
                         <DialogTitle className="text-2xl font-bold text-foreground">Edit Workspace</DialogTitle>
                         <DialogDescription className="text-muted-foreground">
@@ -1219,7 +1188,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 id="edit-name"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
-                                className="bg-white border-border focus:border-input rounded-xl h-11 transition-all"
+                                className="bg-[color:var(--surface)] border-border focus:border-input rounded-xl h-11 transition-all"
                             />
                         </div>
 
@@ -1231,7 +1200,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                 value={editStatement}
                                 onChange={(e) => setEditStatement(e.target.value)}
                                 rows={4}
-                                className="bg-white border-border focus:border-input rounded-xl resize-none transition-all"
+                                className="bg-[color:var(--surface)] border-border focus:border-input rounded-xl resize-none transition-all"
                             />
                         </div>
 
@@ -1239,18 +1208,18 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-foreground uppercase tracking-wider">Age Range</Label>
-                                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-border">
+                                <div className="flex items-center gap-3 bg-[color:var(--surface)] p-3 rounded-xl border border-border">
                                     <Input
                                         value={editAgeMin}
                                         onChange={(e) => setEditAgeMin(e.target.value)}
-                                        className="h-9 bg-white border-border focus:border-input text-center"
+                                        className="h-9 bg-[color:var(--surface)] border-border focus:border-input text-center"
                                         placeholder="Min"
                                     />
                                     <span className="text-muted-foreground">-</span>
                                     <Input
                                         value={editAgeMax}
                                         onChange={(e) => setEditAgeMax(e.target.value)}
-                                        className="h-9 bg-white border-border focus:border-input text-center"
+                                        className="h-9 bg-[color:var(--surface)] border-border focus:border-input text-center"
                                         placeholder="Max"
                                     />
                                 </div>
@@ -1267,7 +1236,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                 cursor-pointer flex items-center justify-center p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-center transition-all border
                                                 ${editLifeStages.includes(option.value)
                                                     ? 'bg-primary text-primary-foreground border-primary'
-                                                    : 'bg-white text-muted-foreground border-border hover:border-input hover:text-primary'
+                                                    : 'bg-[color:var(--surface)] text-muted-foreground border-border hover:border-input hover:text-primary'
                                                 }
                                             `}
                                         >
@@ -1279,11 +1248,11 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         </div>
 
                         <DialogFooter className="mt-8 gap-3">
-                            <Button variant="ghost" onClick={() => setIsEditOpen(false)} disabled={isSavingEdit} className="rounded-full hover:bg-muted text-muted-foreground">
+                            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSavingEdit}>
                                 Cancel
                             </Button>
-                            <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-6">
-                                {isSavingEdit ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            <Button variant="primary" onClick={handleSaveEdit} disabled={isSavingEdit}>
+                                {isSavingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                 Save Changes
                             </Button>
                         </DialogFooter>
@@ -1291,33 +1260,178 @@ export default function SubProjectHomePage({ params }: PageProps) {
                 </DialogContent>
             </Dialog>
 
-            {/* Read More Dialog */}
-            <Dialog open={isResearchDescriptionOpen} onOpenChange={setIsResearchDescriptionOpen}>
-                <DialogContent className="sm:max-w-2xl bg-white/95 backdrop-blur-sm border-border shadow-lg rounded-md p-8 ring-1 ring-black/5">
-                    <DialogHeader className="mb-4">
-                        <DialogTitle className="text-2xl font-bold text-foreground">{subProject.name}</DialogTitle>
-                    </DialogHeader>
-                    <div className="prose prose-neutral prose-sm max-w-none">
-                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Research Statement</h3>
-                        <p className="text-muted-foreground leading-relaxed text-base whitespace-pre-wrap">
-                            {subProject.researchStatement}
-                        </p>
+            {/* ── Delete AlertDialogs ── */}
 
-                        <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-border">
-                            <div>
-                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Age Range</span>
-                                <span className="text-foreground font-medium">{subProject.ageRange}</span>
-                            </div>
-                            <div>
-                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">Target Life Stage</span>
-                                <span className="text-foreground font-medium">{subProject.lifeStage}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-8 flex justify-end">
-                        <Button onClick={() => setIsResearchDescriptionOpen(false)} className="rounded-full bg-muted hover:bg-muted/80 text-foreground font-medium">
-                            Close
-                        </Button>
+            <AlertDialog open={!!deleteGuideId} onOpenChange={(open) => !open && setDeleteGuideId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this moderator guide?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The guide and all question sets inside it will be permanently removed. Simulations previously run against this guide are unaffected but will no longer be linked to it.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteGuideId) await handleDeleteGuide(deleteGuideId);
+                                setDeleteGuideId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteSimId} onOpenChange={(open) => !open && setDeleteSimId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this simulation?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The transcript, opportunities, and analysis for this simulation will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteSimId) await handleDeleteSimulation(deleteSimId);
+                                setDeleteSimId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteMappingId} onOpenChange={(open) => !open && setDeleteMappingId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this mapping session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            All tagged quotes, themes, and cluster layouts in this mapping session will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteMappingId) await handleDeleteMappingSession(deleteMappingId);
+                                setDeleteMappingId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteArchetypeId} onOpenChange={(open) => !open && setDeleteArchetypeId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this archetype session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The generated personas and supporting evidence for this session will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteArchetypeId) await handleDeleteArchetype(deleteArchetypeId);
+                                setDeleteArchetypeId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteIdeationId} onOpenChange={(open) => !open && setDeleteIdeationId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this ideation session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            All concepts and their supporting quotes will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteIdeationId) await handleDeleteIdeation(deleteIdeationId);
+                                setDeleteIdeationId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteHmwId} onOpenChange={(open) => !open && setDeleteHmwId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this HMW critique?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The framing, lenses, and rewrite suggestions for this critique will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteHmwId) await handleDeleteHmw(deleteHmwId);
+                                setDeleteHmwId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deleteInsightId} onOpenChange={(open) => !open && setDeleteInsightId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this insight critique?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The insight statement, supporting evidence, and critique will be permanently removed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deleteInsightId) await handleDeleteInsight(deleteInsightId);
+                                setDeleteInsightId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Research-statement expansion dialog (triggered by rail 'Read more') */}
+            <Dialog open={researchOpen} onOpenChange={setResearchOpen}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{subProject.name}</DialogTitle>
+                        <DialogDescription>Research statement</DialogDescription>
+                    </DialogHeader>
+                    <div className="text-body text-foreground whitespace-pre-line leading-relaxed max-h-[60vh] overflow-y-auto">
+                        {subProject.researchStatement}
                     </div>
                 </DialogContent>
             </Dialog>

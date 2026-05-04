@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Plus, FolderKanban, FolderOpen, Loader2, AlertCircle, Trash2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, FolderKanban, AlertCircle, Trash2, Loader2 } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -16,7 +15,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useRouter } from "next/navigation";
 
 interface SubProject {
     id: string;
@@ -85,103 +83,157 @@ export default function DashboardPage() {
                 setDeleteDialogOpen(false);
                 setProjectToDelete(null);
             } else {
-                alert("Failed to delete project: " + (data.error || "Unknown error"));
+                toast.error("Failed to delete project: " + (data.error || "Unknown error"));
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to delete project");
+            toast.error("Failed to delete project");
         } finally {
             setDeleting(false);
         }
     };
 
-    return (
-        <div className="py-8">
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-semibold tracking-tight">My Projects</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                    Manage your HPB research projects
-                </p>
-
-                {/* Mobile FAB */}
-                <Link href="/projects/new" className="md:hidden fixed bottom-6 right-6 z-50">
-                    <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
-                        <Plus className="h-6 w-6" />
-                    </Button>
-                </Link>
-            </div>
-
-            {/* Projects Grid */}
-            {loading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-            ) : error ? (
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            ) : projects.length === 0 ? (
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-10">
-                        <FolderKanban className="h-10 w-10 text-muted-foreground/40 mb-4" />
-                        <h3 className="text-base font-medium mb-1">No projects yet</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                            Create your first project to get started
-                        </p>
-                        <Link href="/projects/new">
-                            <Button>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create Project
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {projects.map((project) => (
-                        <div key={project.id} className="group relative">
-                            <Link href={`/projects/${project.id}`} className="block h-full">
-                                <Card className="h-full transition-colors hover:bg-[var(--color-interact-subtle)]">
-                                    <CardContent className="p-4 flex flex-col h-full justify-between">
-                                        <div>
-                                            <h3 className="font-medium text-base mb-2 line-clamp-2">
-                                                {project.name}
-                                            </h3>
-                                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 mb-4">
-                                                {project.description || "No description provided."}
-                                            </p>
-                                        </div>
-
-                                        <div className="pt-3 border-t border-border flex items-center justify-between">
-                                            <span className="text-xs text-muted-foreground">
-                                                {new Date(project.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                            </span>
-
-                                            <div
-                                                className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                            >
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        handleDeleteClick(project);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </Link>
+    // Loading state — matches tool-page primary-soft chip treatment
+    if (loading) {
+        return (
+            <div className="flex-1 min-h-0 w-full overflow-y-auto">
+                <div className="flex h-full items-center justify-center py-24">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="h-10 w-10 rounded-[10px] bg-[color:var(--primary-soft)] shadow-inset-edge flex items-center justify-center">
+                            <Loader2 className="h-5 w-5 text-[color:var(--primary)] animate-spin" />
                         </div>
-                    ))}
+                        <span className="text-body-sm text-muted-foreground">Loading projects…</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state — soft destructive card
+    if (error) {
+        return (
+            <div className="flex-1 min-h-0 w-full overflow-y-auto">
+                <div className="flex items-center justify-center py-24">
+                    <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 max-w-md w-full flex flex-col items-center text-center gap-4">
+                        <div className="h-10 w-10 rounded-[10px] bg-[color:var(--destructive)]/10 shadow-inset-edge flex items-center justify-center">
+                            <AlertCircle className="h-5 w-5 text-destructive" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-foreground text-sm mb-1">Couldn&apos;t load projects</h3>
+                            <p className="text-[12px] text-muted-foreground leading-snug">{error}</p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                setError(null);
+                                setLoading(true);
+                                fetchProjects();
+                            }}
+                        >
+                            Try again
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        // Centered container with a standard max-width. Visually balanced on
+        // any viewport size — the prior left-anchored (pl-[153px]) attempts
+        // always read as right-shifted because of the empty left gutter.
+        <div className="flex-1 min-h-0 w-full overflow-y-auto">
+          <div className="w-full max-w-7xl mx-auto flex flex-col pt-10 pb-20 px-4 sm:px-6 lg:px-8">
+            {/* Page header — matches the display-heavy intro blocks on the rest of the app */}
+            <header className="mb-10 flex items-end justify-between gap-6 border-b border-[color:var(--border-subtle)] pb-8">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-display-1 text-foreground leading-[1.05]">Projects</h1>
+                    <p className="text-body-sm text-muted-foreground max-w-xl leading-relaxed">
+                        Organise research, run interview simulations, map insights, and drive synthesis across your HPB projects.
+                    </p>
+                </div>
+                <Button asChild variant="primary" className="shrink-0">
+                    <Link href="/projects/new">
+                        <Plus className="h-4 w-4" />
+                        New project
+                    </Link>
+                </Button>
+            </header>
+
+            {/* Empty state — single prominent create tile */}
+            {projects.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                    <Link
+                        href="/projects/new"
+                        className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-8 min-h-[220px] w-full max-w-md cursor-pointer"
+                    >
+                        <div className="flex flex-col items-center gap-3 text-center">
+                            <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
+                                <Plus className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold text-foreground mb-0.5">Create New Project</h3>
+                                <p className="text-[12px] text-muted-foreground leading-snug max-w-[220px]">
+                                    Start organising research, running simulations, and synthesising insights.
+                                </p>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {/* Project Cards */}
+                    {projects.map((project) => {
+                        const createdLabel = new Date(project.createdAt).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                        });
+                        const workspaceCount = project._count?.subProjects ?? 0;
+
+                        return (
+                            <div
+                                key={project.id}
+                                className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
+                            >
+                                {/* Delete button on hover */}
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleDeleteClick(project);
+                                    }}
+                                    aria-label={`Delete project ${project.name}`}
+                                    className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+
+                                <Link href={`/projects/${project.id}`} className="flex flex-col flex-1">
+                                    {/* Icon */}
+                                    <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center mb-auto">
+                                        <FolderKanban className="h-4.5 w-4.5" />
+                                    </div>
+
+                                    {/* Content at bottom — mirrors project-detail workspace card */}
+                                    <div className="mt-3">
+                                        <h3 className="font-semibold text-foreground text-sm leading-tight line-clamp-1 mb-1">
+                                            {project.name}
+                                        </h3>
+                                        <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2 mb-2">
+                                            {project.description || "No description yet."}
+                                        </p>
+                                        <p className="text-[12px] text-muted-foreground leading-snug">
+                                            Created {createdLabel}
+                                            {" · "}
+                                            {workspaceCount} {workspaceCount === 1 ? "workspace" : "workspaces"}
+                                        </p>
+                                    </div>
+                                </Link>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
@@ -210,6 +262,7 @@ export default function DashboardPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+          </div>
         </div>
     );
 }

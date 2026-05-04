@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, use, useRef, useCallback } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,16 +11,20 @@ import {
     AlertTriangle,
     Sparkles,
     RotateCcw,
-    ChevronDown,
-    ChevronUp,
     BookOpen,
     Target,
     Zap,
     Trash2,
-    FileText,
-    ArrowLeft,
-    ArrowRight,
+    Plus,
 } from "lucide-react";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { Mono } from "@/components/ui/mono";
+import { cn } from "@/lib/utils";
+import { LensCard, adaptCriteria } from "@/components/tools/lens-card";
+import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -86,6 +89,9 @@ interface SubProject {
     id: string;
     name: string;
     researchStatement: string;
+    ageRange?: string | null;
+    lifeStage?: string | null;
+    createdAt?: string | null;
     project: {
         id: string;
         name: string;
@@ -107,91 +113,99 @@ const CRITERIA_ICONS: Record<string, typeof Target> = {
 };
 
 const VERDICT_CONFIG = {
-    PASS: { color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200", leftBorder: "border-l-emerald-400", icon: CheckCircle2, label: "Pass" },
-    PARTIAL: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", leftBorder: "border-l-amber-400", icon: AlertTriangle, label: "Needs Work" },
-    FAIL: { color: "text-red-600", bg: "bg-red-50", border: "border-red-200", leftBorder: "border-l-red-400", icon: XCircle, label: "Fail" },
-    NEEDS_WORK: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", leftBorder: "border-l-amber-400", icon: AlertTriangle, label: "Needs Work" },
+    PASS: { fg: "text-[color:var(--success)]", bg: "bg-[color:var(--success-soft)]", border: "border-[color:var(--success-soft)]", icon: CheckCircle2, label: "Pass" },
+    PARTIAL: { fg: "text-[color:var(--warning)]", bg: "bg-[color:var(--warning-soft)]", border: "border-[color:var(--warning-soft)]", icon: AlertTriangle, label: "Needs Work" },
+    FAIL: { fg: "text-[color:var(--danger)]", bg: "bg-[color:var(--danger-soft)]", border: "border-[color:var(--danger-soft)]", icon: XCircle, label: "Fail" },
+    NEEDS_WORK: { fg: "text-[color:var(--warning)]", bg: "bg-[color:var(--warning-soft)]", border: "border-[color:var(--warning-soft)]", icon: AlertTriangle, label: "Needs Work" },
 };
+
+function scoreFromVerdict(v: string | undefined) {
+    if (v === "PASS") return 5;
+    if (v === "NEEDS_WORK") return 3;
+    if (v === "FAIL") return 1;
+    return 0;
+}
+
+// Count strict PASSes across the 5 criteria for the history-list progress bar.
+// Falls back to the overall verdict if per-criterion data is missing.
+function countCriteriaPasses(critique: InsightCritiqueResult): number {
+    if (critique.criteria && critique.criteria.length > 0) {
+        return critique.criteria.filter(c => c.verdict === "PASS").length;
+    }
+    return scoreFromVerdict(critique.overallVerdict);
+}
+
+// Map an insight criterion name to its soft-tinted highlight background.
+// Matches the palette used in the right rail + exploration prototype.
+function criterionHighlightBg(key: string | undefined): string {
+    if (!key) return "bg-[color:var(--cat-1-soft)]";
+    const k = key.toLowerCase();
+    if (k.includes("well-informed") || k.includes("well informed") || k.includes("informed")) return "bg-[color:var(--cat-1-soft)]";
+    if (k.includes("more than") || k.includes("observation")) return "bg-[color:var(--cat-2-soft)]";
+    if (k.includes("so what")) return "bg-[color:var(--cat-3-soft)]";
+    if (k.includes("sticky")) return "bg-[color:var(--cat-4-soft)]";
+    if (k.includes("actionable") || k.includes("action")) return "bg-[color:var(--cat-5-soft)]";
+    return "bg-[color:var(--cat-1-soft)]";
+}
+
+// Criterion-card tint + accent palette (matches exploration prototype).
+// Index maps to ordering: Well-Informed, More Than Observation, So What?, Sticky, Actionable.
+const CRITERION_PALETTE: { accent: string; bg: string }[] = [
+    { accent: "var(--cat-1)", bg: "var(--cat-1-soft)" },  // Well-Informed
+    { accent: "var(--cat-2)", bg: "var(--cat-2-soft)" },  // More Than Observation
+    { accent: "var(--cat-3)", bg: "var(--cat-3-soft)" },  // So What?
+    { accent: "var(--cat-4)", bg: "var(--cat-4-soft)" },  // Sticky
+    { accent: "var(--cat-5)", bg: "var(--cat-5-soft)" },  // Actionable
+];
+
+function criterionPalette(key: string | undefined, fallbackIdx: number) {
+    if (!key) return CRITERION_PALETTE[fallbackIdx % CRITERION_PALETTE.length];
+    const k = key.toLowerCase();
+    if (k.includes("well-informed") || k.includes("well informed") || k.includes("informed")) return CRITERION_PALETTE[0];
+    if (k.includes("more than") || k.includes("observation")) return CRITERION_PALETTE[1];
+    if (k.includes("so what")) return CRITERION_PALETTE[2];
+    if (k.includes("sticky")) return CRITERION_PALETTE[3];
+    if (k.includes("actionable") || k.includes("action")) return CRITERION_PALETTE[4];
+    return CRITERION_PALETTE[fallbackIdx % CRITERION_PALETTE.length];
+}
+
+function annotationCriterionKey(ann: StatementAnnotation, fallbackIdx: number): string {
+    if (typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null) {
+        return ann.criteriaCritique.criterion || "";
+    }
+    if (typeof ann.criteriaCritique === "string") return ann.criteriaCritique;
+    const ordered = ["Well-Informed", "More Than an Observation", "So What?", "Sticky", "Actionable"];
+    return ordered[fallbackIdx % ordered.length];
+}
 
 // ─── Helper Components ───────────────────────────────────────────────────
 
+const CRITERIA_LABELS = [
+    "Well-Informed",
+    "More Than an Observation",
+    "So What?",
+    "Sticky",
+    "Actionable",
+];
+
 function InsightFormula() {
     return (
-        <div className="flex items-center justify-center gap-3 flex-wrap text-sm text-muted-foreground mb-10">
-            <span className="px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">Well-Informed</span>
-            <span className="text-primary font-bold text-lg">&middot;</span>
-            <span className="px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">More Than an Observation</span>
-            <span className="text-primary font-bold text-lg">&middot;</span>
-            <span className="px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">So What?</span>
-            <span className="text-primary font-bold text-lg">&middot;</span>
-            <span className="px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">Sticky</span>
-            <span className="text-primary font-bold text-lg">&middot;</span>
-            <span className="px-2.5 py-1 bg-primary/5 border border-primary/20 rounded-full text-xs font-semibold text-primary">Actionable</span>
+        <div className="mb-10 flex flex-wrap items-center justify-center gap-2">
+            {CRITERIA_LABELS.map((label, i) => (
+                <span key={label} className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-[color:var(--primary-soft)] px-2.5 py-1 text-ui-sm font-semibold text-[color:var(--primary)] shadow-inset-edge">
+                        {label}
+                    </span>
+                    {i < CRITERIA_LABELS.length - 1 && (
+                        <span className="text-caption text-[color:var(--primary)]/60">&middot;</span>
+                    )}
+                </span>
+            ))}
         </div>
     );
 }
 
-function HighlightedInsight({ statement, highlights }: {
-    statement: string;
-    highlights: HighlightedPart[];
-}) {
-    if (!highlights || highlights.length === 0) {
-        return <span>{statement}</span>;
-    }
-
-    // Build intervals and mark highlighted ranges
-    const parts: { text: string; highlight: HighlightedPart | null; startIdx: number }[] = [];
-
-    // Sort highlights by position in the statement
-    const sortedHighlights = [...highlights]
-        .map(h => ({ ...h, index: statement.toLowerCase().indexOf(h.text.toLowerCase()) }))
-        .filter(h => h.index >= 0)
-        .sort((a, b) => a.index - b.index);
-
-    if (sortedHighlights.length === 0) {
-        return <span>{statement}</span>;
-    }
-
-    let lastEnd = 0;
-    for (const h of sortedHighlights) {
-        if (h.index > lastEnd) {
-            parts.push({ text: statement.substring(lastEnd, h.index), highlight: null, startIdx: lastEnd });
-        }
-        if (h.index >= lastEnd) {
-            parts.push({ text: statement.substring(h.index, h.index + h.text.length), highlight: h, startIdx: h.index });
-            lastEnd = h.index + h.text.length;
-        }
-    }
-    if (lastEnd < statement.length) {
-        parts.push({ text: statement.substring(lastEnd), highlight: null, startIdx: lastEnd });
-    }
-
-    return (
-        <span>
-            {parts.map((part, i) =>
-                part.highlight ? (
-                    <span
-                        key={i}
-                        className="relative inline group/highlight"
-                    >
-                        <span className="bg-amber-200/60 border-b-2 border-amber-400 px-0.5 rounded-sm cursor-help transition-colors hover:bg-amber-200/90">
-                            {part.text}
-                        </span>
-                        {/* Tooltip */}
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-white text-foreground text-xs leading-relaxed rounded-lg shadow-xl border border-border opacity-0 group-hover/highlight:opacity-100 transition-opacity duration-200 pointer-events-none break-words z-20">
-                            {part.highlight.issue}
-                            <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-white" />
-                        </span>
-                    </span>
-                ) : (
-                    <span key={i}>{part.text}</span>
-                )
-            )}
-        </span>
-    );
-}
-
-// ─── Annotated Insight with Connector Lines ────────────────────────────────
+// ─── Annotated Insight (highlighted spans + cards) ──────────────────────
 
 function parseAnnotatedParts(statement: string, annotations: StatementAnnotation[]) {
     const stmtLower = statement.toLowerCase();
@@ -242,67 +256,6 @@ function parseAnnotatedParts(statement: string, annotations: StatementAnnotation
     return { parts, sorted: resolved };
 }
 
-// Each annotation gets a unique colour so you can trace which highlight matches which card
-const ANNOTATION_PALETTE = [
-    { text: "text-emerald-700", mark: "bg-emerald-200/60", bg: "bg-emerald-50", border: "border-emerald-200" },
-    { text: "text-amber-700", mark: "bg-amber-200/60", bg: "bg-amber-50", border: "border-amber-200" },
-    { text: "text-sky-700", mark: "bg-sky-200/60", bg: "bg-sky-50", border: "border-sky-200" },
-    { text: "text-violet-700", mark: "bg-violet-200/60", bg: "bg-violet-50", border: "border-violet-200" },
-    { text: "text-rose-700", mark: "bg-rose-200/60", bg: "bg-rose-50", border: "border-rose-200" },
-];
-
-function InlineCriteriaCard({ criteriaCritique }: { criteriaCritique: string | CriteriaCritiqueInline }) {
-    const cc = typeof criteriaCritique === "string" ? null : criteriaCritique;
-    const [expanded, setExpanded] = useState(() => {
-        if (!cc) return true;
-        return cc.verdict !== "PASS";
-    });
-
-    if (!cc) {
-        return (
-            <div className="flex items-start gap-1.5">
-                <Target className="h-3 w-3 mt-0.5 text-primary/60 flex-shrink-0" />
-                <p className="text-[11px] leading-relaxed">{criteriaCritique as string}</p>
-            </div>
-        );
-    }
-
-    const CIcon = CRITERIA_ICONS[cc.criterion] || Target;
-    const vConfig = VERDICT_CONFIG[cc.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
-    const VIcon = vConfig.icon;
-    const isPass = cc.verdict === "PASS";
-
-    return (
-        <div className="rounded-md border border-border/50 bg-white shadow-sm overflow-hidden">
-            <button
-                onClick={() => setExpanded(!expanded)}
-                className="w-full flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-muted/30 transition-colors"
-            >
-                <CIcon className="h-3 w-3 text-primary/60 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-muted-foreground flex-1 text-left">{cc.criterion}</span>
-                {!expanded && !isPass && (
-                    <VIcon className={`h-3 w-3 flex-shrink-0 ${vConfig.color}`} />
-                )}
-                {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />}
-            </button>
-            {expanded && (
-                <div className="px-2.5 pb-2 pt-0.5 border-t border-border/30 space-y-1.5">
-                    <p className="text-[11px] leading-relaxed text-foreground/80">{cc.explanation}</p>
-                    {cc.suggestion && (
-                        <p className="text-[11px] leading-relaxed text-primary/80 italic">
-                            Try: &ldquo;{cc.suggestion}&rdquo;
-                        </p>
-                    )}
-                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${vConfig.bg} ${vConfig.color} border ${vConfig.border}`}>
-                        <VIcon className="h-2.5 w-2.5" />
-                        {vConfig.label}
-                    </span>
-                </div>
-            )}
-        </div>
-    );
-}
-
 function AnnotatedInsight({ statement, annotations }: {
     statement: string;
     annotations: StatementAnnotation[];
@@ -311,60 +264,62 @@ function AnnotatedInsight({ statement, annotations }: {
 
     return (
         <div>
-            {/* Insight Statement with background highlights */}
-            <p className="text-xl md:text-2xl font-bold text-center leading-relaxed px-4 text-foreground mb-6">
+            {/* Insight Statement — display font, each fragment tinted by its criterion. */}
+            <div
+                className="mb-[22px] font-light leading-[1.4] tracking-[-0.01em] text-foreground"
+                style={{ fontSize: 20 }}
+            >
                 {parts.map((part, i) => {
                     if (part.annIdx !== null) {
-                        const colors = ANNOTATION_PALETTE[part.annIdx % ANNOTATION_PALETTE.length];
+                        const ann = annotations[part.annIdx];
+                        const bg = criterionHighlightBg(annotationCriterionKey(ann, part.annIdx));
                         return (
-                            <span key={i} className={`${colors.mark} rounded-sm px-0.5`}>
+                            <span
+                                key={i}
+                                className={cn("rounded-[3px] px-1 py-px", bg)}
+                            >
                                 {part.text}
                             </span>
                         );
                     }
                     return <span key={i}>{part.text}</span>;
                 })}
-            </p>
+            </div>
 
-            {/* Annotation cards grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {annotations.map((ann, i) => {
-                    const colors = ANNOTATION_PALETTE[i % ANNOTATION_PALETTE.length];
-                    const hasNewFormat = !!(ann.criteriaCritique || ann.rationale);
-                    return (
-                        <div
-                            key={i}
-                            className={`text-[11px] leading-relaxed rounded-lg border ${colors.bg} ${colors.border} ${colors.text} overflow-hidden`}
-                        >
-                            {/* Top sub-card: positive rationale */}
-                            {ann.rationale && (
-                                <div className="bg-white border-b border-border/30 px-3 py-2.5">
-                                    <div className="flex items-start gap-1.5">
-                                        <Lightbulb className="h-3 w-3 mt-0.5 text-amber-500 flex-shrink-0" />
-                                        <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                            {ann.rationale}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                            {/* Bottom section: quoted text + criteria critique */}
-                            <div className="px-3 py-2.5">
-                                <p className={`font-semibold mb-1.5 ${colors.mark} rounded-sm inline`}>
-                                    &ldquo;{ann.text}&rdquo;
-                                </p>
-                                {hasNewFormat ? (
-                                    <div className="mt-2 space-y-2">
-                                        {ann.criteriaCritique && (
-                                            <InlineCriteriaCard criteriaCritique={ann.criteriaCritique} />
-                                        )}
-                                    </div>
-                                ) : (
-                                    ann.note && <p className="mt-1.5">{ann.note}</p>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+            {/* Criterion-card grid — two parallel flex columns so cards
+                don't reflow between columns when expanded/collapsed. */}
+            <div className="grid grid-cols-2 gap-3 items-start">
+                {[0, 1].map((col) => (
+                    <div key={col} className="flex flex-col gap-3">
+                        {annotations
+                            .map((ann, i) => ({ ann, i }))
+                            .filter(({ i }) => i % 2 === col)
+                            .map(({ ann, i }) => {
+                                const hasCriteria = typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null;
+                                const criterionKey = annotationCriterionKey(ann, i);
+                                const palette = criterionPalette(criterionKey, i);
+                                const cc = hasCriteria ? (ann.criteriaCritique as CriteriaCritiqueInline) : null;
+
+                                const body = cc?.explanation || ann.rationale || ann.note || "";
+                                const verdict = cc?.verdict;
+                                const needsWork =
+                                    verdict && verdict !== "PASS"
+                                        ? (cc?.suggestion || cc?.explanation || "")
+                                        : undefined;
+
+                                return (
+                                    <LensCard
+                                        key={i}
+                                        accent={palette.accent}
+                                        lensName={cc?.criterion || "Criterion"}
+                                        fragment={`"${ann.text}"`}
+                                        body={body}
+                                        needsWork={needsWork}
+                                    />
+                                );
+                            })}
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -374,8 +329,8 @@ function VerdictBadge({ verdict }: { verdict: string }) {
     const config = VERDICT_CONFIG[verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.NEEDS_WORK;
     const Icon = config.icon;
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${config.bg} ${config.color} ${config.border} border`}>
-            <Icon className="h-3.5 w-3.5" />
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-ui-sm font-bold ${config.bg} ${config.fg} ${config.border}`}>
+            <Icon className="size-3.5" />
             {config.label}
         </span>
     );
@@ -387,72 +342,68 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
         && critique.statementBreakdown.some((a: any) => a.criteriaCritique || a.rationale);
 
     return (
-        <div id={`insight-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500">
-            {/* Insight Statement + annotations */}
-            <div className="bg-white rounded-2xl border border-border p-6 mb-3 shadow-sm">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
-                        Checked at {entry.timestamp.toLocaleTimeString()}
-                    </p>
+        <div id={`insight-critique-${entry.id}`} className="animate-in slide-in-from-bottom-3 fade-in duration-500 space-y-3">
+            {/* Insight Statement card — exploration layout: white, rounded-16, p-6, outline ring. */}
+            <div className="rounded-[16px] bg-[color:var(--surface)] p-6 shadow-outline-ring">
+                <div className="mb-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <VerdictBadge verdict={critique.overallVerdict} />
+                        <span className="text-caption uppercase tracking-wide text-muted-foreground">
+                            Checked at {entry.timestamp.toLocaleTimeString()}
+                        </span>
+                    </div>
                     <button
                         onClick={() => onDelete(entry.id)}
-                        className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="rounded-[10px] p-1.5 text-muted-foreground/60 transition-colors hover:bg-[color:var(--danger-soft)] hover:text-[color:var(--danger)]"
                         title="Delete this critique"
                     >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="size-3.5" />
                     </button>
                 </div>
 
                 {hasAnnotatedBreakdown ? (
                     <AnnotatedInsight statement={insightStatement} annotations={critique.statementBreakdown!} />
                 ) : (
-                    <p className="text-lg font-semibold text-foreground leading-relaxed">
+                    <p className="text-display-4 leading-snug text-foreground">
                         {insightStatement}
                     </p>
                 )}
 
-                <p className="text-sm text-muted-foreground leading-relaxed border-t border-border/60 pt-3 mt-4">
-                    {critique.overallSummary}
-                </p>
+                {/* Summary — stone-muted inset panel. */}
+                <div className="mt-[18px] rounded-[12px] bg-[color:var(--surface-muted)] px-4 py-[14px] shadow-inset-edge">
+                    <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[color:var(--ink-muted)]">
+                        Summary
+                    </div>
+                    <p className="text-[12.5px] leading-[1.65] tracking-[0.01em] text-[color:var(--ink-secondary)]">
+                        {critique.overallSummary}
+                    </p>
+                </div>
             </div>
 
-            {/* Fallback: show old-style 5-Criteria section only for legacy critiques without inline annotations */}
+            {/* Fallback: show legacy 5-criteria cards if no inline annotations */}
             {!hasAnnotatedBreakdown && critique.criteria && critique.criteria.length > 0 && (
-                <div className="bg-white rounded-xl border border-border p-4 mb-3 shadow-sm">
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2">5-Criteria Assessment</p>
-                    <div className="divide-y divide-border/60">
+                <div className="rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-5 shadow-outline-ring">
+                    <p className="mb-3 text-ui-sm font-bold uppercase tracking-widest text-muted-foreground">
+                        5-Criteria Assessment
+                    </p>
+                    <div className="flex flex-col gap-2">
                         {[...critique.criteria].sort((a, b) => {
                             const order: Record<string, number> = { PASS: 0, PARTIAL: 1, NEEDS_WORK: 1, FAIL: 2 };
                             return (order[a.verdict] ?? 1) - (order[b.verdict] ?? 1);
-                        }).map((c, i) => {
-                            const Icon = CRITERIA_ICONS[c.name] || Target;
-                            const config = VERDICT_CONFIG[c.verdict as keyof typeof VERDICT_CONFIG] || VERDICT_CONFIG.PARTIAL;
-                            const VIcon = config.icon;
-
-                            return (
-                                <div key={i} className="py-2.5">
-                                    <div className="flex items-center gap-3 px-2">
-                                        <VIcon className={`h-4 w-4 flex-shrink-0 ${config.color}`} />
-                                        <span className="text-[13px] font-medium text-foreground flex-1 min-w-0">{c.name}</span>
-                                        <span className={`text-[11px] font-bold uppercase tracking-wide ${config.color}`}>{config.label}</span>
-                                    </div>
-                                    <div className="pl-9 pr-2 pt-1.5">
-                                        <p className="text-xs text-muted-foreground leading-relaxed">{c.explanation}</p>
-                                        {c.suggestedImprovement && (
-                                            <div className="bg-muted/30 rounded-md p-2 border border-border/60 mt-2">
-                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                    <span className="font-semibold text-foreground">Tip: </span>{c.suggestedImprovement}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        }).map((c, i) => (
+                            <LensCard
+                                key={i}
+                                lens={{
+                                    name: c.name,
+                                    verdict: c.verdict,
+                                    rationale: c.explanation,
+                                    suggestion: c.suggestedImprovement || null,
+                                }}
+                            />
+                        ))}
                     </div>
                 </div>
             )}
-
         </div>
     );
 }
@@ -545,10 +496,10 @@ export default function InsightsPage({ params }: PageProps) {
             if (res.ok) {
                 setHistory(prev => prev.filter(e => e.id !== id));
             } else {
-                alert("Failed to delete");
+                toast.error("Failed to delete");
             }
         } catch {
-            alert("Failed to delete");
+            toast.error("Failed to delete");
         }
     }, [subProjectId]);
 
@@ -581,11 +532,11 @@ export default function InsightsPage({ params }: PageProps) {
                     historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }, 300);
             } else {
-                alert(data.error || "Failed to critique insight statement");
+                toast.error(data.error || "Failed to critique insight statement");
             }
         } catch (err) {
             console.error("Insight critique error:", err);
-            alert("Failed to check insight statement. Please try again.");
+            toast.error("Failed to check insight statement. Please try again.");
         } finally {
             setIsChecking(false);
         }
@@ -600,88 +551,209 @@ export default function InsightsPage({ params }: PageProps) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="flex flex-1 items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading...</p>
+                    <Loader2 className="mx-auto mb-4 size-10 animate-spin text-[color:var(--primary)]" />
+                    <p className="text-body-sm text-muted-foreground">Loading...</p>
                 </div>
             </div>
         );
     }
 
+    const crumbs = subProject
+        ? [
+            { label: subProject.project.name, href: `/projects/${projectId}` },
+            { label: subProject.name, href: `/projects/${projectId}/sub/${subProjectId}?tab=insights` },
+            { label: "Insight Analyser" },
+        ]
+        : undefined;
+
     return (
-        <div className="flex flex-col pb-20">
-            {/* Edge-to-edge header bar */}
-            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
-                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={`/projects/${projectId}/sub/${subProjectId}?tab=insights`}
-                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label={`Back to ${subProject?.name || "Workspace"}`}
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Back</span>
-                        </Link>
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                            <Lightbulb className="h-4 w-4" />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-foreground">Insight Statement Analyser</h1>
-                            <p className="text-[11px] text-muted-foreground">
-                                Critique insight statements against 5 quality criteria
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{
+                    href: `/projects/${projectId}/sub/${subProjectId}?tab=insights`,
+                    label: "Back",
+                }}
+                crumbs={crumbs}
+            />
+
+            <WorkspaceFrame
+                variant="analyser"
+                scrollContained
+                leftRail={
+                    <>
+                        <RailHeader>
+                            <h2 className="text-display-4 text-foreground leading-tight">
+                                Insight Statement Analyser
+                            </h2>
+                            <p className="text-body-sm text-muted-foreground leading-relaxed">
+                                Critique insight statements against the 5 insight criteria (Well-Informed, More Than an Observation, So What?, Sticky, Actionable).
                             </p>
+                        </RailHeader>
+
+                        <RailSection title="History">
+                            {history.length === 0 ? (
+                                <p className="text-body-sm text-muted-foreground">No analyses yet.</p>
+                            ) : (
+                                <div className="flex flex-col">
+                                    {history.slice(0, 8).map((entry, i) => {
+                                        const score = countCriteriaPasses(entry.critique);
+                                        const isActive = i === 0;
+                                        const isLast = i === Math.min(history.length, 8) - 1;
+                                        return (
+                                            <div key={entry.id} className="relative pl-[18px] pt-1 pb-3">
+                                                <span
+                                                    className={cn(
+                                                        "absolute left-1 top-2.5 w-[9px] h-[9px] rounded-full",
+                                                        isActive
+                                                            ? "bg-[color:var(--primary)] shadow-[0_0_0_3px_var(--primary-soft)]"
+                                                            : "bg-[color:var(--surface)] shadow-inset-edge"
+                                                    )}
+                                                />
+                                                {!isLast && (
+                                                    <span className="absolute left-[8px] top-[22px] bottom-0 w-px bg-[color:var(--border)]" />
+                                                )}
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <Mono className="text-[11px] text-muted-foreground">
+                                                        {new Date(entry.timestamp || entry.id).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                                    </Mono>
+                                                    {isActive && (
+                                                        <span className="text-[9.5px] font-bold tracking-[0.1em] text-[color:var(--primary)]">
+                                                            ACTIVE
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const el = document.getElementById(`insight-critique-${entry.id}`);
+                                                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                                    }}
+                                                    className={cn(
+                                                        "text-left text-body-sm leading-snug line-clamp-2",
+                                                        isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
+                                                    )}
+                                                >
+                                                    {entry.insightStatement}
+                                                </button>
+                                                <div className="flex gap-0.5 mt-1.5">
+                                                    {[1, 2, 3, 4, 5].map((n) => (
+                                                        <span
+                                                            key={n}
+                                                            className={cn(
+                                                                "h-[3px] w-3.5 rounded-full",
+                                                                n <= score ? "bg-[color:var(--success)]" : "bg-[color:var(--border)]"
+                                                            )}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </RailSection>
+
+                        <div className="flex-1" />
+
+                        <div className="px-8 py-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-center"
+                                onClick={() => inputRef.current?.focus()}
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                                New insight
+                            </Button>
                         </div>
-                    </div>
-                </div>
-            </div>
+                    </>
+                }
+                rightRail={
+                    <>
+                        <RailSection title="The 5 Criteria">
+                            <div className="flex flex-col gap-2.5">
+                                {[
+                                    { color: "var(--cat-1)", label: "Well-Informed",            desc: "Grounded in real evidence from your research, not assumption." },
+                                    { color: "var(--cat-2)", label: "More Than an Observation", desc: "Interprets what was seen, doesn't just restate it." },
+                                    { color: "var(--cat-3)", label: "So What?",                 desc: "Makes clear why this finding matters for the project." },
+                                    { color: "var(--cat-4)", label: "Sticky",                   desc: "Memorable enough to anchor decisions later on." },
+                                    { color: "var(--cat-5)", label: "Actionable",               desc: "Points to a clear opportunity teams can act on." },
+                                ].map((c) => (
+                                    <div key={c.label} className="flex gap-2.5">
+                                        <span className="w-2 h-2 rounded-full mt-[6px] shrink-0" style={{ background: c.color }} />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-body-sm text-foreground font-medium">{c.label}</div>
+                                            <div className="text-caption mt-0.5 text-muted-foreground">
+                                                {c.desc}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </RailSection>
 
-            <div className="py-8 animate-in fade-in zoom-in-95 duration-500">
-                {/* Page intro */}
-                <div className="max-w-3xl mx-auto">
-                    <div className="text-center mb-8">
-                        <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-                            Critique your insight statements against 5 quality criteria, enriched with LUMA&apos;s human-centred design principles, and your project&apos;s research.
-                        </p>
-                    </div>
+                        <RailSection title="Formula">
+                            <div className="text-body-sm text-foreground leading-[1.7] tracking-[0.01em]">
+                                <span className="text-[color:var(--cat-2)]">Observation</span> +{" "}
+                                <b>so what</b> +{" "}
+                                <span className="text-[color:var(--cat-3)]">action</span>
+                            </div>
+                        </RailSection>
 
-                    {/* Insight Formula */}
-                    <InsightFormula />
+                        <RailSection title="Sources">
+                            <div className="text-body-sm text-muted-foreground leading-relaxed">
+                                UX Research Best Practices<br/>
+                                Project Research from KB<br/>
+                                LUMA Institute · Human-centred Design Principles
+                            </div>
+                        </RailSection>
 
-                    {/* Input Area */}
-                    <div className="bg-white rounded-2xl border border-border shadow-sm p-6 mb-6 transition-shadow hover:shadow-md">
+                        <div className="flex-1" />
+                    </>
+                }
+            >
+                <div className="animate-in fade-in duration-500">
+                    <div className="mx-auto max-w-5xl">
+
+                    {/* Composer */}
+                    <div className="mb-6 rounded-[14px] border border-[color:var(--border-subtle)] bg-[color:var(--surface)] p-5 shadow-composer">
                         <textarea
                             ref={inputRef}
                             value={insightInput}
                             onChange={(e) => setInsightInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Type your insight statement here..."
-                            className="w-full resize-none border-0 bg-transparent text-foreground text-lg leading-relaxed focus:outline-none min-h-[80px] placeholder:text-muted-foreground/50"
+                            className="w-full resize-none border-0 bg-transparent text-display-4 leading-snug text-foreground placeholder:text-muted-foreground/50 focus:outline-none min-h-[80px]"
                             disabled={isChecking}
                             rows={3}
                         />
                     </div>
 
                     {/* Check Button */}
-                    <div className="flex justify-center mb-10">
+                    <div className="mb-10 flex justify-center">
                         <Button
                             onClick={handleCheck}
                             disabled={!insightInput.trim() || isChecking}
-                            className="px-8 py-3 h-auto rounded-full text-sm font-bold uppercase tracking-wide bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-40"
+                            size="lg"
+                            className="h-11 rounded-full px-8 text-ui-sm font-bold uppercase tracking-wide bg-[color:var(--primary)] text-[color:var(--primary-fg)] hover:bg-[color:var(--primary-hover)] shadow-card transition-all duration-200 hover:shadow-warm-lift disabled:opacity-40"
                         >
                             {isChecking ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    <Loader2 className="mr-2 size-4 animate-spin" />
                                     Analysing...
                                 </>
                             ) : history.length > 0 ? (
                                 <>
-                                    <RotateCcw className="h-4 w-4 mr-2" />
+                                    <RotateCcw className="mr-2 size-4" />
                                     Check Again
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    <Sparkles className="mr-2 size-4" />
                                     Check
                                 </>
                             )}
@@ -692,36 +764,44 @@ export default function InsightsPage({ params }: PageProps) {
                     {isChecking && (
                         <div className="flex flex-col items-center justify-center py-12 animate-in fade-in duration-300">
                             <div className="relative mb-6">
-                                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <div className="flex size-16 items-center justify-center rounded-full bg-[color:var(--primary-soft)] shadow-inset-edge">
+                                    <Loader2 className="size-8 animate-spin text-[color:var(--primary)]" />
                                 </div>
-                                <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
+                                <div
+                                    className="absolute inset-0 rounded-full border-2 border-[color:var(--primary)]/20 animate-ping"
+                                    style={{ animationDuration: "2s" }}
+                                />
                             </div>
-                            <p className="text-sm font-medium text-foreground mb-1">Analysing your insight statement</p>
-                            <p className="text-xs text-muted-foreground">Cross-referencing with your research knowledge base...</p>
+                            <p className="mb-1 text-body-sm font-medium text-foreground">
+                                Analysing your insight statement
+                            </p>
+                            <p className="text-caption text-muted-foreground">
+                                Cross-referencing with your research knowledge base...
+                            </p>
                         </div>
                     )}
 
                     {/* History of Critiques */}
                     {history.length > 0 && (
                         <div ref={historyRef} className="mt-12">
-                            <div className="flex items-center gap-3 mb-10">
-                                <div className="h-px flex-1 bg-border" />
-                                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            <div className="mb-8 flex items-center gap-3">
+                                <div className="h-px flex-1 bg-[color:var(--border-subtle)]" />
+                                <span className="text-ui-sm font-bold uppercase tracking-widest text-muted-foreground">
                                     History
                                 </span>
-                                <div className="h-px flex-1 bg-border" />
+                                <div className="h-px flex-1 bg-[color:var(--border-subtle)]" />
                             </div>
 
-                            <div className="space-y-10">
+                            <div className="space-y-8">
                                 {history.map((entry) => (
                                     <CritiqueDisplay key={entry.id} entry={entry} onDelete={handleDelete} />
                                 ))}
                             </div>
                         </div>
                     )}
+                    </div>
                 </div>
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

@@ -4,18 +4,21 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
-    ArrowLeft,
     Loader2,
     Zap,
     Network,
-    Users,
     Check,
     AlertCircle,
     Sparkles,
 } from "lucide-react";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { Badge } from "@/components/ui/badge";
 
 interface PageProps {
     params: Promise<{ projectId: string; subProjectId: string }>;
@@ -69,6 +72,16 @@ export default function NewIdeationPage({ params }: PageProps) {
     const [mappingSessions, setMappingSessions] = useState<MappingSessionOption[]>([]);
     const [profiles, setProfiles] = useState<ProfileOption[]>([]);
     const [loadingData, setLoadingData] = useState(true);
+    // NOTE: subProject state retained for parity with fetch flow; rail no longer renders it.
+    const [, setSubProject] = useState<{
+        id: string;
+        name: string;
+        researchStatement: string | null;
+        ageRange: string | null;
+        lifeStage: string | null;
+        createdAt: string | null;
+        project: unknown;
+    } | null>(null);
 
     // Form state
     const [selectedMappingId, setSelectedMappingId] = useState(prefillMappingId);
@@ -108,6 +121,17 @@ export default function NewIdeationPage({ params }: PageProps) {
             if (!res.ok) throw new Error(data.error);
 
             const sp = data.data;
+
+            // Capture sub-project metadata for the workspace rail
+            setSubProject({
+                id: sp.id,
+                name: sp.name,
+                researchStatement: sp.researchStatement ?? null,
+                ageRange: sp.ageRange ?? null,
+                lifeStage: sp.lifeStage ?? null,
+                createdAt: sp.createdAt ?? null,
+                project: sp.project ?? null,
+            });
 
             // Completed mapping sessions
             const completedMappings = (sp.mappingSessions || []).filter(
@@ -240,18 +264,16 @@ export default function NewIdeationPage({ params }: PageProps) {
     if (isGenerating) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6">
-                <div className="relative">
-                    <div className="h-20 w-20 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--color-interact-subtle)' }}>
-                        <Zap className="h-10 w-10 animate-pulse" style={{ color: 'var(--color-interact)' }} />
-                    </div>
+                <div className="h-20 w-20 rounded-[14px] bg-[color:var(--primary-soft)] shadow-inset-edge flex items-center justify-center">
+                    <Zap className="h-10 w-10 animate-pulse text-[color:var(--primary)]" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-xl font-bold text-foreground">Generating Ideation</h2>
-                    <p className="text-sm text-muted-foreground animate-pulse">
+                    <h2 className="text-display-3 text-foreground">Generating Ideation</h2>
+                    <p className="text-body-sm text-muted-foreground animate-pulse">
                         {PHASES[generationPhase]}
                     </p>
                 </div>
-                <p className="text-xs text-muted-foreground/60 max-w-xs text-center">
+                <p className="text-caption text-muted-foreground/70 max-w-xs text-center">
                     This may take up to 2 minutes as we generate 8 concepts with illustrations.
                 </p>
             </div>
@@ -260,237 +282,288 @@ export default function NewIdeationPage({ params }: PageProps) {
 
     const hasCompletedMappings = mappingSessions.length > 0;
 
+    const archetypeProfiles = profiles.filter(p => p.type === "archetype");
+    const kbProfilesList = profiles.filter(p => p.type !== "archetype");
+
     return (
-        <div className="flex flex-col">
-            {/* Edge-to-edge header bar */}
-            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
-                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={`/projects/${projectId}/sub/${subProjectId}?tab=ideation`}
-                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label="Back to Workspace"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Back</span>
-                        </Link>
-                        <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--color-interact-subtle)' }}>
-                            <Zap className="h-4 w-4" style={{ color: 'var(--color-interact)' }} />
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{ href: `/projects/${projectId}/sub/${subProjectId}?tab=ideation`, label: "Back" }}
+                crumbs={[
+                    { label: "Workspace", href: `/projects/${projectId}/sub/${subProjectId}?tab=ideation` },
+                    { label: "New Ideation" },
+                ]}
+            />
+
+            <WorkspaceFrame
+                variant="review"
+                leftRail={
+                    <>
+                        <RailHeader>
+                            <h2 className="text-display-4 text-foreground leading-tight">
+                                New Ideation
+                            </h2>
+                            <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                                Generate 8 concepts from a mapping session, guided by selected profiles and creative focus areas.
+                            </p>
+                        </RailHeader>
+
+                        <RailSection title="Selections">
+                            <MetaRow k="Mapping" v={selectedMappingId ? "1" : "—"} />
+                            <MetaRow k="Profiles" v={selectedProfileIds.length} />
+                            <MetaRow k="Focus areas" v={selectedFocusAreas.length} />
+                        </RailSection>
+
+                        <RailSection title="Output">
+                            <MetaRow k="Concepts" v="8" />
+                            <MetaRow k="Method" v="Crazy 8s" />
+                        </RailSection>
+
+                        <div className="flex-1" />
+                    </>
+                }
+                scrollContained
+            >
+                <div className="mx-auto w-full max-w-3xl">
+                    {/* Page title */}
+                    <div className="flex items-start gap-3 mb-10">
+                        <div className="h-10 w-10 rounded-[12px] bg-[color:var(--primary-soft)] shadow-inset-edge flex items-center justify-center shrink-0">
+                            <Zap className="h-5 w-5 text-[color:var(--primary)]" />
                         </div>
                         <div>
-                            <h1 className="text-base font-bold text-foreground">New Ideation — Crazy 8s</h1>
-                            <p className="text-[11px] text-muted-foreground">
-                                Generate 8 creative design concepts from your research
+                            <h1 className="text-display-3 text-foreground">New Ideation — Crazy 8s</h1>
+                            <p className="text-body-sm text-muted-foreground mt-1">
+                                Generate 8 creative design concepts from your research.
                             </p>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div className="py-8">
-                <div className="w-full">
+                    {!hasCompletedMappings ? (
+                        <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-10 flex flex-col items-center justify-center text-center">
+                            <div className="h-12 w-12 rounded-[12px] bg-[color:var(--surface-muted)] shadow-inset-edge flex items-center justify-center mb-4">
+                                <Network className="h-6 w-6 text-muted-foreground/60" />
+                            </div>
+                            <h3 className="text-display-4 text-foreground mb-2">No completed mappings</h3>
+                            <p className="text-body-sm text-muted-foreground max-w-sm">
+                                Complete a mapping session first to use Ideation. The AI needs clustered interview data to generate meaningful concepts.
+                            </p>
+                            <Link href={`/projects/${projectId}/sub/${subProjectId}/map/new`}>
+                                <Button className="mt-5" variant="outline">
+                                    <Network className="h-4 w-4" /> Create a Mapping
+                                </Button>
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="space-y-10">
+                            {/* 1. Select Mapping */}
+                            <section className="space-y-4">
+                                <div>
+                                    <Label className="text-ui-sm font-bold text-foreground uppercase tracking-[0.08em]">
+                                        Select Mapping <span className="text-destructive">*</span>
+                                    </Label>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {mappingSessions.map((m) => {
+                                        const isSelected = selectedMappingId === m.id;
+                                        return (
+                                            <button
+                                                key={m.id}
+                                                onClick={() => setSelectedMappingId(m.id)}
+                                                aria-pressed={isSelected}
+                                                className={`flex items-start gap-3 p-4 rounded-[12px] transition-all text-left ${
+                                                    isSelected
+                                                        ? "bg-[color:var(--primary-soft)] border border-[color:var(--primary)] shadow-outline-ring"
+                                                        : "bg-[color:var(--surface)] shadow-inset-edge border border-transparent hover:border-[color:var(--border-subtle)]"
+                                                }`}
+                                            >
+                                                <div
+                                                    className={`h-8 w-8 rounded-[10px] flex items-center justify-center flex-shrink-0 ${
+                                                        isSelected
+                                                            ? "bg-[color:var(--primary)] text-white"
+                                                            : "bg-[color:var(--surface-muted)] shadow-inset-edge text-[color:var(--primary)]"
+                                                    }`}
+                                                >
+                                                    {isSelected ? <Check className="h-4 w-4" /> : <Network className="h-4 w-4" />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-body-sm font-semibold text-foreground truncate">
+                                                        {m.name}
+                                                    </p>
+                                                    <p className="text-caption text-muted-foreground mt-0.5">
+                                                        {new Date(m.createdAt).toLocaleDateString()} · {m._count.transcripts} files · {m._count.clusters} clusters
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </section>
 
-            {!hasCompletedMappings ? (
-                <Card className="border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <Network className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                        <h3 className="text-lg font-semibold text-foreground mb-2">No Completed Mappings</h3>
-                        <p className="text-sm text-muted-foreground max-w-sm">
-                            Complete a mapping session first to use Ideation. The AI needs clustered interview data to generate meaningful concepts.
-                        </p>
-                        <Link href={`/projects/${projectId}/sub/${subProjectId}/map/new`}>
-                            <Button className="mt-4" variant="outline">
-                                <Network className="h-4 w-4 mr-2" /> Create a Mapping
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="space-y-8">
-                    {/* 1. Select Mapping */}
-                    <div className="space-y-3">
-                        <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                            Select Mapping <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="grid gap-2">
-                            {mappingSessions.map((m) => {
-                                const isSelected = selectedMappingId === m.id;
-                                return (
-                                    <button
-                                        key={m.id}
-                                        onClick={() => setSelectedMappingId(m.id)}
-                                        aria-pressed={isSelected}
-                                        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
-                                            isSelected
-                                                ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20"
-                                                : "border-border bg-card hover:bg-muted/50 hover:border-muted-foreground/30"
-                                        }`}
-                                    >
-                                        <div
-                                            className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                                                isSelected ? "bg-primary text-primary-foreground" : ""
-                                            }`}
-                                            style={!isSelected ? { backgroundColor: 'var(--color-knowledge-subtle)', color: 'var(--color-knowledge)' } : undefined}
-                                        >
-                                            {isSelected ? <Check className="h-4 w-4" /> : <Network className="h-4 w-4" />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`text-sm truncate ${isSelected ? "font-bold text-foreground" : "font-semibold text-foreground"}`}>
-                                                {m.name}
-                                            </p>
-                                            <p className="text-[11px] text-muted-foreground">
-                                                {new Date(m.createdAt).toLocaleDateString()} &middot; {m._count.transcripts} files &middot; {m._count.clusters} clusters
-                                            </p>
-                                        </div>
-                                        {isSelected && (
-                                            <div className="flex items-center gap-1 text-xs font-medium text-primary shrink-0 pr-1">
-                                                <Check className="h-3.5 w-3.5" />
-                                                Selected
+                            {/* 2. Select Profiles */}
+                            <section className="space-y-4">
+                                <div>
+                                    <Label className="text-ui-sm font-bold text-foreground uppercase tracking-[0.08em]">
+                                        Select Profiles <span className="text-muted-foreground font-normal normal-case tracking-normal">(optional, multi-select)</span>
+                                    </Label>
+                                </div>
+
+                                {profiles.length === 0 ? (
+                                    <div className="flex items-center gap-2 p-4 rounded-[12px] bg-[color:var(--surface-muted)] shadow-inset-edge">
+                                        <AlertCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <p className="text-body-sm text-muted-foreground">
+                                            No profiles available. Concepts will be based on mapping data and project context only.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {/* Generated Profiles */}
+                                        {archetypeProfiles.length > 0 && (
+                                            <div className="space-y-3">
+                                                <p className="text-caption font-semibold text-muted-foreground uppercase tracking-[0.1em]">
+                                                    Generated Profiles
+                                                </p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {archetypeProfiles.map((p) => {
+                                                        const isSelected = selectedProfileIds.includes(p.id);
+                                                        return (
+                                                            <button
+                                                                key={p.id}
+                                                                onClick={() => toggleProfile(p.id)}
+                                                                aria-pressed={isSelected}
+                                                                className={`flex items-start gap-3 p-3.5 rounded-[12px] transition-all text-left ${
+                                                                    isSelected
+                                                                        ? "bg-[color:var(--primary-soft)] border border-[color:var(--primary)] shadow-outline-ring"
+                                                                        : "bg-[color:var(--surface)] shadow-inset-edge border border-transparent hover:border-[color:var(--border-subtle)]"
+                                                                }`}
+                                                            >
+                                                                <div className={`h-5 w-5 rounded-[5px] flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                                                    isSelected
+                                                                        ? "bg-[color:var(--primary)]"
+                                                                        : "bg-[color:var(--surface-muted)] shadow-inset-edge"
+                                                                }`}>
+                                                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-body-sm font-semibold text-foreground truncate">{p.name}</p>
+                                                                    {p.kicker && <p className="text-caption text-muted-foreground truncate mt-0.5">{p.kicker}</p>}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
 
-                    {/* 2. Select Profiles */}
-                    <div className="space-y-3">
-                        <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                            Select Profiles <span className="text-muted-foreground font-normal normal-case">(optional, multi-select)</span>
-                        </Label>
+                                        {/* KB Personas */}
+                                        {kbProfilesList.length > 0 && (
+                                            <div className="space-y-3">
+                                                <p className="text-caption font-semibold text-muted-foreground uppercase tracking-[0.1em]">
+                                                    Knowledge Base Personas
+                                                </p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {kbProfilesList.map((p) => {
+                                                        const isSelected = selectedProfileIds.includes(p.id);
+                                                        return (
+                                                            <button
+                                                                key={p.id}
+                                                                onClick={() => toggleProfile(p.id)}
+                                                                aria-pressed={isSelected}
+                                                                className={`flex items-start gap-3 p-3.5 rounded-[12px] transition-all text-left ${
+                                                                    isSelected
+                                                                        ? "bg-[color:var(--primary-soft)] border border-[color:var(--primary)] shadow-outline-ring"
+                                                                        : "bg-[color:var(--surface)] shadow-inset-edge border border-transparent hover:border-[color:var(--border-subtle)]"
+                                                                }`}
+                                                            >
+                                                                <div className={`h-5 w-5 rounded-[5px] flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                                                    isSelected
+                                                                        ? "bg-[color:var(--primary)]"
+                                                                        : "bg-[color:var(--surface-muted)] shadow-inset-edge"
+                                                                }`}>
+                                                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-body-sm font-semibold text-foreground truncate">{p.name}</p>
+                                                                    <p className="text-caption text-muted-foreground truncate mt-0.5">{p.description}</p>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
 
-                        {profiles.length === 0 ? (
-                            <div className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border bg-muted/30">
-                                <AlertCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <p className="text-xs text-muted-foreground">
-                                    No profiles available. Concepts will be based on mapping data and project context only.
-                                </p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Generated Profiles */}
-                                {profiles.filter(p => p.type === "archetype").length > 0 && (
-                                    <div className="space-y-2">
-                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Generated Profiles</p>
-                                        <div className="grid gap-2">
-                                            {profiles.filter(p => p.type === "archetype").map((p) => (
-                                                <button
-                                                    key={p.id}
-                                                    onClick={() => toggleProfile(p.id)}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                                                        selectedProfileIds.includes(p.id)
-                                                            ? "border-primary bg-accent/50 ring-1 ring-primary/20"
-                                                            : "border-border bg-card hover:bg-muted/50"
-                                                    }`}
-                                                >
-                                                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                                                        selectedProfileIds.includes(p.id) ? "border-primary bg-primary" : "border-muted-foreground/30"
-                                                    }`}>
-                                                        {selectedProfileIds.includes(p.id) && <Check className="h-3 w-3 text-white" />}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
-                                                        {p.kicker && <p className="text-[11px] text-muted-foreground truncate">{p.kicker}</p>}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
+                                        {selectedProfileIds.length === 0 && (
+                                            <p className="text-caption text-muted-foreground flex items-center gap-1.5">
+                                                <AlertCircle className="h-3 w-3" />
+                                                No profiles selected — concepts will be based on mapping data only.
+                                            </p>
+                                        )}
                                     </div>
                                 )}
+                            </section>
 
-                                {/* KB Personas */}
-                                {profiles.filter(p => p.type !== "archetype").length > 0 && (
-                                    <div className="space-y-2">
-                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Knowledge Base Personas</p>
-                                        <div className="grid gap-2">
-                                            {profiles.filter(p => p.type !== "archetype").map((p) => (
-                                                <button
-                                                    key={p.id}
-                                                    onClick={() => toggleProfile(p.id)}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                                                        selectedProfileIds.includes(p.id)
-                                                            ? "border-primary bg-accent/50 ring-1 ring-primary/20"
-                                                            : "border-border bg-card hover:bg-muted/50"
-                                                    }`}
-                                                >
-                                                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                                                        selectedProfileIds.includes(p.id) ? "border-primary bg-primary" : "border-muted-foreground/30"
-                                                    }`}>
-                                                        {selectedProfileIds.includes(p.id) && <Check className="h-3 w-3 text-white" />}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
-                                                        <p className="text-[11px] text-muted-foreground truncate">{p.description}</p>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {selectedProfileIds.length === 0 && (
-                                    <p className="text-[11px] text-amber-600 flex items-center gap-1.5">
-                                        <AlertCircle className="h-3 w-3" />
-                                        No profiles selected — concepts will be based on mapping data only
+                            {/* 3. Focus Areas */}
+                            <section className="space-y-4">
+                                <div>
+                                    <Label className="text-ui-sm font-bold text-foreground uppercase tracking-[0.08em]">
+                                        Creative Focus Areas <span className="text-muted-foreground font-normal normal-case tracking-normal">(optional)</span>
+                                    </Label>
+                                    <p className="text-caption text-muted-foreground mt-1.5">
+                                        Select creative lenses to guide concept generation. If none selected, the AI will consider all and pick the most relevant.
                                     </p>
-                                )}
-                            </>
-                        )}
-                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                    {CREATIVE_MATRIX_ENABLERS.map((enabler) => {
+                                        const isSelected = selectedFocusAreas.includes(enabler.key);
+                                        return (
+                                            <button
+                                                key={enabler.key}
+                                                onClick={() => toggleFocusArea(enabler.key)}
+                                                aria-pressed={isSelected}
+                                                className={`flex items-center gap-2.5 p-3 rounded-[10px] transition-all text-left text-body-sm ${
+                                                    isSelected
+                                                        ? "bg-[color:var(--primary-soft)] border border-[color:var(--primary)] shadow-outline-ring font-semibold text-foreground"
+                                                        : "bg-[color:var(--surface)] shadow-inset-edge border border-transparent hover:border-[color:var(--border-subtle)] text-muted-foreground"
+                                                }`}
+                                            >
+                                                <div className={`h-4 w-4 rounded-[4px] flex items-center justify-center flex-shrink-0 ${
+                                                    isSelected
+                                                        ? "bg-[color:var(--primary)]"
+                                                        : "bg-[color:var(--surface-muted)] shadow-inset-edge"
+                                                }`}>
+                                                    {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                                                </div>
+                                                {enabler.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </section>
 
-                    {/* 3. Focus Areas */}
-                    <div className="space-y-3">
-                        <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                            Creative Focus Areas <span className="text-muted-foreground font-normal normal-case">(optional)</span>
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground -mt-1">
-                            Select creative lenses to guide concept generation. If none selected, the AI will consider all and pick the most relevant.
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                            {CREATIVE_MATRIX_ENABLERS.map((enabler) => (
-                                <button
-                                    key={enabler.key}
-                                    onClick={() => toggleFocusArea(enabler.key)}
-                                    className={`flex items-center gap-2.5 p-2.5 rounded-lg border transition-all text-left text-xs ${
-                                        selectedFocusAreas.includes(enabler.key)
-                                            ? "border-primary bg-accent/50 ring-1 ring-primary/20 font-semibold text-foreground"
-                                            : "border-border bg-card hover:bg-muted/50 text-muted-foreground"
-                                    }`}
-                                >
-                                    <div className={`h-4 w-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                                        selectedFocusAreas.includes(enabler.key) ? "border-primary bg-primary" : "border-muted-foreground/30"
-                                    }`}>
-                                        {selectedFocusAreas.includes(enabler.key) && <Check className="h-2.5 w-2.5 text-white" />}
-                                    </div>
-                                    {enabler.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                            {/* Error */}
+                            {error && (
+                                <div className="flex items-center gap-2 p-3.5 rounded-[12px] bg-destructive/10 text-destructive text-body-sm shadow-inset-edge">
+                                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                    {error}
+                                </div>
+                            )}
 
-                    {/* Error */}
-                    {error && (
-                        <div className="flex items-center gap-2 p-3 rounded-xl border border-destructive/30 bg-destructive/5 text-destructive text-sm">
-                            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                            {error}
+                            {/* Generate Button */}
+                            <Button
+                                onClick={handleGenerate}
+                                disabled={!selectedMappingId || isGenerating}
+                                size="lg"
+                                variant="primary"
+                                className="w-full h-12 text-base font-semibold rounded-[12px]"
+                            >
+                                <Sparkles className="h-5 w-5" />
+                                Ideate — Generate 8 Concepts
+                            </Button>
                         </div>
                     )}
-
-                    {/* Generate Button */}
-                    <Button
-                        onClick={handleGenerate}
-                        disabled={!selectedMappingId || isGenerating}
-                        className="w-full h-12 text-base font-bold rounded-xl"
-                        style={{ backgroundColor: 'var(--color-interact)' }}
-                    >
-                        <Sparkles className="h-5 w-5 mr-2" />
-                        Ideate — Generate 8 Concepts
-                    </Button>
                 </div>
-            )}
-            </div>
-            </div>
+            </WorkspaceFrame>
         </div>
     );
 }

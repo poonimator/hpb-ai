@@ -5,18 +5,35 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+  [
+    "inline-flex items-center justify-center gap-1 w-fit whitespace-nowrap shrink-0 overflow-hidden",
+    "rounded-[var(--radius-pill)] px-2.5 py-0.5 text-ui-sm",
+    "shadow-inset-edge",
+    "transition-[background-color,box-shadow,color]",
+    "[&>svg]:size-3 [&>svg]:pointer-events-none",
+    "outline-none focus-visible:shadow-focus",
+  ].join(" "),
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+          "bg-[color:var(--surface-muted)] text-foreground",
+        primary:
+          "bg-[color:var(--primary-soft)] text-[color:var(--primary)]",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+          "bg-[color:var(--surface-muted)] text-foreground",
+        info:
+          "bg-[color:var(--info-soft)] text-[color:var(--info)]",
+        success:
+          "bg-[color:var(--success-soft)] text-[color:var(--success)]",
+        warning:
+          "bg-[color:var(--warning-soft)] text-[color:var(--warning)]",
         destructive:
-          "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-[color:var(--danger-soft)] text-[color:var(--danger)]",
+        knowledge:
+          "bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)]",
         outline:
-          "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+          "bg-transparent text-foreground shadow-ring",
       },
     },
     defaultVariants: {

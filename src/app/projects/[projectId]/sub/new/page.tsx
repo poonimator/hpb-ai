@@ -4,24 +4,18 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PageBar } from "@/components/layout/page-bar";
+import { PageContainer } from "@/components/layout/page-container";
+import { toast } from "sonner";
 import {
-    ArrowLeft,
     ArrowRight,
-    Loader2,
-    Target,
-    FolderPlus,
-    Check
+    Loader2
 } from "lucide-react";
-
-interface Project {
-    id: string;
-    name: string;
-}
 
 interface PageProps {
     params: Promise<{ projectId: string }>;
@@ -42,7 +36,6 @@ export default function NewSubProjectPage({ params }: PageProps) {
     const { projectId } = use(params);
     const router = useRouter();
 
-    const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
 
@@ -54,23 +47,8 @@ export default function NewSubProjectPage({ params }: PageProps) {
     const [selectedLifeStages, setSelectedLifeStages] = useState<string[]>([]);
 
     useEffect(() => {
-        fetchProject();
-    }, [projectId]);
-
-    const fetchProject = async () => {
-        try {
-            const res = await fetch(`/api/projects/${projectId}`);
-            const data = await res.json();
-
-            if (res.ok) {
-                setProject(data.data);
-            }
-        } catch (err) {
-            console.error("Failed to fetch project:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        setLoading(false);
+    }, []);
 
     const toggleLifeStage = (stage: string) => {
         setSelectedLifeStages(prev =>
@@ -84,7 +62,7 @@ export default function NewSubProjectPage({ params }: PageProps) {
         e.preventDefault();
 
         if (!name.trim() || !researchStatement.trim() || selectedLifeStages.length === 0) {
-            alert("Please fill in all required fields");
+            toast.error("Please fill in all required fields");
             return;
         }
 
@@ -106,13 +84,13 @@ export default function NewSubProjectPage({ params }: PageProps) {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || "Failed to create sub-project");
+                throw new Error(data.error || "Failed to create workspace");
             }
 
-            // Redirect to sub-project page or guide setup
+            // Redirect to workspace page
             router.push(`/projects/${projectId}/sub/${data.data.id}`);
         } catch (err) {
-            alert(err instanceof Error ? err.message : "Failed to create sub-project");
+            toast.error(err instanceof Error ? err.message : "Failed to create workspace");
         } finally {
             setCreating(false);
         }
@@ -127,30 +105,25 @@ export default function NewSubProjectPage({ params }: PageProps) {
     }
 
     return (
-        <div className="py-8">
-            <div className="w-full max-w-4xl mx-auto">
+        <div className="flex flex-col">
+            <PageBar
+                back={{ href: `/projects/${projectId}`, label: "Back" }}
+                crumbs={[{ label: "New workspace" }]}
+            />
 
-                {/* Back Link */}
-                <Link
-                    href={`/projects/${projectId}`}
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to {project?.name || "Project"}
-                </Link>
+            <PageContainer innerClassName="pt-6 pb-20">
+                <div className="max-w-[640px] mx-auto">
+                    {/* Hero Section */}
+                    <div className="flex flex-col gap-2 mb-8">
+                        <h1 className="text-display-1 text-foreground">Create new workspace</h1>
+                        <p className="text-body text-muted-foreground">
+                            A workspace is where you organise one research stream — its moderator guide, simulations, and synthesis live here.
+                        </p>
+                    </div>
 
-                {/* Main Card */}
-                <Card>
-                    <CardContent className="p-8 md:p-12">
-                        <div className="max-w-3xl mx-auto">
-                            {/* Header Section */}
-                            <div className="mb-8">
-                                <h1 className="text-3xl font-semibold tracking-tight mb-2">Create New Workspace</h1>
-                                <p className="text-sm text-muted-foreground">
-                                    Define the research focus and target demographics for this study track.
-                                </p>
-                            </div>
-
+                    {/* Main Card */}
+                    <Card>
+                        <CardContent className="p-8">
                             {/* Form */}
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Name Input */}
@@ -228,32 +201,20 @@ export default function NewSubProjectPage({ params }: PageProps) {
                                         </Label>
                                         <div className="grid grid-cols-2 gap-2">
                                             {LIFE_STAGE_OPTIONS.map((option) => (
-                                                <div
+                                                <label
                                                     key={option.value}
-                                                    onClick={() => toggleLifeStage(option.value)}
-                                                    className={`
-                                                        flex items-center gap-2.5 p-2.5 rounded-md border cursor-pointer transition-colors select-none
-                                                        ${selectedLifeStages.includes(option.value)
-                                                            ? 'border-primary bg-accent text-foreground'
-                                                            : 'border-input hover:bg-accent/50 text-muted-foreground'
-                                                        }
-                                                    `}
+                                                    className="flex items-center gap-2 text-body-sm cursor-pointer"
                                                 >
-                                                    <div className={`
-                                                        h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors
-                                                        ${selectedLifeStages.includes(option.value)
-                                                            ? 'bg-primary border-primary text-primary-foreground'
-                                                            : 'border-input'
-                                                        }
-                                                    `}>
-                                                        {selectedLifeStages.includes(option.value) && <Check className="h-3 w-3" />}
-                                                    </div>
-                                                    <span className="text-sm font-medium">{option.label}</span>
-                                                </div>
+                                                    <Checkbox
+                                                        checked={selectedLifeStages.includes(option.value)}
+                                                        onCheckedChange={() => toggleLifeStage(option.value)}
+                                                    />
+                                                    {option.label}
+                                                </label>
                                             ))}
                                         </div>
                                         {selectedLifeStages.length === 0 && (
-                                            <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1.5">
+                                            <p className="text-xs text-[color:var(--danger)] mt-1.5 flex items-center gap-1.5">
                                                 Please select at least one life stage
                                             </p>
                                         )}
@@ -274,22 +235,22 @@ export default function NewSubProjectPage({ params }: PageProps) {
                                     >
                                         {creating ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                <Loader2 className="h-4 w-4 animate-spin" />
                                                 Creating...
                                             </>
                                         ) : (
                                             <>
-                                                Create Workspace
-                                                <ArrowRight className="h-4 w-4 ml-2" />
+                                                Create workspace
+                                                <ArrowRight className="h-4 w-4" />
                                             </>
                                         )}
                                     </Button>
                                 </div>
                             </form>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </PageContainer>
         </div>
     );
 }

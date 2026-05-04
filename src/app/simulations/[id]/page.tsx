@@ -3,7 +3,6 @@
 import { useState, useEffect, use, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import {
     Loader2,
-    User,
     Users,
     Bot,
     CheckCircle2,
@@ -23,18 +21,15 @@ import {
     AlertTriangle,
     ThumbsUp,
     Lightbulb,
-    Info,
-    ChevronRight,
     MessageCircle,
     Send,
-    X,
     FileText,
-    ArrowLeft,
-    ArrowRight,
     Handshake,
     Zap,
     CircleDot,
     Quote,
+    Tag,
+    Clock,
 } from "lucide-react";
 import {
     Tooltip,
@@ -43,6 +38,12 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AIFeedback } from "@/components/ai/feedback";
+import { ChatBubble } from "@/components/tools/chat-bubble";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
 
 interface Message {
     id: string;
@@ -165,18 +166,56 @@ function parsePersonaName(personaDoc: { parsedMetaJson: string | null } | null, 
     }
 }
 
+// Persona accent palette — drives avatar bars, chips, dots across the review page.
+// Migrated to --cat-1..5 category tokens; cycles if more than 5 personas.
+const PERSONA_PALETTE = [
+    { accent: "var(--cat-1)", accentSoft: "var(--cat-1-soft)" },
+    { accent: "var(--cat-2)", accentSoft: "var(--cat-2-soft)" },
+    { accent: "var(--cat-3)", accentSoft: "var(--cat-3-soft)" },
+    { accent: "var(--cat-4)", accentSoft: "var(--cat-4-soft)" },
+    { accent: "var(--cat-5)", accentSoft: "var(--cat-5-soft)" },
+] as const;
+
+// Legacy archetype colour map retained for highlight tooltips / misc.
+// Uses token-backed inline styles so persona accents track --cat-N.
 const ARCHETYPE_COLORS = [
-    { bg: "bg-violet-50/50", border: "border-violet-100", text: "text-violet-800", avatar: "bg-violet-200/70", avatarText: "text-violet-900" },
-    { bg: "bg-amber-50/50", border: "border-amber-100", text: "text-amber-800", avatar: "bg-amber-200/70", avatarText: "text-amber-900" },
-    { bg: "bg-sky-50/50", border: "border-sky-100", text: "text-sky-800", avatar: "bg-sky-200/70", avatarText: "text-sky-900" },
-    { bg: "bg-rose-50/50", border: "border-rose-100", text: "text-rose-800", avatar: "bg-rose-200/70", avatarText: "text-rose-900" },
-    { bg: "bg-emerald-50/50", border: "border-emerald-100", text: "text-emerald-800", avatar: "bg-emerald-200/70", avatarText: "text-emerald-900" },
+    { bg: "bg-[color:var(--cat-1-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-1)_25%,transparent)]", text: "text-[color:var(--cat-1)]", avatar: "bg-[color:var(--cat-1-soft)]", avatarText: "text-[color:var(--cat-1)]" },
+    { bg: "bg-[color:var(--cat-2-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-2)_25%,transparent)]", text: "text-[color:var(--cat-2)]", avatar: "bg-[color:var(--cat-2-soft)]", avatarText: "text-[color:var(--cat-2)]" },
+    { bg: "bg-[color:var(--cat-3-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-3)_25%,transparent)]", text: "text-[color:var(--cat-3)]", avatar: "bg-[color:var(--cat-3-soft)]", avatarText: "text-[color:var(--cat-3)]" },
+    { bg: "bg-[color:var(--cat-4-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-4)_25%,transparent)]", text: "text-[color:var(--cat-4)]", avatar: "bg-[color:var(--cat-4-soft)]", avatarText: "text-[color:var(--cat-4)]" },
+    { bg: "bg-[color:var(--cat-5-soft)]", border: "border-[color:color-mix(in_oklab,var(--cat-5)_25%,transparent)]", text: "text-[color:var(--cat-5)]", avatar: "bg-[color:var(--cat-5-soft)]", avatarText: "text-[color:var(--cat-5)]" },
 ];
+
+// Default accent for generic "respondent" emphasis in highlights.
+const RESPONDENT_ACCENT = "var(--cat-3)";
+const RESPONDENT_ACCENT_SOFT = "var(--cat-3-soft)";
 
 function getInitial(name: string): string {
     const words = name.trim().split(/\s+/);
     const meaningful = words.length > 1 && words[0].toLowerCase() === "the" ? words[1] : words[0];
     return meaningful.charAt(0).toUpperCase();
+}
+
+function formatDuration(start: string, end: string | null): string | null {
+    if (!end) return null;
+    const ms = new Date(end).getTime() - new Date(start).getTime();
+    if (!Number.isFinite(ms) || ms <= 0) return null;
+    const mins = Math.max(1, Math.round(ms / 60000));
+    return `${mins} min`;
+}
+
+function formatRecorded(iso: string): string {
+    try {
+        const d = new Date(iso);
+        return d.toLocaleString(undefined, {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    } catch {
+        return iso;
+    }
 }
 
 export default function ViewSessionPage({ params }: PageProps) {
@@ -199,6 +238,7 @@ export default function ViewSessionPage({ params }: PageProps) {
     const coachChatEndRef = useRef<HTMLDivElement>(null);
     const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
     const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+
     useEffect(() => {
         fetchSimulation();
     }, [id]);
@@ -284,6 +324,23 @@ export default function ViewSessionPage({ params }: PageProps) {
             console.error("Failed to regenerate review:", error);
         } finally {
             setRegenerating(false);
+        }
+    };
+
+    const handleEndSession = async () => {
+        if (!simulation) return;
+        try {
+            const res = await fetch("/api/simulations/end", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ simulationId: simulation.id }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                await fetchSimulation();
+            }
+        } catch (error) {
+            console.error("Failed to end simulation:", error);
         }
     };
 
@@ -453,25 +510,25 @@ export default function ViewSessionPage({ params }: PageProps) {
                     ? part.type === "highlight"
                         ? "bg-accent border-b-2 border-primary text-foreground"
                         : part.type === "leading"
-                            ? "bg-amber-200/80 border-b-2 border-amber-500 text-amber-900"
-                            : "bg-purple-200/80 border-b-2 border-purple-500 text-purple-900"
+                            ? "bg-[color:var(--primary-soft)] border-b-2 border-[color:var(--primary)] text-[color:var(--primary)]"
+                            : "bg-[color:var(--cat-3-soft)] border-b-2 border-[color:var(--cat-3)] text-[color:var(--cat-3)]"
                     : part.type === "highlight"
                         ? "bg-muted border-b-2 border-primary text-foreground"
                         : part.type === "leading"
-                            ? "bg-amber-100 border-b-2 border-amber-400 text-amber-900"
-                            : "bg-purple-100 border-b-2 border-purple-400 text-purple-900";
+                            ? "bg-[color:var(--primary-soft)] border-b-2 border-[color:color-mix(in_oklab,var(--primary)_60%,transparent)] text-[color:var(--primary)]"
+                            : "bg-[color:var(--cat-3-soft)] border-b-2 border-[color:color-mix(in_oklab,var(--cat-3)_60%,transparent)] text-[color:var(--cat-3)]";
 
                 const iconBg = part.type === "highlight"
                     ? "bg-muted text-foreground"
                     : part.type === "leading"
-                        ? "bg-amber-50 text-amber-500"
-                        : "bg-purple-50 text-purple-500";
+                        ? "bg-[color:var(--primary-soft)] text-[color:var(--primary)]"
+                        : "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]";
 
                 const labelColor = part.type === "highlight"
                     ? "text-foreground"
                     : part.type === "leading"
-                        ? "text-amber-600"
-                        : "text-purple-600";
+                        ? "text-[color:var(--primary)]"
+                        : "text-[color:var(--cat-3)]";
 
                 const labelText = part.type === "highlight"
                     ? "Good Technique"
@@ -490,40 +547,27 @@ export default function ViewSessionPage({ params }: PageProps) {
                             side="top"
                             className="p-0 bg-transparent border-none shadow-none max-w-sm"
                         >
-                            <div className="relative p-4 rounded-md bg-background border border-border shadow-sm">
-                                {/* Subtle accent line at top */}
-                                <div className={`absolute top-0 left-4 right-4 h-[2px] rounded-full ${part.type === 'highlight' ? 'bg-primary/40' : part.type === 'leading' ? 'bg-amber-400/40' : 'bg-purple-400/40'}`} />
-
-                                <div className="flex items-start gap-3">
-                                    <div className={`h-7 w-7 rounded-md ${iconBg} flex items-center justify-center shrink-0`}>
-                                        {part.type === "highlight" && <ThumbsUp className="h-3.5 w-3.5" />}
-                                        {part.type === "leading" && <AlertTriangle className="h-3.5 w-3.5" />}
-                                        {part.type === "missed" && <Lightbulb className="h-3.5 w-3.5" />}
-                                    </div>
-                                    <div className="flex-1 min-w-0 pt-0.5">
-                                        <p className={`text-[9px] font-bold uppercase tracking-[0.15em] mb-1 ${labelColor}/80`}>
-                                            {labelText}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                            {part.tooltip}
-                                        </p>
-                                        {part.suggestion && (
-                                            <p className="text-[11px] text-muted-foreground mt-2 italic border-t border-border pt-2">
-                                                💡 {part.suggestion}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                {/* Ask Coach Button */}
+                            <div className="rounded-[14px] bg-white shadow-card p-4">
+                                <p className={`text-eyebrow ${labelColor} mb-2`}>
+                                    {labelText}
+                                </p>
+                                <p className="text-body-sm text-foreground leading-relaxed">
+                                    {part.tooltip}
+                                </p>
+                                {part.suggestion && (
+                                    <p className="text-body-sm text-muted-foreground mt-3 pt-3 border-t border-[color:var(--border-subtle)] leading-relaxed">
+                                        {part.suggestion}
+                                    </p>
+                                )}
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         openCoachChat(part.feedbackKey!, part.type as "highlight" | "leading" | "missed", part.feedbackContent);
                                     }}
-                                    className="w-full mt-3 pt-2.5 border-t border-border flex items-center justify-center gap-1.5 text-[11px] font-medium text-primary hover:text-foreground transition-colors"
+                                    className="w-full mt-3 pt-3 border-t border-[color:var(--border-subtle)] flex items-center justify-center gap-1.5 text-ui-sm font-medium text-[color:var(--primary)] hover:opacity-80 transition-opacity"
                                 >
                                     <MessageCircle className="h-3.5 w-3.5" />
-                                    Ask Coach About This
+                                    Ask coach about this
                                 </button>
                             </div>
                         </TooltipContent>
@@ -549,7 +593,7 @@ export default function ViewSessionPage({ params }: PageProps) {
                     <h1 className="text-2xl font-bold text-foreground mb-2">Session Not Found</h1>
                     <p className="text-muted-foreground mb-6">The simulation session you're looking for doesn't exist.</p>
                     <Link href="/dashboard">
-                        <Button className="bg-primary hover:bg-primary/90">
+                        <Button variant="primary">
                             Back to Dashboard
                         </Button>
                     </Link>
@@ -580,503 +624,725 @@ export default function ViewSessionPage({ params }: PageProps) {
     const projectId = simulation.subProject?.projectId || simulation.project?.id;
     const subProjectId = simulation.subProject?.id;
 
+    // ---- Derived data for the v2 layout ----
+
+    // Participants: for focus groups, use archetypes; otherwise, single persona synthesised from personaDoc.
+    type Participant = {
+        id: string;
+        name: string;
+        kicker?: string | null;
+        accent: string;
+        accentSoft: string;
+        summary?: string | null;
+    };
+    const participants: Participant[] = isFocusGroup
+        ? simulation.simulationArchetypes.map((sa, i) => {
+            const pal = PERSONA_PALETTE[i % PERSONA_PALETTE.length];
+            return {
+                id: sa.archetype.id,
+                name: sa.archetype.name,
+                kicker: sa.archetype.kicker,
+                accent: pal.accent,
+                accentSoft: pal.accentSoft,
+                summary: sa.summary,
+            };
+        })
+        : [
+            {
+                id: simulation.archetype?.id || personaDoc?.id || "persona",
+                name: personaName,
+                kicker: simulation.archetype?.kicker || null,
+                accent: PERSONA_PALETTE[0].accent,
+                accentSoft: PERSONA_PALETTE[0].accentSoft,
+                summary: null,
+            },
+        ];
+
+    const participantById = (pid: string) => participants.find(p => p.id === pid);
+
+    // Cross-profile structured summary (focus-group only)
+    let cross: {
+        agreements?: { point: string; profiles: string[] }[];
+        tensions?: { point: string; between: string[] }[];
+        gaps?: (string | { text: string; source: string })[];
+        recommendedSteps?: { action: string; why: string }[];
+    } | null = null;
+    if (simulation.crossProfileSummary) {
+        try { cross = JSON.parse(simulation.crossProfileSummary); } catch { cross = null; }
+    }
+
+    const agreementsCount = cross?.agreements?.length ?? 0;
+    const tensionsCount = cross?.tensions?.length ?? 0;
+    const gapsCount = cross?.gaps?.length ?? 0;
+    const recommendedCount = cross?.recommendedSteps?.length ?? 0;
+    const compareCount = agreementsCount + tensionsCount + gapsCount;
+
+    // Opportunities count from live coach nudges
+    const opportunitiesCount = simulation.coachNudges?.reduce((acc, n) => acc + (n.opportunities?.length || 0), 0) ?? 0;
+
+    // Transcript blocks — group messages into Q/A blocks keyed by user question
+    type TranscriptBlock = {
+        question: string;
+        answers: { msg: Message; participant?: Participant }[];
+    };
+    const transcriptBlocks: TranscriptBlock[] = (() => {
+        const blocks: TranscriptBlock[] = [];
+        let current: TranscriptBlock | null = null;
+        simulation.messages.forEach((m) => {
+            if (m.role === "user") {
+                current = { question: m.content, answers: [] };
+                blocks.push(current);
+            } else if (current) {
+                const participant = m.archetypeId ? participantById(m.archetypeId) : participants[0];
+                current.answers.push({ msg: m, participant });
+            } else {
+                // Persona message before any user question — create a pseudo-block
+                current = { question: "Opening", answers: [{ msg: m, participant: m.archetypeId ? participantById(m.archetypeId) : participants[0] }] };
+                blocks.push(current);
+            }
+        });
+        return blocks;
+    })();
+
+    const questionsCount = transcriptBlocks.length;
+
+    const duration = formatDuration(simulation.startedAt, simulation.endedAt);
+
+    // Hero subtitle — derived from coach findings summary (if present) or structured cross summary
+    const heroSubtitle = summary
+        ? summary
+        : cross?.agreements && cross.agreements.length > 0
+            ? cross.agreements[0].point
+            : "Post-session review of the interview transcript and participant profiles.";
+
+    const backHref = subProjectId && subProjectName
+        ? `/projects/${projectId}/sub/${subProjectId}?tab=simulations`
+        : (projectId ? `/projects/${projectId}` : "/dashboard");
+
+    const crumbs = [
+        ...(projectName ? [{ label: projectName, href: projectId ? `/projects/${projectId}` : undefined }] : []),
+        ...(subProjectName && subProjectId && projectId
+            ? [{ label: subProjectName, href: `/projects/${projectId}/sub/${subProjectId}?tab=simulations` }]
+            : []),
+        { label: isFocusGroup ? "Focus Group · Review" : `Session · ${personaName}` },
+    ];
+
+    const scrollToSection = (sectionId: string) => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    // ---- Left rail ----
+    const leftRail = (
+        <>
+            <RailHeader>
+                <div className="flex items-center gap-2">
+                    <Badge
+                        variant={isCompleted ? "success" : "warning"}
+                        className="gap-1"
+                    >
+                        <CheckCircle2 className="h-3 w-3" />
+                        {isCompleted ? "Complete" : "In progress"}
+                    </Badge>
+                    {duration && (
+                        <span className="text-caption text-muted-foreground">· {duration}</span>
+                    )}
+                </div>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    {isFocusGroup ? "Focus Group" : personaName}
+                </h2>
+                <p className="text-body-sm text-muted-foreground leading-relaxed">
+                    {isFocusGroup
+                        ? `${participants.length} participants walked through the guide.`
+                        : `1:1 session with ${personaName}.`}
+                </p>
+            </RailHeader>
+
+            <RailSection title="Session">
+                <MetaRow k="Questions" v={String(questionsCount)} />
+                <MetaRow k="Participants" v={String(participants.length)} />
+                <MetaRow k="Opportunities" v={String(opportunitiesCount)} />
+                <MetaRow k="Recorded" v={formatRecorded(simulation.startedAt)} />
+            </RailSection>
+
+            <RailSection title="Participants">
+                <div className="flex flex-col gap-1.5">
+                    {participants.map((p) => (
+                        <div key={p.id} className="text-body-sm text-foreground">
+                            {p.name}
+                        </div>
+                    ))}
+                </div>
+            </RailSection>
+
+            <RailSection title="Jump to">
+                <div className="flex flex-col gap-0.5">
+                    <button
+                        type="button"
+                        onClick={() => scrollToSection("participant-summaries")}
+                        className="flex items-center justify-between w-full text-left px-2.5 py-2 -ml-2.5 rounded-[var(--radius-sm2)] text-body-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <span>Participant summaries</span>
+                        <span className="text-mono-meta text-muted-foreground">{participants.length}</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => scrollToSection("cross-profile-compare")}
+                        className="flex items-center justify-between w-full text-left px-2.5 py-2 -ml-2.5 rounded-[var(--radius-sm2)] text-body-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <span>Cross-profile compare</span>
+                        <span className="text-mono-meta text-muted-foreground">{compareCount}</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => scrollToSection("recommended-steps")}
+                        className="flex items-center justify-between w-full text-left px-2.5 py-2 -ml-2.5 rounded-[var(--radius-sm2)] text-body-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <span>Recommended steps</span>
+                        <span className="text-mono-meta text-muted-foreground">{recommendedCount}</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => scrollToSection("transcript")}
+                        className="flex items-center justify-between w-full text-left px-2.5 py-2 -ml-2.5 rounded-[var(--radius-sm2)] text-body-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <span>Transcript</span>
+                        <span className="text-mono-meta text-muted-foreground">{questionsCount}</span>
+                    </button>
+                </div>
+            </RailSection>
+
+            <div className="flex-1" />
+        </>
+    );
+
+    // ---- PageBar action cluster ----
+    const pageBarAction = (
+        <>
+            {summary && (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSummaryDialogOpen(true)}
+                >
+                    <FileText className="h-3.5 w-3.5" />
+                    View summary
+                </Button>
+            )}
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={regenerateReview}
+                disabled={regenerating}
+            >
+                {regenerating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                {regenerating ? "Analysing..." : "Analyse technique"}
+            </Button>
+        </>
+    );
+
     return (
         <TooltipProvider delayDuration={200}>
-            <div className="flex flex-col">
-                {/* Edge-to-edge header bar */}
-                <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
-                    <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                        <div className="flex items-center gap-3">
-                            <Link
-                                href={subProjectId && subProjectName ? `/projects/${projectId}/sub/${subProjectId}?tab=simulations` : (projectId ? `/projects/${projectId}` : "/dashboard")}
-                                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                aria-label={`Back to ${subProjectName || projectName || "Dashboard"}`}
-                            >
-                                <ArrowLeft className="h-4 w-4" />
-                                <span>Back</span>
-                            </Link>
-                            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                                {isFocusGroup ? (
-                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                    <User className="h-4 w-4 text-muted-foreground" />
-                                )}
-                            </div>
-                            <div>
-                                <h1 className="text-base font-bold text-foreground flex items-center gap-2">
-                                    {isFocusGroup ? "Focus Group" : `Session with ${personaName}`}
-                                    <Badge
-                                        variant="secondary"
-                                        className={`text-[10px] px-1.5 py-0 ${isCompleted ? 'bg-accent text-foreground' : 'bg-amber-100 text-amber-700'}`}
-                                    >
-                                        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
-                                        {isCompleted ? 'Completed' : 'In Progress'}
-                                    </Badge>
-                                </h1>
-                                <p className="text-[11px] text-muted-foreground">
-                                    {isFocusGroup
-                                        ? focusGroupArchetypes.map(a => a.name).join(" · ")
-                                        : new Date(simulation.startedAt).toLocaleDateString()}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {summary && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setSummaryDialogOpen(true)}
-                                    className="gap-1.5"
-                                >
-                                    <FileText className="h-3.5 w-3.5" />
-                                    View Summary
-                                </Button>
-                            )}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={regenerateReview}
-                                disabled={regenerating}
-                                className="gap-1.5"
-                            >
-                                {regenerating ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                    <RefreshCw className="h-3.5 w-3.5" />
-                                )}
-                                {regenerating ? "Analysing..." : "Analyse Interview Technique"}
-                            </Button>
-                        </div>
+            <div className="flex flex-col flex-1 min-h-0">
+                <PageBar
+                    sticky={false}
+                    back={{ href: backHref, label: "Back" }}
+                    crumbs={crumbs}
+                    action={pageBarAction}
+                />
+
+                <WorkspaceFrame variant="review" scrollContained leftRail={leftRail}>
+                    {/* Hero headline */}
+                    <div className="max-w-[820px] mb-8">
+                        <div className="text-eyebrow text-muted-foreground mb-2">Session review</div>
+                        <h1 className="text-display-2 text-foreground leading-[1.1] tracking-tight">
+                            {isFocusGroup
+                                ? `${participants.length} participants, ${participants.length} very different ways of telling the story.`
+                                : `A 1:1 with ${personaName}.`}
+                        </h1>
+                        <p className="text-body-sm text-muted-foreground mt-3.5 leading-[1.7]">
+                            {heroSubtitle}
+                        </p>
                     </div>
-                </div>
 
-                <div className="py-8">
-                    <div className="relative">
-                        {/* Focus Group Archetype Summaries */}
-                        {isFocusGroup && isCompleted && (
-                            <div className="mb-8">
-                                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                                    <User className="h-5 w-5 text-muted-foreground" />
-                                    Participant Summaries
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {simulation.simulationArchetypes?.map((simArch) => {
-                                        const color = getArchetypeColor(simArch.archetype.id);
-
-                                        // Parse structured JSON or fall back to plain text
-                                        let structured: { stance?: string; keyPoints?: string[]; quote?: string } | null = null;
-                                        if (simArch.summary) {
-                                            try { structured = JSON.parse(simArch.summary); } catch { structured = null; }
-                                        }
-
-                                        return (
-                                            <Card key={simArch.archetype.id} className={`border ${color.border} shadow-sm overflow-hidden`}>
-                                                <div className={`px-4 py-3 ${color.bg} border-b ${color.border} flex items-center gap-3`}>
-                                                    <div className={`w-8 h-8 rounded-full ${color.avatar} flex items-center justify-center ${color.avatarText} text-xs font-bold shrink-0`}>
-                                                        {getInitial(simArch.archetype.name)}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <h4 className={`font-semibold text-sm ${color.text}`}>{simArch.archetype.name}</h4>
-                                                        {structured?.stance ? (
-                                                            <p className={`text-[10px] uppercase tracking-wider font-semibold opacity-80 ${color.text}`}>{structured.stance}</p>
-                                                        ) : simArch.archetype.kicker ? (
-                                                            <p className={`text-[10px] uppercase tracking-wider font-semibold opacity-80 ${color.text}`}>{simArch.archetype.kicker}</p>
-                                                        ) : null}
-                                                    </div>
-                                                </div>
-                                                <CardContent className="p-4 text-sm text-foreground leading-relaxed bg-card">
-                                                    {!simArch.summary ? (
-                                                        <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-4">
-                                                            <Loader2 className="h-5 w-5 animate-spin opacity-50" />
-                                                            <p className="text-xs">Generating summary...</p>
-                                                        </div>
-                                                    ) : structured?.keyPoints ? (
-                                                        <div>
-                                                            <ul className="space-y-1.5 mb-3">
-                                                                {structured.keyPoints.map((point, i) => (
-                                                                    <li key={i} className="flex items-start gap-2 text-[12px] text-foreground">
-                                                                        <CircleDot className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
-                                                                        {point}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                            {structured.quote && (
-                                                                <div className="border-l-2 border-muted-foreground/20 pl-3 mt-2">
-                                                                    <p className="text-[11px] text-muted-foreground italic leading-relaxed">
-                                                                        &ldquo;{structured.quote}&rdquo;
-                                                                    </p>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <p>{simArch.summary}</p>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-                                        );
-                                    })}
+                    {/* Ongoing session — resume or end (shown while simulation.endedAt is null) */}
+                    {!simulation.endedAt && (
+                        <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 mb-6">
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="h-9 w-9 rounded-[10px] bg-[color:var(--warning-soft)] text-[color:var(--warning)] shadow-inset-edge flex items-center justify-center shrink-0">
+                                    <Clock className="h-4 w-4" />
                                 </div>
-
-                                {/* Cross-Profile Comparison */}
-                                <div className="mt-6 mb-2">
-                                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                                        <Users className="h-5 w-5 text-muted-foreground" />
-                                        Cross-Profile Comparison
-                                    </h3>
-
-                                    {(() => {
-                                        if (!simulation.crossProfileSummary) {
-                                            return (
-                                                <Card className="border border-indigo-100 shadow-sm bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
-                                                    <CardContent className="p-5 flex flex-col items-center justify-center text-muted-foreground gap-2 py-8">
-                                                        <Loader2 className="h-5 w-5 animate-spin opacity-50" />
-                                                        <p className="text-xs">Analyzing group dynamics...</p>
-                                                    </CardContent>
-                                                </Card>
-                                            );
-                                        }
-
-                                        // Parse structured JSON or fall back to plain text
-                                        let cross: { agreements?: { point: string; profiles: string[] }[]; tensions?: { point: string; between: string[] }[]; gaps?: (string | { text: string; source: string })[]; recommendedSteps?: { action: string; why: string }[] } | null = null;
-                                        try { cross = JSON.parse(simulation.crossProfileSummary); } catch { cross = null; }
-
-                                        if (!cross) {
-                                            return (
-                                                <Card className="border border-indigo-100 shadow-sm bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
-                                                    <CardContent className="p-5 text-sm text-foreground leading-relaxed">
-                                                        <p>{simulation.crossProfileSummary}</p>
-                                                    </CardContent>
-                                                </Card>
-                                            );
-                                        }
-
-                                        return (
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                {/* Agreements */}
-                                                {cross.agreements && cross.agreements.length > 0 && (
-                                                    <Card className="border border-emerald-200 shadow-sm overflow-hidden">
-                                                        <div className="px-4 py-2.5 bg-emerald-50 border-b border-emerald-200 flex items-center gap-2">
-                                                            <Handshake className="h-4 w-4 text-emerald-600" />
-                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700">Agreements</h4>
-                                                        </div>
-                                                        <CardContent className="p-4 space-y-3">
-                                                            {cross.agreements.map((a, i) => (
-                                                                <div key={i}>
-                                                                    <p className="text-[12px] text-foreground leading-relaxed">{a.point}</p>
-                                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                                        {a.profiles.map((p, j) => (
-                                                                            <span key={j} className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">{p}</span>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
-
-                                                {/* Tensions */}
-                                                {cross.tensions && cross.tensions.length > 0 && (
-                                                    <Card className="border border-amber-200 shadow-sm overflow-hidden">
-                                                        <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
-                                                            <Zap className="h-4 w-4 text-amber-600" />
-                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700">Tensions</h4>
-                                                        </div>
-                                                        <CardContent className="p-4 space-y-3">
-                                                            {cross.tensions.map((t, i) => (
-                                                                <div key={i}>
-                                                                    <p className="text-[12px] text-foreground leading-relaxed">{t.point}</p>
-                                                                    <div className="flex items-center gap-1 mt-1">
-                                                                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{t.between[0]}</span>
-                                                                        <span className="text-[9px] text-muted-foreground">vs</span>
-                                                                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{t.between[1]}</span>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
-
-                                                {/* Gaps */}
-                                                {cross.gaps && cross.gaps.length > 0 && (
-                                                    <Card className="border border-slate-200 shadow-sm overflow-hidden">
-                                                        <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
-                                                            <CircleDot className="h-4 w-4 text-slate-500" />
-                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">Gaps</h4>
-                                                        </div>
-                                                        <CardContent className="p-4 space-y-2.5">
-                                                            {cross.gaps.map((g, i) => {
-                                                                const gapText = typeof g === "string" ? g : g.text;
-                                                                const gapSource = typeof g === "string" ? null : g.source;
-                                                                return (
-                                                                    <div key={i}>
-                                                                        <p className="text-[12px] text-foreground leading-relaxed flex items-start gap-2">
-                                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 flex-shrink-0" />
-                                                                            {gapText}
-                                                                        </p>
-                                                                        {gapSource && (
-                                                                            <span className={`ml-3.5 mt-1 inline-flex items-center text-[9px] font-medium px-1.5 py-0.5 rounded ${gapSource === "AI Analysis" ? "bg-violet-100 text-violet-600" : "bg-slate-100 text-slate-500"}`}>
-                                                                                {gapSource === "AI Analysis" ? "AI Analysis" : `Source: ${gapSource}`}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </CardContent>
-                                                    </Card>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
+                                <div className="flex-1 min-w-0">
+                                    <span className="text-eyebrow text-[color:var(--warning)]">Ongoing session</span>
+                                    <h2 className="text-display-3 text-foreground leading-tight mt-1">
+                                        This simulation is still running.
+                                    </h2>
+                                    <p className="text-body-sm text-muted-foreground mt-2 leading-relaxed">
+                                        Jump back into the conversation or wrap it up to unlock the coach review.
+                                    </p>
                                 </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {projectId && subProjectId ? (
+                                    <Button variant="primary" asChild>
+                                        <Link href={`/projects/${projectId}/sub/${subProjectId}/simulate?resume=${simulation.id}`}>
+                                            Resume simulation
+                                        </Link>
+                                    </Button>
+                                ) : null}
+                                <Button variant="outline" onClick={handleEndSession}>
+                                    End session
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
-                                {/* Recommended Steps */}
-                                {(() => {
-                                    if (!simulation.crossProfileSummary) return null;
-                                    let cross: { recommendedSteps?: { action: string; why: string }[] } | null = null;
-                                    try { cross = JSON.parse(simulation.crossProfileSummary); } catch { return null; }
-                                    if (!cross?.recommendedSteps?.length) return null;
+                    {/* Legend (when review exists) */}
+                    {hasReview && (
+                        <div className="mb-8 inline-flex items-center gap-4 text-caption text-muted-foreground px-4 py-2.5 bg-[color:var(--surface-muted)] rounded-[10px] shadow-inset-edge">
+                            <span className="font-medium text-foreground">Hover on highlights:</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-sm bg-accent border border-primary" />
+                                <span>Good technique</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-sm bg-[color:var(--primary-soft)] border border-[color:color-mix(in_oklab,var(--primary)_35%,transparent)]" />
+                                <span>Leading/Issues</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-sm bg-[color:var(--cat-3-soft)] border border-[color:color-mix(in_oklab,var(--cat-3)_35%,transparent)]" />
+                                <span>Missed opportunity</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Participant summaries */}
+                    <section id="participant-summaries" className="mb-10 scroll-mt-24">
+                        <div className="flex items-center gap-2 mb-3.5">
+                            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                            <h2 className="text-display-4 text-foreground leading-tight">Participant summaries</h2>
+                        </div>
+
+                        {isFocusGroup && isCompleted ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                                {simulation.simulationArchetypes.map((simArch) => {
+                                    const p = participantById(simArch.archetype.id);
+                                    if (!p) return null;
+
+                                    // Parse structured JSON or fall back to plain text
+                                    let structured: { stance?: string; keyPoints?: string[]; quote?: string } | null = null;
+                                    if (simArch.summary) {
+                                        try { structured = JSON.parse(simArch.summary); } catch { structured = null; }
+                                    }
+
+                                    // Only show the tag once the structured summary
+                                    // has parsed — otherwise the archetype's `kicker`
+                                    // (a longer descriptor) flashes in first and gets
+                                    // replaced by the short stance, which reads as a bug.
+                                    const tags: string[] = structured?.stance
+                                        ? [structured.stance]
+                                        : [];
 
                                     return (
-                                        <div className="mt-6 mb-2">
-                                            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                                                <Lightbulb className="h-5 w-5 text-muted-foreground" />
-                                                Recommended Steps
-                                            </h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {cross.recommendedSteps.map((step, i) => (
-                                                    <Card key={i} className="border border-primary/20 shadow-sm overflow-hidden">
-                                                        <CardContent className="p-4">
-                                                            <div className="flex items-start gap-3">
-                                                                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                                    <span className="text-xs font-bold text-primary">{i + 1}</span>
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-[13px] font-semibold text-foreground leading-snug">{step.action}</p>
-                                                                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{step.why}</p>
-                                                                </div>
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
-
-                                <div className="h-px bg-border/40 mt-8 mb-2 w-full" />
-                            </div>
-                        )}
-
-                        {/* Legend */}
-                        {hasReview && (
-                            <div className="mb-6">
-                                <div className="inline-flex items-center gap-4 text-xs text-muted-foreground px-4 py-2.5 bg-muted rounded-md border border-border">
-                                    <span className="font-medium text-foreground">Hover on highlights:</span>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-3 h-3 rounded-md bg-accent border border-primary" />
-                                        <span>Good technique</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-3 h-3 rounded-md bg-amber-200/80 border border-amber-300" />
-                                        <span>Leading/Issues</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-3 h-3 rounded-md bg-purple-200/80 border border-purple-300" />
-                                        <span>Missed opportunity</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Chat Transcript - No card container, flows with page */}
-                        <div className="border-b border-border/50 pb-6 mb-6">
-                            {/* Chat Header 
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="w-12 h-12 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
-                                    {personaName.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-foreground text-lg">{personaName}</p>
-                                    <p className="text-sm text-muted-foreground">Conversation Transcript</p>
-                                </div>
-                            </div>*/}
-
-                            {/* Messages - No scroll container */}
-                            <div className="space-y-6">
-                                {simulation.messages.length === 0 ? (
-                                    <div className="text-center py-10">
-                                        <Bot className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                                        <p className="text-muted-foreground">No messages in this session</p>
-                                    </div>
-                                ) : (
-                                    simulation.messages.map((msg, index) => {
-                                        const feedback = getFeedbackForMessage(index, msg.role, msg.id, msg.content);
-
-                                        // Build quotes array for highlighting with feedback keys
-                                        const quotes: Array<{ quote: string; type: "highlight" | "leading" | "missed"; tooltip: string; suggestion?: string; feedbackKey: string; feedbackContent: any }> = [];
-
-                                        if (msg.role === "user") {
-                                            feedback.highlights.forEach((h, i) => {
-                                                if (h.quote) quotes.push({
-                                                    quote: h.quote,
-                                                    type: "highlight",
-                                                    tooltip: h.observation,
-                                                    feedbackKey: `highlight-${index}-${i}`,
-                                                    feedbackContent: h
-                                                });
-                                            });
-                                            feedback.leadingMoments.forEach((l, i) => {
-                                                if (l.quote) quotes.push({
-                                                    quote: l.quote,
-                                                    type: "leading",
-                                                    tooltip: l.issue,
-                                                    suggestion: l.suggestion,
-                                                    feedbackKey: `leading-${index}-${i}`,
-                                                    feedbackContent: l
-                                                });
-                                            });
-                                        }
-
-                                        if (msg.role === "persona") {
-                                            feedback.missedProbes.forEach((m, i) => {
-                                                if (m.quote) quotes.push({
-                                                    quote: m.quote,
-                                                    type: "missed",
-                                                    tooltip: m.opportunity,
-                                                    suggestion: m.suggestion,
-                                                    feedbackKey: `missed-${index}-${i}`,
-                                                    feedbackContent: m
-                                                });
-                                            });
-                                        }
-
-                                        return (
-                                            <div
-                                                key={msg.id}
-                                                className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                                            >
-                                                {msg.role === "persona" && (() => {
-                                                    const fgArch = isFocusGroup && msg.archetypeId ? focusGroupArchetypes.find(a => a.id === msg.archetypeId) : null;
-                                                    const fgColor = fgArch ? getArchetypeColor(fgArch.id) : null;
-                                                    return fgColor ? (
-                                                        <div className={`w-8 h-8 rounded-full ${fgColor.avatar} flex items-center justify-center ${fgColor.avatarText} text-xs font-bold mt-1 shrink-0`}>
-                                                            {getInitial(fgArch!.name)}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-foreground text-xs font-bold mt-1 shrink-0">
-                                                            {personaName.charAt(0).toUpperCase()}
-                                                        </div>
-                                                    );
-                                                })()}
-
-                                                <div
-                                                    className={`max-w-[75%] px-5 py-3 rounded-md text-sm leading-relaxed ${msg.role === "user"
-                                                        ? "bg-accent border border-border text-foreground rounded-tr-none"
-                                                        : "bg-white border border-border text-foreground rounded-tl-none group/msg"
-                                                        }`}
-                                                >
-                                                    {isFocusGroup && msg.role === "persona" && msg.archetypeId && (() => {
-                                                        const arch = focusGroupArchetypes.find(a => a.id === msg.archetypeId);
-                                                        const color = arch ? getArchetypeColor(arch.id) : null;
-                                                        return arch ? (
-                                                            <p className={`text-xs font-semibold mb-1 ${color?.text || "text-foreground"}`}>{arch.name}</p>
-                                                        ) : null;
-                                                    })()}
-                                                    {msg.imageBase64 && (
-                                                        <img
-                                                            src={msg.imageBase64}
-                                                            alt="Shared image"
-                                                            className="max-w-full max-h-[200px] rounded-md mb-2 object-contain cursor-pointer hover:opacity-90 transition-opacity border border-border"
-                                                            onClick={() => setEnlargedImage(msg.imageBase64!)}
-                                                        />
-                                                    )}
-                                                    {msg.content && msg.content !== "[Shared an image]" && (
-                                                        quotes.length > 0
-                                                            ? renderContentWithHighlights(msg.content, quotes, msg.role === "user")
-                                                            : msg.content
-                                                    )}
-                                                    {/* Feedback for persona messages */}
-                                                    {msg.role === "persona" && (
-                                                        <div className="mt-2 pt-2 border-t border-border opacity-0 group-hover/msg:opacity-100 transition-opacity">
-                                                            <AIFeedback
-                                                                entityType="simulation_message"
-                                                                entityId={msg.id}
-                                                                simulationId={simulation?.id}
-                                                                messageContent={msg.content}
-                                                                size="sm"
-                                                            />
+                                        <div
+                                            key={simArch.archetype.id}
+                                            className="bg-[color:var(--surface)] rounded-[16px] shadow-outline-ring flex flex-col overflow-hidden"
+                                        >
+                                            {/* Header */}
+                                            <div className="px-[18px] pt-[14px] pb-3 flex items-center gap-2.5 border-b border-[color:var(--border-subtle)]">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-[16px] text-foreground font-medium leading-[1.15] tracking-tight truncate">
+                                                        {p.name}
+                                                    </div>
+                                                    {tags.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                                            {tags.map((t) => (
+                                                                <span
+                                                                    key={t}
+                                                                    className="shadow-inset-edge bg-[color:var(--surface-muted)] text-muted-foreground text-caption rounded-full px-2 py-0.5"
+                                                                >
+                                                                    {t}
+                                                                </span>
+                                                            ))}
                                                         </div>
                                                     )}
                                                 </div>
+                                            </div>
 
-                                                {msg.role === "user" && (
-                                                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs mt-1">
-                                                        <User className="h-4 w-4" />
+                                            {/* Body */}
+                                            <div className="px-[18px] py-[14px] flex flex-col gap-2.5">
+                                                {!simArch.summary ? (
+                                                    <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-4">
+                                                        <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+                                                        <p className="text-caption">Generating summary...</p>
                                                     </div>
+                                                ) : structured?.keyPoints ? (
+                                                    structured.keyPoints.map((point, i) => (
+                                                        <div key={i} className="flex gap-2 text-body-sm leading-[1.55] text-muted-foreground">
+                                                            <span className="w-1 h-1 rounded-full mt-[9px] shrink-0 bg-muted-foreground" />
+                                                            <span className="flex-1">{point}</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-body-sm leading-[1.55] text-muted-foreground">{simArch.summary}</p>
                                                 )}
                                             </div>
-                                        );
-                                    })
-                                )}
-                                <div ref={chatEndRef} />
-                            </div>
-                        </div>
 
-                        {/* No Review Message */}
-                        {!hasReview && simulation.messages.length >= 2 && (
-                            <div className="mt-6 text-center">
-                                <p className="text-muted-foreground mb-4">
-                                    No coach review available yet. Generate one to see coaching feedback on your interview.
-                                </p>
-                                <Button
-                                    onClick={regenerateReview}
-                                    disabled={regenerating}
-                                    className="bg-primary hover:bg-primary/90 rounded-md"
-                                >
-                                    {regenerating ? (
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    ) : (
-                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                            {/* Footer quote */}
+                                            {structured?.quote && (
+                                                <div className="mx-[18px] mb-[16px] px-3 py-2.5 rounded-[10px] text-caption italic text-muted-foreground leading-[1.55] shadow-inset-edge bg-[color:var(--surface-muted)]">
+                                                    &ldquo;{structured.quote}&rdquo;
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            // Empty state — non-focus-group or review not generated yet
+                            <div className="bg-[color:var(--surface)] rounded-[16px] shadow-outline-ring p-6">
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-[16px] text-foreground font-medium leading-[1.15]">{participants[0].name}</div>
+                                    {participants[0].kicker && (
+                                        <div className="text-caption text-muted-foreground mt-1">
+                                            {participants[0].kicker}
+                                        </div>
                                     )}
-                                    Analyze Interview Technique
-                                </Button>
+                                    <p className="text-body-sm text-muted-foreground mt-3 leading-[1.55]">
+                                        {isFocusGroup
+                                            ? "Summaries will appear here once the session completes."
+                                            : "Per-participant summaries are generated for focus groups. Regenerate the review to refresh this view."}
+                                    </p>
+                                </div>
                             </div>
                         )}
-                    </div>
-                </div>
+                    </section>
+
+                    {/* Cross-profile compare — focus-group only, but we always render a header with empty-state otherwise */}
+                    {isFocusGroup && (
+                        <section id="cross-profile-compare" className="mb-10 scroll-mt-24">
+                            <div className="flex items-center gap-2 mb-3.5">
+                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                <h2 className="text-display-4 text-foreground leading-tight">Cross-profile compare</h2>
+                            </div>
+
+                            {!simulation.crossProfileSummary ? (
+                                <div className="bg-[color:var(--surface)] rounded-[14px] shadow-outline-ring p-5 flex flex-col items-center justify-center text-muted-foreground gap-2 py-8">
+                                    <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+                                    <p className="text-caption">Analyzing group dynamics...</p>
+                                </div>
+                            ) : !cross ? (
+                                <div className="bg-[color:var(--surface)] rounded-[14px] shadow-outline-ring p-5">
+                                    <p className="text-body-sm text-muted-foreground leading-relaxed">{simulation.crossProfileSummary}</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                                    {/* Agreements */}
+                                    <div className="flex flex-col gap-2.5">
+                                        <div className="flex items-center gap-2 px-3.5 py-2">
+                                            <Handshake className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-display-4 text-foreground">Agreements</span>
+                                            <span className="flex-1" />
+                                            <span className="text-mono-meta text-muted-foreground">{agreementsCount}</span>
+                                        </div>
+                                        {cross.agreements?.length ? (
+                                            cross.agreements.map((a, i) => (
+                                                <CompareRow
+                                                    key={i}
+                                                    text={a.point}
+                                                    chips={a.profiles.map((pName) => ({
+                                                        id: `${i}-${pName}`,
+                                                        name: pName,
+                                                    }))}
+                                                />
+                                            ))
+                                        ) : (
+                                            <EmptyCompareCard label="No agreements surfaced." />
+                                        )}
+                                    </div>
+
+                                    {/* Tensions */}
+                                    <div className="flex flex-col gap-2.5">
+                                        <div className="flex items-center gap-2 px-3.5 py-2">
+                                            <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-display-4 text-foreground">Tensions</span>
+                                            <span className="flex-1" />
+                                            <span className="text-mono-meta text-muted-foreground">{tensionsCount}</span>
+                                        </div>
+                                        {cross.tensions?.length ? (
+                                            cross.tensions.map((t, i) => (
+                                                <CompareRow
+                                                    key={i}
+                                                    text={t.point}
+                                                    chips={t.between.map((pName) => ({
+                                                        id: `${i}-${pName}`,
+                                                        name: pName,
+                                                    }))}
+                                                />
+                                            ))
+                                        ) : (
+                                            <EmptyCompareCard label="No tensions surfaced." />
+                                        )}
+                                    </div>
+
+                                    {/* Gaps */}
+                                    <div className="flex flex-col gap-2.5">
+                                        <div className="flex items-center gap-2 px-3.5 py-2">
+                                            <CircleDot className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-display-4 text-foreground">Gaps</span>
+                                            <span className="flex-1" />
+                                            <span className="text-mono-meta text-muted-foreground">{gapsCount}</span>
+                                        </div>
+                                        {cross.gaps?.length ? (
+                                            cross.gaps.map((g, i) => {
+                                                const gapText = typeof g === "string" ? g : g.text;
+                                                const gapSource = typeof g === "string" ? null : g.source;
+                                                return (
+                                                    <CompareRow
+                                                        key={i}
+                                                        text={gapText}
+                                                        chips={gapSource ? [{ id: `${i}-src`, name: gapSource }] : []}
+                                                    />
+                                                );
+                                            })
+                                        ) : (
+                                            <EmptyCompareCard label="No gaps surfaced." />
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </section>
+                    )}
+
+                    {/* Recommended steps */}
+                    {isFocusGroup && (
+                        <section id="recommended-steps" className="mb-10 scroll-mt-24">
+                            <div className="flex items-center gap-2 mb-3.5">
+                                <Lightbulb className="h-3.5 w-3.5 text-muted-foreground" />
+                                <h2 className="text-display-4 text-foreground leading-tight">Recommended next steps</h2>
+                            </div>
+
+                            {cross?.recommendedSteps?.length ? (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                                    {cross.recommendedSteps.map((step, i) => (
+                                        <div
+                                            key={i}
+                                            className="bg-[color:var(--surface)] rounded-[14px] shadow-outline-ring p-[18px] flex flex-col gap-2.5"
+                                        >
+                                            <div className="w-6 h-6 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge text-foreground text-caption font-semibold inline-flex items-center justify-center">
+                                                {i + 1}
+                                            </div>
+                                            <div className="text-body-sm font-medium text-foreground leading-[1.45]">
+                                                {step.action}
+                                            </div>
+                                            <div className="text-caption text-muted-foreground leading-[1.6]">
+                                                {step.why}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="bg-[color:var(--surface)] rounded-[14px] shadow-outline-ring p-5">
+                                    <p className="text-body-sm text-muted-foreground leading-relaxed">
+                                        {simulation.crossProfileSummary
+                                            ? "No recommended steps were surfaced for this session."
+                                            : "Recommended steps will appear once the cross-profile summary is generated."}
+                                    </p>
+                                </div>
+                            )}
+                        </section>
+                    )}
+
+                    {/* Transcript */}
+                    <section id="transcript" className="mb-6 scroll-mt-24">
+                        <div className="flex items-center gap-2 mb-3.5">
+                            <Quote className="h-3.5 w-3.5 text-muted-foreground" />
+                            <h2 className="text-display-4 text-foreground leading-tight">Transcript</h2>
+                            <span className="flex-1" />
+                            <span className="text-caption text-muted-foreground">
+                                {questionsCount} {questionsCount === 1 ? "question" : "questions"}
+                            </span>
+                        </div>
+
+                        {simulation.messages.length === 0 ? (
+                            <div className="bg-[color:var(--surface)] rounded-[14px] shadow-outline-ring text-center py-10">
+                                <Bot className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                                <p className="text-body-sm text-muted-foreground">No messages in this session</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-4">
+                                {transcriptBlocks.map((block, blockIdx) => {
+                                    // Locate the user message behind this block (if any — "Opening" pseudo-blocks have none)
+                                    const userMsg = simulation.messages.find(
+                                        m => m.role === "user" && m.content === block.question
+                                    );
+
+                                    const userNode = userMsg ? (() => {
+                                        const msgIndex = simulation.messages.findIndex(m => m.id === userMsg.id);
+                                        const feedback = getFeedbackForMessage(msgIndex, "user", userMsg.id, userMsg.content);
+
+                                        const quotes: Array<{ quote: string; type: "highlight" | "leading" | "missed"; tooltip: string; suggestion?: string; feedbackKey: string; feedbackContent: any }> = [];
+                                        feedback.highlights.forEach((h, i) => {
+                                            if (h.quote) quotes.push({
+                                                quote: h.quote,
+                                                type: "highlight",
+                                                tooltip: h.observation,
+                                                feedbackKey: `highlight-${msgIndex}-${i}`,
+                                                feedbackContent: h,
+                                            });
+                                        });
+                                        feedback.leadingMoments.forEach((l, i) => {
+                                            if (l.quote) quotes.push({
+                                                quote: l.quote,
+                                                type: "leading",
+                                                tooltip: l.issue,
+                                                suggestion: l.suggestion,
+                                                feedbackKey: `leading-${msgIndex}-${i}`,
+                                                feedbackContent: l,
+                                            });
+                                        });
+
+                                        const userContent = userMsg.content && userMsg.content !== "[Shared an image]"
+                                            ? (quotes.length > 0
+                                                ? renderContentWithHighlights(userMsg.content, quotes, true)
+                                                : userMsg.content)
+                                            : null;
+
+                                        return (
+                                            <ChatBubble
+                                                key={userMsg.id}
+                                                id={`chat-bubble-${userMsg.id}`}
+                                                role="user"
+                                                content={userContent}
+                                                imageBase64={userMsg.imageBase64}
+                                            />
+                                        );
+                                    })() : null;
+
+                                    const answerNodes = block.answers.map((ans) => {
+                                        const p = ans.participant;
+                                        const msgIndex = simulation.messages.findIndex(m => m.id === ans.msg.id);
+                                        const feedback = getFeedbackForMessage(
+                                            msgIndex,
+                                            ans.msg.role,
+                                            ans.msg.id,
+                                            ans.msg.content
+                                        );
+
+                                        const quotes: Array<{ quote: string; type: "highlight" | "leading" | "missed"; tooltip: string; suggestion?: string; feedbackKey: string; feedbackContent: any }> = [];
+                                        feedback.missedProbes.forEach((m, i) => {
+                                            if (m.quote) quotes.push({
+                                                quote: m.quote,
+                                                type: "missed",
+                                                tooltip: m.opportunity,
+                                                suggestion: m.suggestion,
+                                                feedbackKey: `missed-${msgIndex}-${i}`,
+                                                feedbackContent: m,
+                                            });
+                                        });
+
+                                        const bubbleContent = ans.msg.content && ans.msg.content !== "[Shared an image]"
+                                            ? (quotes.length > 0
+                                                ? renderContentWithHighlights(ans.msg.content, quotes, false)
+                                                : ans.msg.content)
+                                            : null;
+
+                                        // Focus-group accent (only used when we actually have an archetype)
+                                        const fgColor = isFocusGroup && ans.msg.archetypeId
+                                            ? getArchetypeColor(ans.msg.archetypeId)
+                                            : null;
+
+                                        const speakerName = p?.name || personaName;
+
+                                        return (
+                                            <ChatBubble
+                                                key={ans.msg.id}
+                                                id={`chat-bubble-${ans.msg.id}`}
+                                                role="persona"
+                                                content={
+                                                    <>
+                                                        {ans.msg.imageBase64 && (
+                                                            <img
+                                                                src={ans.msg.imageBase64}
+                                                                alt="Shared image"
+                                                                className="max-w-full max-h-[240px] rounded-[var(--radius-md2)] mb-2 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                                                                onClick={() => setEnlargedImage(ans.msg.imageBase64!)}
+                                                            />
+                                                        )}
+                                                        {bubbleContent}
+                                                    </>
+                                                }
+                                                archetypeName={fgColor ? speakerName : null}
+                                                archetypeColor={fgColor?.text}
+                                                avatarClassName={fgColor?.avatar}
+                                                avatarTextClassName={fgColor?.avatarText}
+                                                initial={getInitial(speakerName)}
+                                                typing={false}
+                                                feedbackSlot={
+                                                    <AIFeedback
+                                                        entityType="simulation_message"
+                                                        entityId={ans.msg.id}
+                                                        simulationId={simulation?.id}
+                                                        messageContent={ans.msg.content}
+                                                        size="sm"
+                                                    />
+                                                }
+                                            />
+                                        );
+                                    });
+
+                                    return (
+                                        <div key={blockIdx} className="flex flex-col gap-4">
+                                            {userNode}
+                                            {answerNodes}
+                                        </div>
+                                    );
+                                })}
+                                <div ref={chatEndRef} />
+                            </div>
+                        )}
+                    </section>
+
+                    {/* No Review Message */}
+                    {simulation.endedAt && !hasReview && simulation.messages.length >= 2 && (
+                        <div className="mt-6 text-center">
+                            <p className="text-body-sm text-muted-foreground mb-4">
+                                No coach review available yet. Generate one to see coaching feedback on your interview.
+                            </p>
+                            <Button
+                                onClick={regenerateReview}
+                                disabled={regenerating}
+                            >
+                                {regenerating ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                )}
+                                Analyse Interview Technique
+                            </Button>
+                        </div>
+                    )}
+                </WorkspaceFrame>
 
                 {/* Coach Chat Dialog */}
                 <Dialog open={coachChatOpen} onOpenChange={setCoachChatOpen}>
-                    <DialogContent className="max-w-md p-0 overflow-hidden bg-background border border-border shadow-lg rounded-md gap-0">
-                        <DialogHeader className="px-5 py-4 border-b border-border bg-card">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-9 w-9 rounded-md bg-primary flex items-center justify-center text-primary-foreground">
-                                        <MessageCircle className="h-4.5 w-4.5" />
-                                    </div>
-                                    <div className="space-y-0.5">
-                                        <DialogTitle className="text-sm font-bold text-foreground">Ask Your Coach</DialogTitle>
-                                        <p className="text-[11px] text-muted-foreground font-medium">Get deeper insights on this feedback</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </DialogHeader>
+                    <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-white gap-0">
+                        {/* Header — eyebrow + display title, no icon chip, no border band */}
+                        <div className="px-7 pt-7 pb-2">
+                            <span className="text-eyebrow text-[color:var(--primary)]">Ask the coach</span>
+                            <DialogTitle className="text-display-4 text-foreground leading-tight mt-1.5">
+                                Get deeper insight on this feedback.
+                            </DialogTitle>
+                        </div>
 
-                        {/* Feedback Context */}
+                        {/* Feedback Context — quiet inset card, no separator band */}
                         {coachChatFeedback && (
-                            <div className="px-5 py-4 bg-muted border-b border-border">
-                                <div className="flex items-start gap-3">
-                                    <div className={`h-6 w-6 rounded-md flex items-center justify-center shrink-0 ${coachChatFeedback.type === "highlight"
-                                        ? "bg-accent text-foreground"
-                                        : coachChatFeedback.type === "leading"
-                                            ? "bg-amber-100 text-amber-600"
-                                            : "bg-purple-100 text-purple-600"
-                                        }`}>
-                                        {coachChatFeedback.type === "highlight" && <ThumbsUp className="h-3.5 w-3.5" />}
-                                        {coachChatFeedback.type === "leading" && <AlertTriangle className="h-3.5 w-3.5" />}
-                                        {coachChatFeedback.type === "missed" && <Lightbulb className="h-3.5 w-3.5" />}
-                                    </div>
-                                    <p className="text-xs text-foreground leading-relaxed pt-0.5 font-medium">
+                            <div className="px-7 pt-4 pb-1">
+                                <div className="rounded-[12px] bg-[color:var(--surface-muted)] shadow-inset-edge px-4 py-3">
+                                    <p className="text-body-sm text-foreground leading-relaxed">
                                         {coachChatFeedback.content.observation || coachChatFeedback.content.issue || coachChatFeedback.content.opportunity}
                                     </p>
                                 </div>
@@ -1084,21 +1350,18 @@ export default function ViewSessionPage({ params }: PageProps) {
                         )}
 
                         {/* Chat Messages */}
-                        <div className="h-72 overflow-y-auto p-5 space-y-4 bg-background">
+                        <div className="h-72 overflow-y-auto px-7 py-4 space-y-3 bg-white">
                             {coachChatMessages.length === 0 && !coachChatLoading && (
-                                <div className="text-center text-muted-foreground text-sm py-10 flex flex-col items-center">
-                                    <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center mb-3">
-                                        <MessageCircle className="h-6 w-6 text-muted-foreground" />
-                                    </div>
-                                    <p className="font-medium text-muted-foreground">Ask a question about this feedback</p>
-                                    <p className="text-xs mt-1 text-muted-foreground">e.g., "Why is this important?"</p>
+                                <div className="text-center py-10 flex flex-col items-center gap-1">
+                                    <p className="text-body-sm font-medium text-foreground">Ask a question about this feedback</p>
+                                    <p className="text-caption text-muted-foreground">e.g. &ldquo;Why is this important?&rdquo;</p>
                                 </div>
                             )}
                             {coachChatMessages.map((msg, idx) => (
                                 <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                                    <div className={`max-w-[85%] px-4 py-2.5 rounded-md text-sm leading-relaxed ${msg.role === "user"
-                                        ? "bg-accent border border-border text-foreground rounded-tr-none"
-                                        : "bg-card border border-border text-foreground rounded-tl-none"
+                                    <div className={`max-w-[85%] px-3.5 py-2.5 rounded-[12px] text-body-sm leading-relaxed ${msg.role === "user"
+                                        ? "bg-[color:var(--primary-soft)] text-foreground"
+                                        : "bg-[color:var(--surface-muted)] text-foreground shadow-inset-edge"
                                         }`}>
                                         {msg.content}
                                     </div>
@@ -1106,40 +1369,39 @@ export default function ViewSessionPage({ params }: PageProps) {
                             ))}
                             {coachChatLoading && (
                                 <div className="flex justify-start">
-                                    <div className="bg-card border border-border text-muted-foreground px-4 py-3 rounded-md rounded-tl-none text-sm flex items-center gap-2">
-                                        <span className="flex gap-1">
-                                            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                            <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"></span>
-                                        </span>
+                                    <div className="bg-[color:var(--surface-muted)] shadow-inset-edge px-4 py-3 rounded-[12px] flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"></span>
                                     </div>
                                 </div>
                             )}
                             <div ref={coachChatEndRef} />
                         </div>
 
-                        {/* Input */}
-                        <div className="p-4 border-t border-border bg-card">
-                            <div className="flex gap-2 items-center bg-background border border-input rounded-md px-2 py-1.5 transition-all">
+                        {/* Input — borderless, soft inset shadow, amber pill send */}
+                        <div className="px-7 pb-7 pt-2">
+                            <div className="flex gap-2 items-center bg-white shadow-inset-edge rounded-[12px] px-3 py-1.5">
                                 <Input
                                     value={coachChatInput}
                                     onChange={(e) => setCoachChatInput(e.target.value)}
-                                    placeholder="Type your question..."
-                                    className="flex-1 text-sm border-none shadow-none focus-visible:ring-0 bg-transparent h-9"
+                                    placeholder="Type your question…"
+                                    className="flex-1 text-body-sm border-none shadow-none focus-visible:ring-0 bg-transparent h-9 px-0"
                                     onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendCoachMessage()}
                                 />
-                                <Button
-                                    size="sm"
+                                <button
+                                    type="button"
                                     onClick={sendCoachMessage}
                                     disabled={!coachChatInput.trim() || coachChatLoading}
-                                    className="h-8 w-8 rounded-md bg-primary hover:bg-primary/90 p-0 shrink-0"
+                                    aria-label="Send"
+                                    className="h-8 w-8 rounded-full bg-[color:var(--primary)] text-white shrink-0 flex items-center justify-center hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-[filter,opacity]"
                                 >
                                     {coachChatLoading ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                     ) : (
                                         <Send className="h-3.5 w-3.5" />
                                     )}
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     </DialogContent>
@@ -1192,4 +1454,44 @@ export default function ViewSessionPage({ params }: PageProps) {
         </TooltipProvider>
     );
 }
+
+// ---- Local compare components ----
+// Compact row for Agreements / Tensions / Gaps columns; mirrors SR2_CompareRow in the exploration.
+function CompareRow({
+    text,
+    chips,
+}: {
+    text: string;
+    chips: { id: string; name: string }[];
+}) {
+    return (
+        <div className="flex gap-3 items-start rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-5">
+            <span className="w-1 h-1 rounded-full bg-muted-foreground shrink-0 mt-[9px]" />
+            <div className="flex-1 flex flex-col gap-2">
+                <div className="text-body-sm leading-[1.55] text-foreground">{text}</div>
+                {chips.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                        {chips.map((c) => (
+                            <span
+                                key={c.id}
+                                className="shadow-inset-edge bg-[color:var(--surface-muted)] text-muted-foreground text-caption rounded-full px-2 py-0.5"
+                            >
+                                {c.name.replace(/^The /, "")}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function EmptyCompareCard({ label }: { label: string }) {
+    return (
+        <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-5 text-caption italic text-muted-foreground">
+            {label}
+        </div>
+    );
+}
+
 // Created by Swapnil Bapat © 2026

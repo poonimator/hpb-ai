@@ -9,12 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-    ArrowLeft,
     Loader2,
     BookOpen,
     Plus,
     Trash2,
     AlertTriangle,
+    Check,
     CheckCircle2,
     RefreshCw,
     Sparkles,
@@ -26,9 +26,19 @@ import {
     MessageSquareWarning,
     ClipboardPaste,
     FileText,
-    Download
+    Download,
+    MoreHorizontal,
 } from "lucide-react";
-import Link from "next/link";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { CenteredSpinner } from "@/components/ui/centered-spinner";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
+import { JumpItem } from "@/components/layout/jump-item";
+import { Mono } from "@/components/ui/mono";
 import {
     Dialog,
     DialogContent,
@@ -38,6 +48,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 interface SubQuestion {
@@ -144,8 +160,48 @@ function GuideSetupPageContent() {
     const [saving, setSaving] = useState(false);
     const [finishing, setFinishing] = useState(false);
     const [expandedSuggestionId, setExpandedSuggestionId] = useState<string | null>(null);
+    // Which feedback/research icon should briefly pulse (holds the suggestion id, not a question id).
+    // Used to signal "this is the indicator your selected rail card belongs to" via the icon itself,
+    // rather than wrapping the whole question/sub-question with a ring.
+    const [pulseIconId, setPulseIconId] = useState<string | null>(null);
+    const [railFilter, setRailFilter] = useState<'All' | 'Feedback' | 'Research'>('All');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [hasSavedGuide, setHasSavedGuide] = useState(false); // Track if guide has been saved
+
+    // Rail jump-to navigation
+    const [activeSetId, setActiveSetId] = useState<string | null>(null);
+
+    const handleJumpToSet = useCallback((setId: string) => {
+        const el = document.getElementById(`guideset-${setId}`)
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+    }, []);
+
+    useEffect(() => {
+        if (guideSets.length === 0) return
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const visible = entries.filter((e) => e.isIntersecting)
+                if (visible.length > 0) {
+                    const top = visible.sort(
+                        (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
+                    )[0]
+                    const id = top.target.getAttribute("data-guideset-id")
+                    if (id) setActiveSetId(id)
+                }
+            },
+            { rootMargin: "-80px 0px -60% 0px", threshold: [0, 0.25] }
+        )
+
+        guideSets.forEach((set) => {
+            const el = document.getElementById(`guideset-${set.id}`)
+            if (el) observer.observe(el)
+        })
+
+        return () => observer.disconnect()
+    }, [guideSets]);
 
     // Import Guide Dialog State
     const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -187,7 +243,7 @@ function GuideSetupPageContent() {
                 const projectRes = await fetch(`/api/projects/${projectId}`);
                 const projectData = await projectRes.json();
                 if (!projectData.success) {
-                    alert("Project not found");
+                    toast.error("Project not found");
                     router.push("/projects/new");
                     return;
                 }
@@ -241,7 +297,7 @@ function GuideSetupPageContent() {
                             }]);
                         }
                     } else {
-                        alert("Guide not found");
+                        toast.error("Guide not found");
                         router.back();
                         return;
                     }
@@ -258,7 +314,7 @@ function GuideSetupPageContent() {
                 }
             } catch (err) {
                 console.error(err);
-                alert("Failed to load data");
+                toast.error("Failed to load data");
             } finally {
                 setLoading(false);
             }
@@ -283,7 +339,7 @@ function GuideSetupPageContent() {
     // Remove a guide set
     const removeGuideSet = (setId: string) => {
         if (guideSets.length <= 1) {
-            alert("You need at least one question set");
+            toast.error("You need at least one question set");
             return;
         }
         setGuideSets(guideSets.filter(s => s.id !== setId));
@@ -427,6 +483,24 @@ function GuideSetupPageContent() {
 
     const numberToLetter = (num: number): string => String.fromCharCode(65 + num);
 
+    // Focus a feedback/research card in the right rail; scrolls the (sub-)question into view
+    // and briefly pulses the matching indicator icon. targetId is the sub-question id when the
+    // suggestion belongs to a sub-question, else the parent question id — never wraps the whole
+    // parent block when a sub-question is selected.
+    const focusFeedback = useCallback((cardId: string, targetId: string) => {
+        setExpandedSuggestionId(cardId);
+        const railCardEl = document.getElementById(`rail-card-${cardId}`);
+        if (railCardEl) {
+            railCardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        const questionEl = document.getElementById(`q-${targetId}`);
+        if (questionEl) {
+            questionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        setPulseIconId(cardId);
+        setTimeout(() => setPulseIconId(null), 1000);
+    }, []);
+
     // Run quality check on a specific set
     const runQualityCheck = useCallback(async (setId: string) => {
         const set = guideSets.find(s => s.id === setId);
@@ -434,7 +508,7 @@ function GuideSetupPageContent() {
 
         const validQuestions = set.questions.filter(q => q.text.trim());
         if (validQuestions.length === 0) {
-            alert("Add at least one question before checking");
+            toast.error("Add at least one question before checking");
             return;
         }
 
@@ -597,14 +671,14 @@ function GuideSetupPageContent() {
                 setHasUnsavedChanges(true);
 
             } else {
-                alert("Failed to check questions: " + (validationData.error || "Unknown error"));
+                toast.error("Failed to check questions: " + (validationData.error || "Unknown error"));
                 setGuideSets(prev => prev.map(s =>
                     s.id === setId ? { ...s, isChecking: false } : s
                 ));
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to check questions");
+            toast.error("Failed to check questions");
             setGuideSets(prev => prev.map(s =>
                 s.id === setId ? { ...s, isChecking: false } : s
             ));
@@ -650,16 +724,16 @@ function GuideSetupPageContent() {
         // Validate
         for (const set of guideSets) {
             if (!set.title.trim()) {
-                alert("Please provide a title for all question sets");
+                toast.error("Please provide a title for all question sets");
                 return false;
             }
             if (!set.intent.trim()) {
-                alert("Please provide an intent for all question sets");
+                toast.error("Please provide an intent for all question sets");
                 return false;
             }
             const validQuestions = set.questions.filter(q => q.text.trim());
             if (validQuestions.length === 0) {
-                alert(`Please add at least one question to "${set.title}"`);
+                toast.error(`Please add at least one question to "${set.title}"`);
                 return false;
             }
         }
@@ -703,12 +777,12 @@ function GuideSetupPageContent() {
                 setHasSavedGuide(true); // Mark that guide has been saved
                 return true;
             } else {
-                alert("Failed to save: " + (data.error || "Unknown error"));
+                toast.error("Failed to save: " + (data.error || "Unknown error"));
                 return false;
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to save guide");
+            toast.error("Failed to save guide");
             return false;
         } finally {
             setSaving(false);
@@ -738,11 +812,11 @@ function GuideSetupPageContent() {
             if (data.success) {
                 router.push(`/projects/${projectId}/sub/${subProjectId}`);
             } else {
-                alert("Failed to complete setup: " + (data.error || "Unknown error"));
+                toast.error("Failed to complete setup: " + (data.error || "Unknown error"));
             }
         } catch (err) {
             console.error(err);
-            alert("Failed to complete setup");
+            toast.error("Failed to complete setup");
         } finally {
             setFinishing(false);
         }
@@ -908,21 +982,32 @@ function GuideSetupPageContent() {
         URL.revokeObjectURL(url);
     };
 
-    // Quality indicator
-    // Only show Good badge - hide Needs Work and Issues badges as per user request
+    // Quality indicator — just a small green dot (no text) so all question textareas align to the same right edge
     const getQualityBadge = (quality?: string) => {
         if (quality === 'GOOD') {
-            return <Badge className="bg-accent text-foreground border-border"><CheckCircle2 className="h-3 w-3 mr-1" /> Good</Badge>;
+            return (
+                <span
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center"
+                    aria-label="Question quality: good"
+                    title="Question quality: good"
+                >
+                    <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--success)] shadow-inset-edge" />
+                </span>
+            );
         }
         return null;
     };
 
     const getSeverityColor = (severity: string) => {
         switch (severity) {
-            case 'HIGH': return 'text-red-600 bg-red-50 border-red-200';
-            case 'MEDIUM': return 'text-amber-600 bg-amber-50 border-amber-200';
-            case 'LOW': return 'text-blue-600 bg-blue-50 border-blue-200';
-            default: return 'text-muted-foreground bg-muted border-border';
+            case 'HIGH':
+                return 'text-[color:var(--danger)] bg-[color:var(--danger-soft)] border-[color:var(--danger)]/25'
+            case 'MEDIUM':
+                return 'text-[color:var(--warning)] bg-[color:var(--warning-soft)] border-[color:var(--warning)]/25'
+            case 'LOW':
+                return 'text-[color:var(--info)] bg-[color:var(--info-soft)] border-[color:var(--info)]/25'
+            default:
+                return 'text-muted-foreground bg-[color:var(--surface-muted)] border-[color:var(--border-subtle)]'
         }
     };
 
@@ -934,114 +1019,489 @@ function GuideSetupPageContent() {
         );
     }
 
-    return (
-        <div className="flex flex-col pb-12">
-            {/* Edge-to-edge header bar */}
-            <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-white border-b border-border">
-                <div className="flex items-center justify-between px-8 py-3 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={subProjectId ? `/projects/${projectId}/sub/${subProjectId}?tab=guides` : `/projects/${projectId}`}
-                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label={`Back to ${project?.name || "Project"}`}
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Back</span>
-                        </Link>
-                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-foreground">
-                            <FileText className="h-4 w-4" />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-foreground">Moderator Guide Setup</h1>
-                            <p className="text-[11px] text-muted-foreground">
-                                {project?.name || "Project"}
-                                {hasSavedGuide ? (
-                                    <>
-                                        <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
-                                        <span>Editing saved guide</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="mx-1.5 text-muted-foreground/40">&middot;</span>
-                                        <span>Step 2 of 2</span>
-                                    </>
-                                )}
-                            </p>
-                        </div>
-                    </div>
+    const totalQuestions = guideSets.reduce((sum, s) => sum + s.questions.length, 0)
+    const setsWithQuestions = guideSets.filter((s) => s.questions.length > 0).length
+    const setsWithTitles = guideSets.filter((s) => s.title.trim().length > 0).length
 
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={exportGuide}
-                            className="gap-1.5"
-                            title="Export Guide and Feedback to Text File"
+    // Save-state flag drives the PageBar Save button (no rail badge)
+    const isFullySaved = hasSavedGuide && !hasUnsavedChanges
+
+    const leftRail = (
+        <>
+            <RailHeader>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    {guideName || "Moderator Guide"}
+                </h2>
+                {project?.name && (
+                    <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                        For <span className="text-foreground">{project.name}</span>
+                    </p>
+                )}
+            </RailHeader>
+
+            <RailSection title="Question sets">
+                {guideSets.length === 0 ? (
+                    <p className="text-body-sm text-muted-foreground">No question sets yet.</p>
+                ) : (
+                    <div className="flex flex-col gap-0.5">
+                        {guideSets.map((set, idx) => (
+                            <JumpItem
+                                key={set.id}
+                                label={set.title.trim() || `Untitled set ${idx + 1}`}
+                                count={set.questions.length}
+                                active={activeSetId === set.id}
+                                onClick={() => handleJumpToSet(set.id)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </RailSection>
+
+            <RailSection title="Readiness" last>
+                <div className="flex flex-col gap-2">
+                    <ReadinessRow
+                        done={setsWithTitles === guideSets.length && guideSets.length > 0}
+                        label="Every set has a title"
+                    />
+                    <ReadinessRow
+                        done={setsWithQuestions === guideSets.length && guideSets.length > 0}
+                        label="Every set has a question"
+                    />
+                    <ReadinessRow done={hasSavedGuide} label="Guide saved" />
+                </div>
+            </RailSection>
+
+            {/* Trailing spacer — fills remaining aside height with surface bg (session-review-v2.jsx:404) */}
+            <div className="flex-1" />
+        </>
+    )
+
+    // Build flat list of all feedback + research items for the right rail
+    const allFeedbackItems: Array<{
+        kind: 'feedback' | 'research';
+        id: string;
+        setId: string;
+        questionId: string;
+        subQuestionId?: string;
+        questionRef: string;
+        severity?: 'HIGH' | 'MEDIUM' | 'LOW';
+        title: string;
+        explanation?: string;
+        suggestedRewrite?: string;
+        source?: string;
+        excerpt?: string;
+        introText?: string;
+        actionSuggestion?: string;
+        summary?: string;
+    }> = [];
+
+    guideSets.forEach((set) => {
+        set.questions.forEach((q, qIndex) => {
+            const setLabel = set.title.trim() || 'Set';
+            const qLabel = `Q${qIndex + 1}`;
+            // Main question feedback
+            if (q.overallQuality !== 'GOOD' && q.issues && q.issues.length > 0) {
+                const issue = q.issues[0];
+                allFeedbackItems.push({
+                    kind: 'feedback',
+                    id: `${q.id}-main-0`,
+                    setId: set.id,
+                    questionId: q.id,
+                    questionRef: `${setLabel} · ${qLabel}`,
+                    severity: issue.severity,
+                    title: issue.type || 'Issue',
+                    explanation: issue.explanation,
+                    suggestedRewrite: issue.suggestedRewrite,
+                });
+            }
+            // Main question research
+            if (q.researchInsight) {
+                allFeedbackItems.push({
+                    kind: 'research',
+                    id: `${q.id}-research`,
+                    setId: set.id,
+                    questionId: q.id,
+                    questionRef: `${setLabel} · ${qLabel}`,
+                    title: q.researchInsight.summary || 'Research Insight',
+                    source: q.researchInsight.documentName,
+                    excerpt: q.researchInsight.excerpt,
+                    introText: q.researchInsight.introText,
+                    actionSuggestion: q.researchInsight.actionSuggestion,
+                    summary: q.researchInsight.summary,
+                });
+            }
+            // Sub-questions
+            q.subQuestions.forEach((sq, sqIndex) => {
+                const sqLabel = `${qLabel}${numberToLetter(sqIndex)}`;
+                if (sq.overallQuality !== 'GOOD' && sq.issues && sq.issues.length > 0) {
+                    const issue = sq.issues[0];
+                    allFeedbackItems.push({
+                        kind: 'feedback',
+                        id: `${q.id}-sub-${sq.id}-0`,
+                        setId: set.id,
+                        questionId: q.id,
+                        subQuestionId: sq.id,
+                        questionRef: `${setLabel} · ${sqLabel}`,
+                        severity: issue.severity,
+                        title: issue.type || 'Issue',
+                        explanation: issue.explanation,
+                        suggestedRewrite: issue.suggestedRewrite,
+                    });
+                }
+                if (sq.researchInsight) {
+                    allFeedbackItems.push({
+                        kind: 'research',
+                        id: `${sq.id}-research`,
+                        setId: set.id,
+                        questionId: q.id,
+                        subQuestionId: sq.id,
+                        questionRef: `${setLabel} · ${sqLabel}`,
+                        title: sq.researchInsight.summary || 'Research Insight',
+                        source: sq.researchInsight.documentName,
+                        excerpt: sq.researchInsight.excerpt,
+                        introText: sq.researchInsight.introText,
+                        actionSuggestion: sq.researchInsight.actionSuggestion,
+                        summary: sq.researchInsight.summary,
+                    });
+                }
+            });
+        });
+    });
+
+    const filteredItems = allFeedbackItems.filter((item) => {
+        if (railFilter === 'All') return true;
+        if (railFilter === 'Feedback') return item.kind === 'feedback';
+        if (railFilter === 'Research') return item.kind === 'research';
+        return true;
+    });
+
+    const getSeverityDotColor = (severity?: string) => {
+        switch (severity) {
+            case 'HIGH': return 'bg-[color:var(--danger)]';
+            case 'MEDIUM': return 'bg-[color:var(--warning)]';
+            case 'LOW': return 'bg-[color:var(--info)]';
+            default: return 'bg-muted-foreground';
+        }
+    };
+
+    const rightRail = (
+        <>
+            {/* Rail header — uses shared RailHeader primitive for cross-tool consistency */}
+            <RailHeader>
+                <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-display-4 text-foreground leading-tight">AI Feedback</h2>
+                    {/* "N found" pill — matches interview simulation.jsx:516-517 Badge color="amber" */}
+                    <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[color:var(--surface-muted)] shadow-inset-edge shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--primary)]" />
+                        <span className="text-[11.5px] font-semibold text-foreground">{allFeedbackItems.length} found</span>
+                    </span>
+                </div>
+            </RailHeader>
+
+            {/* Filter tabs — matches interview simulation.jsx:518-531 */}
+            {/* Filter tabs — px-6 matches rail-section padding for consistency */}
+            <div className="flex gap-1 px-6 py-3 border-b border-[color:var(--border-subtle)]">
+                {(['All', 'Feedback', 'Research'] as const).map((tab) => {
+                    const active = railFilter === tab;
+                    return (
+                        <button
+                            key={tab}
+                            onClick={() => setRailFilter(tab)}
+                            className={`h-7 px-3 rounded-full text-[12px] font-medium transition-colors ${
+                                active
+                                    ? 'bg-[color:var(--ink)] text-white'
+                                    : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface-muted)]/60'
+                            }`}
                         >
-                            <Download className="h-3.5 w-3.5" />
-                            Export
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
+                            {tab}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Scrollable card list — matches interview simulation.jsx:535-545 */}
+            {/* flex-1 overflow-y-auto padding:14, gap:10 */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-2.5">
+                {filteredItems.length === 0 ? (
+                    <p className="text-body-sm text-muted-foreground text-center mt-8">
+                        {allFeedbackItems.length === 0
+                            ? 'Nothing yet. Run \u201cCheck All\u201d to surface feedback.'
+                            : 'No items match this filter.'}
+                    </p>
+                ) : (
+                    filteredItems.map((item) => {
+                        const isExpanded = expandedSuggestionId === item.id;
+                        return (
+                            <div
+                                key={item.id}
+                                id={`rail-card-${item.id}`}
+                                data-feedback-card
+                                onClick={() => {
+                                    if (!isExpanded) {
+                                        setExpandedSuggestionId(item.id);
+                                        // Scroll to the specific (sub-)question the suggestion belongs to, not just the parent block
+                                        const targetId = item.subQuestionId ?? item.questionId;
+                                        const questionEl = document.getElementById(`q-${targetId}`);
+                                        if (questionEl) {
+                                            questionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }
+                                        setPulseIconId(item.id);
+                                        setTimeout(() => setPulseIconId(null), 1000);
+                                    } else {
+                                        setExpandedSuggestionId(null);
+                                    }
+                                }}
+                                // RailCard outer. Collapsed = neutral white. Expanded differentiates via:
+                                // - stronger kind-tinted bg (no tinted borders / no left bar)
+                                // - 2px full ring in kind color around all sides (via box-shadow, uniform)
+                                // - warm-lift soft drop shadow so the card visibly elevates off the list
+                                className={cn(
+                                    "rounded-[14px] cursor-pointer transition-all duration-200",
+                                    isExpanded
+                                        ? (item.kind === 'feedback'
+                                            ? "bg-[color:var(--primary-soft)] border-none shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_38%,transparent),0_6px_18px_rgb(78_50_23_/0.06)]"
+                                            : "bg-[color:var(--knowledge-soft)] border-none shadow-[0_0_0_2px_color-mix(in_oklab,var(--knowledge)_38%,transparent),0_6px_18px_rgb(78_50_23_/0.06)]")
+                                        : "bg-white border border-[color:var(--border-subtle)] shadow-inset-edge hover:shadow-outline-ring"
+                                )}
+                            >
+                                {/* Collapsed — matches interview simulation.jsx:563-579 */}
+                                {!isExpanded && (
+                                    <div className="p-[12px_14px] flex flex-col gap-2">
+                                        {/* Header row */}
+                                        <div className="flex items-center gap-2.5">
+                                            {/* Severity dot — w-1.5 h-1.5 rounded-full */}
+                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                                item.kind === 'feedback'
+                                                    ? getSeverityDotColor(item.severity)
+                                                    : 'bg-[color:var(--knowledge)]'
+                                            }`} />
+                                            {/* Question ref in MONO — text-[11px] text-muted-foreground font-mono */}
+                                            <span className="text-[11px] text-muted-foreground font-mono flex-1 truncate">
+                                                {item.questionRef}
+                                            </span>
+                                            <ChevronDown className="text-muted-foreground shrink-0" style={{ width: 14, height: 14 }} />
+                                        </div>
+                                        {/* Body — text-[13.5px] text-foreground leading-[1.5] mt-2 line-clamp-2 */}
+                                        <p className="text-[13.5px] text-foreground leading-[1.5] mt-2 line-clamp-2">
+                                            {item.kind === 'feedback' ? item.explanation : item.excerpt}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Expanded — matches interview simulation.jsx:582-661 */}
+                                {isExpanded && (
+                                    <div className="p-[14px_16px_16px] flex flex-col gap-3.5">
+                                        {/* Meta row */}
+                                        <div className="flex items-center gap-2.5">
+                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                                item.kind === 'feedback'
+                                                    ? getSeverityDotColor(item.severity)
+                                                    : 'bg-[color:var(--knowledge)]'
+                                            }`} />
+                                            <span className="text-[11px] text-muted-foreground font-mono flex-1 truncate">
+                                                {item.questionRef}
+                                            </span>
+                                            {/* Close X — matches interview simulation.jsx:593-600 */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setExpandedSuggestionId(null); }}
+                                                className="h-[22px] w-[22px] flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors border-none bg-transparent"
+                                            >
+                                                <X style={{ width: 13, height: 13 }} strokeWidth={1.8} />
+                                            </button>
+                                        </div>
+
+                                        {item.kind === 'feedback' ? (
+                                            <>
+                                                {/* The issue — guide-adapted: AI-written explanation, not a verbatim quote (no italic) */}
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="text-[10.5px] font-semibold text-muted-foreground tracking-[0.12em] uppercase">
+                                                        Why this needs a look
+                                                    </div>
+                                                    <p className="text-[13.5px] text-foreground leading-[1.6]">
+                                                        {item.explanation}
+                                                    </p>
+                                                </div>
+
+                                                {/* Suggested rewrite — guide-adapted: proposed better version of the question, accent quote block since this is literal question copy */}
+                                                {item.suggestedRewrite && (
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <div className="text-[10.5px] font-semibold text-muted-foreground tracking-[0.12em] uppercase">
+                                                            Suggested rewrite
+                                                        </div>
+                                                        <div className="border-l-2 border-[color:var(--primary)] pl-3 ml-0.5">
+                                                            <p className="text-[13.5px] text-foreground leading-[1.55]">
+                                                                {item.suggestedRewrite.replace(/^Reflection:\s*/i, '')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Dismiss */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        dismissSuggestion(item.setId, item.questionId, item.subQuestionId, 0);
+                                                    }}
+                                                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-[color:var(--danger)] font-medium transition-colors mt-0.5"
+                                                >
+                                                    <Trash2 className="h-3 w-3" /> Dismiss
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Research intro */}
+                                                <p className="text-[13.5px] text-foreground leading-[1.6]">
+                                                    {item.introText || 'Relevant insights from your research:'}
+                                                </p>
+
+                                                {/* Knowledge left-border excerpt — parallel to amber treatment for research */}
+                                                <div className="border-l-2 border-[color:var(--knowledge)] pl-3 ml-0.5">
+                                                    <p className="text-[14px] text-foreground leading-[1.5] italic">
+                                                        &ldquo;{item.excerpt}&rdquo;
+                                                    </p>
+                                                    {item.source && (
+                                                        <p className="text-[10px] text-[color:var(--knowledge)] font-medium mt-1.5 text-right">— {item.source}</p>
+                                                    )}
+                                                </div>
+
+                                                {/* How to apply — guide-adapted: actionable suggestion for refining the question based on this research */}
+                                                {item.actionSuggestion && (
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <div className="text-[10.5px] font-semibold text-muted-foreground tracking-[0.12em] uppercase">
+                                                            How to apply
+                                                        </div>
+                                                        <p className="text-[13px] text-muted-foreground leading-[1.55]">
+                                                            {item.actionSuggestion}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+        </>
+    );
+
+    return (
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{
+                    href: subProjectId
+                        ? `/projects/${projectId}/sub/${subProjectId}?tab=guides`
+                        : `/projects/${projectId}`,
+                    label: "Back",
+                }}
+                crumbs={
+                    project?.name
+                        ? [
+                              { label: project.name, href: `/projects/${projectId}` },
+                              { label: "Moderator Guide" },
+                          ]
+                        : undefined
+                }
+                action={
+                    <div className="flex items-center gap-2">
+                        {/* PillGhost — h-8 px-3 rounded-full bg-white shadow-outline-ring text-[12.5px] font-medium */}
+                        <button
                             onClick={checkAllGuides}
                             disabled={guideSets.some(s => s.isChecking)}
-                            className="gap-1.5"
+                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white text-[12.5px] font-medium text-foreground shadow-outline-ring transition-colors hover:bg-[color:var(--surface-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {guideSets.some(s => s.isChecking) ? (
                                 <>
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    Checking...
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    Checking…
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles className="h-3.5 w-3.5" />
+                                    <Sparkles className="h-3 w-3" />
                                     Check All
                                 </>
                             )}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setImportDialogOpen(true)}
-                            disabled={saving || finishing || importing}
-                            className="gap-1.5"
-                        >
-                            <ClipboardPaste className="h-3.5 w-3.5" />
-                            Import Guide
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
+                        </button>
+                        {/* Primary pill — 'Save' when dirty, 'Saved' (locked) when up to date, 'Saving…' mid-request */}
+                        <button
                             onClick={saveGuideSets}
-                            disabled={saving || finishing}
-                            className="gap-1.5"
+                            disabled={saving || finishing || isFullySaved}
+                            aria-label={isFullySaved ? "Guide is saved" : "Save guide"}
+                            className={cn(
+                                "inline-flex items-center gap-1.5 h-8 px-[14px] rounded-full text-[12.5px] font-medium shadow-card transition-colors",
+                                isFullySaved
+                                    ? "bg-[color:var(--success-soft)] text-[color:var(--success)] cursor-default"
+                                    : "bg-[color:var(--ink)] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                            )}
                         >
-                            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                            Save
-                        </Button>
+                            {saving ? (
+                                <>
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    Saving…
+                                </>
+                            ) : isFullySaved ? (
+                                <>
+                                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                                    Saved
+                                </>
+                            ) : (
+                                'Save'
+                            )}
+                        </button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="inline-flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface-muted)]/60 transition-colors" title="More actions">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={exportGuide}>
+                                    <Download className="h-3.5 w-3.5 mr-2" />
+                                    Export Guide
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setImportDialogOpen(true)} disabled={saving || finishing || importing}>
+                                    <ClipboardPaste className="h-3.5 w-3.5 mr-2" />
+                                    Import Guide
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Main Content Container */}
-            <div>
-                <div className="relative min-h-[600px] py-8">
-                    {/* Legend */}
+            <WorkspaceFrame variant="platform" scrollContained leftRail={leftRail} rightRail={rightRail}>
+                {/* Hero — session-review-v2.jsx:411-419: maxWidth:820, marginBottom:28 */}
+                <div className="max-w-[820px] mb-7">
+                    <h1 className="text-display-1 text-foreground">Moderator Guide</h1>
+                    {/* fontSize:13.5 → text-body, lineHeight:1.7, marginTop:14 → mt-3.5 */}
+                    <p className="text-body text-muted-foreground mt-3.5">
+                        Design the question sets the AI moderator will use. Each set should have an intent and a few questions; quality feedback and research insights appear in the right rail.
+                    </p>
+                </div>
+                <div className="relative min-h-[600px]">
+                    {/* Legend — bold-chip variant, mirrors the question-row indicator style */}
                     <div className="flex justify-end mb-8">
-                        <div className="inline-flex items-center gap-4 text-xs text-muted-foreground px-4 py-2.5 bg-muted rounded-md border border-border">
+                        <div className="inline-flex items-center gap-4 text-xs text-muted-foreground px-4 py-2.5 bg-[color:var(--surface-muted)] rounded-md shadow-inset-edge">
                             <span className="font-medium text-foreground">Legend:</span>
                             <div className="flex items-center gap-2">
-                                <div className="h-5 w-5 rounded-md bg-muted flex items-center justify-center text-muted-foreground border border-border">
-                                    <MessageSquareWarning className="h-3 w-3" />
-                                </div>
-                                <span>Feedback / Issues</span>
+                                <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--success)] shadow-inset-edge" />
+                                <span>Good question</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="h-5 w-5 rounded-md bg-violet-50 flex items-center justify-center text-violet-600 border border-violet-200">
-                                    <FileText className="h-3 w-3" />
+                                <div className="h-5 w-5 rounded-md bg-[color:var(--primary-soft)] text-[color:var(--primary)] flex items-center justify-center shadow-inset-edge">
+                                    <MessageSquareWarning className="h-3 w-3" strokeWidth={2} />
                                 </div>
-                                <span>Research Insight</span>
+                                <span>Feedback</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="h-5 w-5 rounded-md bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] flex items-center justify-center shadow-inset-edge">
+                                    <FileText className="h-3 w-3" strokeWidth={2} />
+                                </div>
+                                <span>Research</span>
                             </div>
                         </div>
                     </div>
@@ -1092,11 +1552,11 @@ What we want to uncover: Understanding how participants structure their day
                                     {importText && (
                                         <Button
                                             variant="ghost"
-                                            size="sm"
+                                            size="icon-sm"
                                             onClick={() => setImportText("")}
-                                            className="absolute top-2 right-2 h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                            className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
                                         >
-                                            <X className="h-4 w-4" />
+                                            <X className="h-3.5 w-3.5" />
                                         </Button>
                                     )}
                                 </div>
@@ -1108,7 +1568,7 @@ What we want to uncover: Understanding how participants structure their day
 
                                 {/* Error Message */}
                                 {importError && (
-                                    <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50/80 border border-red-200/60 text-red-700 text-sm">
+                                    <div className="flex items-start gap-2 p-3 rounded-lg bg-[color:var(--danger-soft)] border border-[color:var(--danger)]/25 text-[color:var(--danger)] text-sm">
                                         <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                                         <span>{importError}</span>
                                     </div>
@@ -1148,16 +1608,15 @@ What we want to uncover: Understanding how participants structure their day
                                 <Button
                                     onClick={importGuide}
                                     disabled={importing || !importText.trim() || !!importSuccess}
-                                    className=""
                                 >
                                     {importing ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <Loader2 className="h-4 w-4 animate-spin" />
                                             Parsing...
                                         </>
                                     ) : (
                                         <>
-                                            <Sparkles className="h-4 w-4 mr-2" />
+                                            <Sparkles className="h-4 w-4" />
                                             Import
                                         </>
                                     )}
@@ -1168,16 +1627,19 @@ What we want to uncover: Understanding how participants structure their day
 
                     {/* Content Area */}
                     <div>
-                        <div className="space-y-4 pb-8">
+                        <div className="pb-8">
 
                             {/* Guide Sets */}
-                            {guideSets.map((set, setIndex) => (
-                                <div key={set.id} className="mb-6 relative isolate animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    {/* Card Background Layer (Left 65%) */}
-                                    <div className="absolute top-0 bottom-0 left-0 w-[65%] bg-card rounded-md border border-border -z-10 transition-all duration-500" />
-
-                                    {/* Header Section (Constrained to 65%) */}
-                                    <div className="w-[65%] p-6 rounded-t-2xl">
+                            <div className="flex flex-col gap-6">
+                            {guideSets.map((set) => (
+                                <div
+                                    key={set.id}
+                                    id={`guideset-${set.id}`}
+                                    data-guideset-id={set.id}
+                                    className="bg-card rounded-xl border border-border animate-in fade-in slide-in-from-bottom-4 duration-500 scroll-mt-[120px]"
+                                >
+                                    {/* Header Section */}
+                                    <div className="p-6">
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1 space-y-3">
                                                 <div className="flex items-center gap-3">
@@ -1212,22 +1674,21 @@ What we want to uncover: Understanding how participants structure their day
                                                     size="sm"
                                                     onClick={() => runQualityCheck(set.id)}
                                                     disabled={set.isChecking}
-                                                    className="text-xs h-8"
                                                 >
                                                     {set.isChecking ? (
-                                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                     ) : (
-                                                        <RefreshCw className="h-3 w-3 mr-1" />
+                                                        <RefreshCw className="h-3.5 w-3.5" />
                                                     )}
                                                     Check
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
-                                                    size="icon"
+                                                    size="icon-sm"
                                                     onClick={() => removeGuideSet(set.id)}
-                                                    className="text-muted-foreground hover:text-red-500 h-8 w-8"
+                                                    className="text-muted-foreground hover:text-[color:var(--danger)]"
                                                 >
-                                                    <Trash2 className="h-4 w-4" />
+                                                    <Trash2 className="h-3.5 w-3.5" />
                                                 </Button>
                                             </div>
                                         </div>
@@ -1235,14 +1696,18 @@ What we want to uncover: Understanding how participants structure their day
 
                                     {/* Body Section */}
                                     {set.isExpanded && (
-                                        <div className="p-6 space-y-6">
+                                        <div className="px-6 pb-6 space-y-6">
                                             {set.questions.map((question, qIndex) => (
-                                                <div key={question.id} className="space-y-4">
-                                                    {/* Main Question Grid Row */}
-                                                    <div className="grid grid-cols-[65%_35%] gap-6 items-start group">
-                                                        {/* Col 1: Main Input */}
-                                                        <div className="flex items-start gap-3 relative">
-                                                            <span className="text-sm text-muted-foreground font-mono pt-2.5 w-6 text-right font-semibold">
+                                                <div
+                                                    key={question.id}
+                                                    id={`q-${question.id}`}
+                                                    className="space-y-4 rounded-lg scroll-mt-24"
+                                                >
+                                                    {/* Main Question Row — fixed 96px right column so all textareas align to same right edge */}
+                                                    <div className="grid grid-cols-[1fr_96px] gap-3 items-start group">
+                                                        {/* Main Input */}
+                                                        <div className="flex items-start gap-3">
+                                                            <span className="text-sm text-muted-foreground font-mono pt-2.5 w-6 text-right font-semibold shrink-0">
                                                                 {qIndex + 1}.
                                                             </span>
                                                             <div className="flex-1 space-y-2">
@@ -1251,22 +1716,22 @@ What we want to uncover: Understanding how participants structure their day
                                                                         placeholder="Enter your question..."
                                                                         value={question.text}
                                                                         onChange={(e: any) => updateQuestion(set.id, question.id, 'text', e.target.value)}
-                                                                        className="flex-1 bg-card/50 border-input hover:border-border hover:bg-card focus:bg-card rounded-md transition-all min-h-[50px] resize-none py-3 placeholder:text-muted-foreground/50"
+                                                                        className="flex-1 bg-[color:var(--canvas)] border-input hover:border-border hover:bg-card focus:bg-card rounded-md transition-all min-h-[50px] resize-none py-3 placeholder:text-muted-foreground/50"
                                                                     />
-                                                                    {getQualityBadge(question.overallQuality)}
                                                                     <Button
                                                                         variant="ghost"
-                                                                        size="icon"
+                                                                        size="icon-sm"
                                                                         onClick={() => removeQuestion(set.id, question.id)}
-                                                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity h-8 w-8"
+                                                                        aria-label="Remove question"
+                                                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity shrink-0"
                                                                     >
-                                                                        <Trash2 className="h-4 w-4" />
+                                                                        <Trash2 className="h-3.5 w-3.5" />
                                                                     </Button>
                                                                 </div>
-                                                                {/* Follow-up button - appears on hover below the question */}
+                                                                {/* Follow-up button */}
                                                                 <button
                                                                     onClick={() => addSubQuestion(set.id, question.id)}
-                                                                    className="opacity-0 group-hover:opacity-100 text-xs text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 ml-1 transition-all duration-200 hover:gap-1.5"
+                                                                    className="opacity-0 group-hover:opacity-100 text-xs text-[color:var(--info)] hover:text-[color:var(--info)] font-medium flex items-center gap-1 ml-1 transition-all duration-200 hover:gap-1.5"
                                                                     title="Add follow-up question"
                                                                 >
                                                                     <Plus className="h-3 w-3" />
@@ -1275,128 +1740,74 @@ What we want to uncover: Understanding how participants structure their day
                                                             </div>
                                                         </div>
 
-                                                        {/* Col 2: Suggestions - Only show for non-GOOD questions */}
-                                                        {/* Col 2: Feedback & Research - Horizontal Icons */}
-                                                        <div className="relative pt-1 min-h-[42px]">
-                                                            {/* Collapsed Icons Row */}
-                                                            <div className="flex items-center gap-2">
-                                                                {/* Feedback Icon */}
-                                                                {question.overallQuality !== 'GOOD' && question.issues && question.issues.length > 0 && (() => {
-                                                                    const issue = question.issues[0];
-                                                                    const suggestionId = `${question.id}-main-0`;
-                                                                    const isExpanded = expandedSuggestionId === suggestionId;
-                                                                    const theme = issue.severity === 'HIGH'
-                                                                        ? { border: 'border-red-200/60', iconText: 'text-red-600', iconBg: 'from-red-50 to-red-100', accent: 'via-red-400/40', title: 'text-red-600/80', boxBg: 'bg-red-50/30', ring: 'ring-red-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
-                                                                        : issue.severity === 'MEDIUM'
-                                                                            ? { border: 'border-amber-200/60', iconText: 'text-amber-600', iconBg: 'from-amber-50 to-amber-100', accent: 'via-amber-400/40', title: 'text-amber-600/80', boxBg: 'bg-amber-50/30', ring: 'ring-amber-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
-                                                                            : { border: 'border-blue-200/60', iconText: 'text-blue-600', iconBg: 'from-blue-50 to-blue-100', accent: 'via-blue-400/40', title: 'text-blue-600/80', boxBg: 'bg-blue-50/30', ring: 'ring-blue-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' };
-
-                                                                    return (
-                                                                        <div key={suggestionId} className={`relative ${isExpanded ? 'z-50' : 'z-0'}`}>
-                                                                            {!isExpanded ? (
-                                                                                <button
-                                                                                    onClick={() => setExpandedSuggestionId(suggestionId)}
-                                                                                    className={`relative h-10 w-10 rounded-xl ${theme.buttonBg} ${theme.buttonIconText} flex items-center justify-center shrink-0 hover:scale-105 transition-all cursor-pointer overflow-hidden`}
-                                                                                    title="View Feedback"
-                                                                                >
-                                                                                    <MessageSquareWarning className="h-5 w-5" />
-                                                                                </button>
-                                                                            ) : (
-                                                                                <div data-feedback-card className={`absolute top-0 left-0 w-[450px] z-50 p-4 rounded-md bg-card border ${theme.border} shadow-md animate-in fade-in zoom-in-95 duration-300`}>
-                                                                                    <div className={`absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent ${theme.accent} to-transparent rounded-full`} />
-                                                                                    <div className="flex items-start gap-4">
-                                                                                        <div className={`h-9 w-9 rounded-md bg-gradient-to-br ${theme.iconBg} ${theme.iconText} flex items-center justify-center shrink-0`}>
-                                                                                            <Lightbulb className="h-5 w-5" />
-                                                                                        </div>
-                                                                                        <div className="flex-1 min-w-0 pt-0.5">
-                                                                                            <div className="flex items-center justify-between mb-3">
-                                                                                                <p className={`text-xs font-bold uppercase tracking-[0.12em] ${theme.title}`}>Feedback</p>
-                                                                                                <button onClick={() => setExpandedSuggestionId(null)} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors p-1 -mr-2 -mt-2">
-                                                                                                    <ChevronUp className="h-4 w-4" />
-                                                                                                </button>
-                                                                                            </div>
-                                                                                            <p className="text-sm text-foreground leading-relaxed mb-4">{issue.explanation}</p>
-                                                                                            <div className={`rounded-xl p-3.5 border ${theme.border} ${theme.boxBg} mb-3 ml-[-4px]`}>
-                                                                                                <p className={`text-sm ${theme.iconText} font-medium italic flex gap-2`}>
-                                                                                                    {issue.suggestedRewrite.replace(/^Reflection:\s*/i, '')}
-                                                                                                </p>
-                                                                                            </div>
-                                                                                            <button onClick={() => dismissSuggestion(set.id, question.id, undefined, 0)} className="text-xs text-muted-foreground hover:text-red-500 font-medium flex items-center gap-1.5 transition-colors mt-2">
-                                                                                                <Trash2 className="h-3 w-3" /> Dismiss
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
+                                                        {/* Feedback & Research indicator column — bold filled chips with light glyph; amber ring when expanded in rail */}
+                                                        <div className="flex items-center justify-end gap-2 pt-1 shrink-0">
+                                                            {getQualityBadge(question.overallQuality)}
+                                                            {question.overallQuality !== 'GOOD' && question.issues && question.issues.length > 0 && (() => {
+                                                                const fid = `${question.id}-main-0`;
+                                                                const isActive = expandedSuggestionId === fid;
+                                                                const isPulsing = pulseIconId === fid;
+                                                                return (
+                                                                    <span className="relative inline-flex">
+                                                                        {isPulsing && (
+                                                                            <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--primary)] opacity-60 animate-[ping_1s_ease-out_1] pointer-events-none" />
+                                                                        )}
+                                                                        <button
+                                                                            onClick={() => focusFeedback(fid, question.id)}
+                                                                            aria-label="Open feedback in right rail"
+                                                                            aria-pressed={isActive}
+                                                                            title="View Feedback in rail"
+                                                                            className={cn(
+                                                                                "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
+                                                                                isActive
+                                                                                    ? "bg-[color:var(--primary)] text-white ring-2 ring-[color:var(--primary)]/35 ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+                                                                                    : "bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge hover:bg-[color:color-mix(in_oklab,var(--primary)_14%,transparent)]"
                                                                             )}
-                                                                        </div>
-                                                                    );
-                                                                })()}
-
-                                                                {/* Research Insight Icon */}
-                                                                {question.researchInsight && (() => {
-                                                                    const insightId = `${question.id}-research`;
-                                                                    const isExpanded = expandedSuggestionId === insightId;
-
-                                                                    return (
-                                                                        <div key={insightId} className={`relative ${isExpanded ? 'z-50' : 'z-0'}`}>
-                                                                            {!isExpanded ? (
-                                                                                <button
-                                                                                    onClick={() => setExpandedSuggestionId(insightId)}
-                                                                                    className="relative h-10 w-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 hover:scale-105 transition-all cursor-pointer overflow-hidden"
-                                                                                    title="View Research Insight"
-                                                                                >
-                                                                                    <FileText className="h-5 w-5" />
-                                                                                </button>
-                                                                            ) : (
-                                                                                <div data-feedback-card className="absolute top-0 left-0 w-[450px] z-50 p-4 rounded-md bg-card border border-violet-200/60 shadow-md animate-in fade-in zoom-in-95 duration-300">
-                                                                                    <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-violet-400/40 to-transparent rounded-full" />
-                                                                                    <div className="flex items-start gap-4">
-                                                                                        <div className="h-9 w-9 rounded-md bg-gradient-to-br from-violet-50 to-violet-100 text-violet-600 flex items-center justify-center shrink-0">
-                                                                                            <FileText className="h-5 w-5" />
-                                                                                        </div>
-                                                                                        <div className="flex-1 min-w-0 pt-0.5">
-                                                                                            <div className="flex items-center justify-between mb-3">
-                                                                                                <p className="text-xs font-bold uppercase tracking-[0.12em] text-violet-600/80">From Research</p>
-                                                                                                <button onClick={() => setExpandedSuggestionId(null)} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors p-1 -mr-2 -mt-2">
-                                                                                                    <ChevronUp className="h-4 w-4" />
-                                                                                                </button>
-                                                                                            </div>
-                                                                                            <p className="text-sm text-muted-foreground mb-3">
-                                                                                                {question.researchInsight.introText || "We found relevant insights from your earlier research that relate to this question:"}
-                                                                                            </p>
-                                                                                            {question.researchInsight.summary && (
-                                                                                                <p className="text-sm text-foreground mb-2 font-medium">
-                                                                                                    {question.researchInsight.summary}
-                                                                                                </p>
-                                                                                            )}
-                                                                                            <div className="bg-violet-50/30 rounded-xl p-3 border border-violet-100/50 mb-3">
-                                                                                                <p className="text-sm text-muted-foreground italic flex gap-2">
-                                                                                                    <span className="opacity-50 text-lg leading-none text-violet-400">"</span>
-                                                                                                    {question.researchInsight.excerpt}
-                                                                                                    <span className="opacity-50 text-lg leading-none self-end text-violet-400">"</span>
-                                                                                                </p>
-                                                                                                <p className="text-xs text-violet-500 font-medium mt-2 text-right">— {question.researchInsight.documentName}</p>
-                                                                                            </div>
-                                                                                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                                                                                💡 {question.researchInsight.actionSuggestion || "Consider reframing your question to avoid redundancy, or add a follow-up question to explore deeper insights."}
-                                                                                            </p>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
+                                                                        >
+                                                                            <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
+                                                                        </button>
+                                                                    </span>
+                                                                );
+                                                            })()}
+                                                            {question.researchInsight && (() => {
+                                                                const rid = `${question.id}-research`;
+                                                                const isActive = expandedSuggestionId === rid;
+                                                                const isPulsing = pulseIconId === rid;
+                                                                return (
+                                                                    <span className="relative inline-flex">
+                                                                        {isPulsing && (
+                                                                            <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--knowledge)] opacity-60 animate-[ping_1s_ease-out_1] pointer-events-none" />
+                                                                        )}
+                                                                        <button
+                                                                            onClick={() => focusFeedback(rid, question.id)}
+                                                                            aria-label="Open research insight in right rail"
+                                                                            aria-pressed={isActive}
+                                                                            title="View Research Insight in rail"
+                                                                            className={cn(
+                                                                                "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
+                                                                                isActive
+                                                                                    ? "bg-[color:var(--knowledge)] text-white ring-2 ring-[color:var(--knowledge)]/35 ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--knowledge)_35%,transparent)]"
+                                                                                    : "bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] shadow-inset-edge hover:bg-[color:color-mix(in_oklab,var(--knowledge)_14%,transparent)]"
                                                                             )}
-                                                                        </div>
-                                                                    );
-                                                                })()}
-                                                            </div>
+                                                                        >
+                                                                            <FileText className="h-4 w-4" strokeWidth={2} />
+                                                                        </button>
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
 
                                                     {/* Sub-questions Loop */}
                                                     {question.subQuestions.map((subQ, sqIndex) => (
-                                                        <div key={subQ.id} className="grid grid-cols-[65%_35%] gap-6 items-start group/sub">
-                                                            {/* Col 1: Sub Input */}
-                                                            <div className="flex items-start gap-3 pl-10 border-l-2 border-border ml-3 relative">
-                                                                <span className="text-sm text-blue-400 font-mono pt-2.5 w-8 text-right">
+                                                        <div
+                                                            key={subQ.id}
+                                                            id={`q-${subQ.id}`}
+                                                            className="grid grid-cols-[1fr_96px] gap-3 items-start group/sub rounded-lg scroll-mt-24"
+                                                        >
+                                                            {/* Sub Input */}
+                                                            <div className="flex items-start gap-3 pl-10 border-l-2 border-border ml-3">
+                                                                <span className="text-sm text-[color:var(--info)] font-mono pt-2.5 w-8 text-right shrink-0">
                                                                     {qIndex + 1}{numberToLetter(sqIndex)}.
                                                                 </span>
                                                                 <div className="flex-1">
@@ -1405,146 +1816,90 @@ What we want to uncover: Understanding how participants structure their day
                                                                             placeholder="Enter follow-up question..."
                                                                             value={subQ.text}
                                                                             onChange={(e: any) => updateSubQuestion(set.id, question.id, subQ.id, 'text', e.target.value)}
-                                                                            className="flex-1 bg-card/50 border-input hover:border-border hover:bg-card focus:bg-card rounded-md transition-all min-h-[44px] resize-none py-2.5 placeholder:text-muted-foreground/50"
+                                                                            className="flex-1 bg-[color:var(--canvas)] border-input hover:border-border hover:bg-card focus:bg-card rounded-md transition-all min-h-[44px] resize-none py-2.5 placeholder:text-muted-foreground/50"
                                                                         />
-                                                                        {getQualityBadge(subQ.overallQuality)}
                                                                         <Button
                                                                             variant="ghost"
-                                                                            size="icon"
+                                                                            size="icon-sm"
                                                                             onClick={() => removeSubQuestion(set.id, question.id, subQ.id)}
-                                                                            className="opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity h-8 w-8"
+                                                                            aria-label="Remove follow-up"
+                                                                            className="opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-[color:var(--danger)] transition-opacity shrink-0"
                                                                         >
-                                                                            <Trash2 className="h-4 w-4" />
+                                                                            <Trash2 className="h-3.5 w-3.5" />
                                                                         </Button>
                                                                     </div>
                                                                 </div>
                                                             </div>
 
-                                                            <div className="relative pt-1 min-h-[42px]">
-                                                                {/* Collapsed Icons Row */}
-                                                                <div className="flex items-center gap-2">
-                                                                    {/* Feedback Icon */}
-                                                                    {subQ.overallQuality !== 'GOOD' && subQ.issues && subQ.issues.length > 0 && (() => {
-                                                                        const issue = subQ.issues[0];
-                                                                        const suggestionId = `${question.id}-sub-${subQ.id}-0`;
-                                                                        const isExpanded = expandedSuggestionId === suggestionId;
-                                                                        const theme = issue.severity === 'HIGH'
-                                                                            ? { border: 'border-red-200/60', iconText: 'text-red-600', iconBg: 'from-red-50 to-red-100', accent: 'via-red-400/40', title: 'text-red-600/80', boxBg: 'bg-red-50/30', ring: 'ring-red-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
-                                                                            : issue.severity === 'MEDIUM'
-                                                                                ? { border: 'border-amber-200/60', iconText: 'text-amber-600', iconBg: 'from-amber-50 to-amber-100', accent: 'via-amber-400/40', title: 'text-amber-600/80', boxBg: 'bg-amber-50/30', ring: 'ring-amber-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' }
-                                                                                : { border: 'border-blue-200/60', iconText: 'text-blue-600', iconBg: 'from-blue-50 to-blue-100', accent: 'via-blue-400/40', title: 'text-blue-600/80', boxBg: 'bg-blue-50/30', ring: 'ring-blue-100', buttonBg: 'bg-muted', buttonIconText: 'text-muted-foreground' };
-
-                                                                        return (
-                                                                            <div key={suggestionId} className={`relative ${isExpanded ? 'z-50' : 'z-0'}`}>
-                                                                                {!isExpanded ? (
-                                                                                    <button
-                                                                                        onClick={() => setExpandedSuggestionId(suggestionId)}
-                                                                                        className={`relative h-10 w-10 rounded-xl ${theme.buttonBg} ${theme.buttonIconText} flex items-center justify-center shrink-0 hover:scale-105 transition-all cursor-pointer overflow-hidden`}
-                                                                                        title="View Feedback"
-                                                                                    >
-                                                                                        <MessageSquareWarning className="h-5 w-5" />
-                                                                                    </button>
-                                                                                ) : (
-                                                                                    <div data-feedback-card className={`absolute top-0 left-0 w-[450px] z-50 p-4 rounded-md bg-card border ${theme.border} shadow-md animate-in fade-in zoom-in-95 duration-300`}>
-                                                                                        <div className={`absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent ${theme.accent} to-transparent rounded-full`} />
-                                                                                        <div className="flex items-start gap-4">
-                                                                                            <div className={`h-9 w-9 rounded-md bg-gradient-to-br ${theme.iconBg} ${theme.iconText} flex items-center justify-center shrink-0`}>
-                                                                                                <Lightbulb className="h-5 w-5" />
-                                                                                            </div>
-                                                                                            <div className="flex-1 min-w-0 pt-0.5">
-                                                                                                <div className="flex items-center justify-between mb-3">
-                                                                                                    <p className={`text-xs font-bold uppercase tracking-[0.12em] ${theme.title}`}>Feedback</p>
-                                                                                                    <button onClick={() => setExpandedSuggestionId(null)} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors p-1 -mr-2 -mt-2">
-                                                                                                        <ChevronUp className="h-4 w-4" />
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                                <p className="text-sm text-foreground leading-relaxed mb-4">{issue.explanation}</p>
-                                                                                                <div className={`rounded-xl p-3.5 border ${theme.border} ${theme.boxBg} mb-3 ml-[-4px]`}>
-                                                                                                    <p className={`text-sm ${theme.iconText} font-medium italic flex gap-2`}>
-                                                                                                        {issue.suggestedRewrite.replace(/^Reflection:\s*/i, '')}
-                                                                                                    </p>
-                                                                                                </div>
-                                                                                                <button onClick={() => dismissSuggestion(set.id, question.id, subQ.id, 0)} className="text-xs text-muted-foreground hover:text-red-500 font-medium flex items-center gap-1.5 transition-colors mt-2">
-                                                                                                    <Trash2 className="h-3 w-3" /> Dismiss
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
+                                                            {/* Sub feedback/research icons — bold chips; amber ring when expanded */}
+                                                            <div className="flex items-center justify-end gap-2 pt-1 shrink-0">
+                                                                {getQualityBadge(subQ.overallQuality)}
+                                                                {subQ.overallQuality !== 'GOOD' && subQ.issues && subQ.issues.length > 0 && (() => {
+                                                                    const fid = `${question.id}-sub-${subQ.id}-0`;
+                                                                    const isActive = expandedSuggestionId === fid;
+                                                                    const isPulsing = pulseIconId === fid;
+                                                                    return (
+                                                                        <span className="relative inline-flex">
+                                                                            {isPulsing && (
+                                                                                <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--primary)] opacity-60 animate-[ping_1s_ease-out_1] pointer-events-none" />
+                                                                            )}
+                                                                            <button
+                                                                                onClick={() => focusFeedback(fid, subQ.id)}
+                                                                                aria-label="Open feedback in right rail"
+                                                                                aria-pressed={isActive}
+                                                                                title="View Feedback in rail"
+                                                                                className={cn(
+                                                                                    "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
+                                                                                    isActive
+                                                                                        ? "bg-[color:var(--primary)] text-white ring-2 ring-[color:var(--primary)]/35 ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+                                                                                        : "bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge hover:bg-[color:color-mix(in_oklab,var(--primary)_14%,transparent)]"
                                                                                 )}
-                                                                            </div>
-                                                                        );
-                                                                    })()}
-
-                                                                    {/* Research Insight Icon */}
-                                                                    {subQ.researchInsight && (() => {
-                                                                        const insightId = `${subQ.id}-research`;
-                                                                        const isExpanded = expandedSuggestionId === insightId;
-
-                                                                        return (
-                                                                            <div key={insightId} className={`relative ${isExpanded ? 'z-50' : 'z-0'}`}>
-                                                                                {!isExpanded ? (
-                                                                                    <button
-                                                                                        onClick={() => setExpandedSuggestionId(insightId)}
-                                                                                        className="relative h-10 w-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 hover:scale-105 transition-all cursor-pointer overflow-hidden"
-                                                                                        title="View Research Insight"
-                                                                                    >
-                                                                                        <FileText className="h-5 w-5" />
-                                                                                    </button>
-                                                                                ) : (
-                                                                                    <div data-feedback-card className="absolute top-0 left-0 w-[450px] z-50 p-4 rounded-md bg-card border border-violet-200/60 shadow-md animate-in fade-in zoom-in-95 duration-300">
-                                                                                        <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-violet-400/40 to-transparent rounded-full" />
-                                                                                        <div className="flex items-start gap-4">
-                                                                                            <div className="h-9 w-9 rounded-md bg-gradient-to-br from-violet-50 to-violet-100 text-violet-600 flex items-center justify-center shrink-0">
-                                                                                                <FileText className="h-5 w-5" />
-                                                                                            </div>
-                                                                                            <div className="flex-1 min-w-0 pt-0.5">
-                                                                                                <div className="flex items-center justify-between mb-3">
-                                                                                                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-violet-600/80">From Research</p>
-                                                                                                    <button onClick={() => setExpandedSuggestionId(null)} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors p-1 -mr-2 -mt-2">
-                                                                                                        <ChevronUp className="h-4 w-4" />
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                                <p className="text-sm text-muted-foreground mb-3">
-                                                                                                    {subQ.researchInsight.introText || "We found relevant insights from your earlier research that relate to this question:"}
-                                                                                                </p>
-                                                                                                {subQ.researchInsight.summary && (
-                                                                                                    <p className="text-sm text-foreground mb-2 font-medium">
-                                                                                                        {subQ.researchInsight.summary}
-                                                                                                    </p>
-                                                                                                )}
-                                                                                                <div className="bg-violet-50/30 rounded-xl p-3 border border-violet-100/50 mb-3">
-                                                                                                    <p className="text-sm text-muted-foreground italic flex gap-2">
-                                                                                                        <span className="opacity-50 text-lg leading-none text-violet-400">"</span>
-                                                                                                        {subQ.researchInsight.excerpt}
-                                                                                                        <span className="opacity-50 text-lg leading-none self-end text-violet-400">"</span>
-                                                                                                    </p>
-                                                                                                    <p className="text-xs text-violet-500 font-medium mt-2 text-right">— {subQ.researchInsight.documentName}</p>
-                                                                                                </div>
-                                                                                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                                                                                    💡 {subQ.researchInsight.actionSuggestion || "Consider reframing your question to avoid redundancy, or add a follow-up question to explore deeper insights."}
-                                                                                                </p>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
+                                                                            >
+                                                                                <MessageSquareWarning className="h-4 w-4" strokeWidth={2} />
+                                                                            </button>
+                                                                        </span>
+                                                                    );
+                                                                })()}
+                                                                {subQ.researchInsight && (() => {
+                                                                    const rid = `${subQ.id}-research`;
+                                                                    const isActive = expandedSuggestionId === rid;
+                                                                    const isPulsing = pulseIconId === rid;
+                                                                    return (
+                                                                        <span className="relative inline-flex">
+                                                                            {isPulsing && (
+                                                                                <span aria-hidden className="absolute inset-0 rounded-lg bg-[color:var(--knowledge)] opacity-60 animate-[ping_1s_ease-out_1] pointer-events-none" />
+                                                                            )}
+                                                                            <button
+                                                                                onClick={() => focusFeedback(rid, subQ.id)}
+                                                                                aria-label="Open research insight in right rail"
+                                                                                aria-pressed={isActive}
+                                                                                title="View Research Insight in rail"
+                                                                                className={cn(
+                                                                                    "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer hover:brightness-110 active:scale-95",
+                                                                                    isActive
+                                                                                        ? "bg-[color:var(--knowledge)] text-white ring-2 ring-[color:var(--knowledge)]/35 ring-offset-1 ring-offset-card shadow-[0_2px_8px_color-mix(in_oklab,var(--knowledge)_35%,transparent)]"
+                                                                                        : "bg-[color:var(--knowledge-soft)] text-[color:var(--knowledge)] shadow-inset-edge hover:bg-[color:color-mix(in_oklab,var(--knowledge)_14%,transparent)]"
                                                                                 )}
-                                                                            </div>
-                                                                        );
-                                                                    })()}
-                                                                </div>
+                                                                            >
+                                                                                <FileText className="h-4 w-4" strokeWidth={2} />
+                                                                            </button>
+                                                                        </span>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ))}
 
-                                            <div className="w-[65%] pl-9">
+                                            <div className="pl-9">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => addQuestion(set.id)}
                                                     className="text-primary hover:text-primary/90 hover:bg-accent"
                                                 >
-                                                    <Plus className="h-4 w-4 mr-1" />
+                                                    <Plus className="h-3.5 w-3.5" />
                                                     Add Question
                                                 </Button>
                                             </div>
@@ -1552,33 +1907,49 @@ What we want to uncover: Understanding how participants structure their day
                                     )}
                                 </div>
                             ))}
+                            </div>
 
                             <Button
                                 variant="outline"
                                 onClick={addGuideSet}
-                                className="w-full border-dashed border-2 border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-accent"
+                                className="mt-6 w-full border-dashed border-2 border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-accent"
                             >
-                                <Plus className="h-4 w-4 mr-2" />
+                                <Plus className="h-4 w-4" />
                                 Add Topic Section
                             </Button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </WorkspaceFrame>
         </div >
     );
 }
 
+function ReadinessRow({ done, label }: { done: boolean; label: string }) {
+    return (
+        <div className="flex items-center gap-2 text-body-sm">
+            <span
+                aria-hidden
+                className={
+                    done
+                        ? "inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[color:var(--primary)] text-[color:var(--primary-fg)]"
+                        : "inline-flex h-3.5 w-3.5 rounded-full shadow-inset-edge bg-[color:var(--surface-muted)]"
+                }
+            >
+                {done && (
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M1.5 4.2L3.2 5.8L6.5 2.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                )}
+            </span>
+            <span className={done ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+        </div>
+    )
+}
+
 // Loading fallback for Suspense
 function GuideSetupLoading() {
-    return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading guide editor...</p>
-            </div>
-        </div>
-    );
+    return <CenteredSpinner label="Loading guide editor..." />;
 }
 
 // Export wrapped in Suspense for useSearchParams

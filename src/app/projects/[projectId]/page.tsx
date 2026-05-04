@@ -2,8 +2,9 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,30 +18,29 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
     ArrowLeft,
     Plus,
     FolderOpen,
-    BookOpenText,
-    FileText,
-    PlayCircle,
     BookOpen,
-    Users,
     Loader2,
-    MoreVertical,
     Trash2,
-    Edit,
-    Clock,
-    Target,
     Pencil,
-    Check,
-    ChevronRight
 } from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { PageBar } from "@/components/layout/page-bar";
+import { WorkspaceFrame } from "@/components/layout/workspace-frame";
+import { RailHeader } from "@/components/layout/rail-header";
+import { RailSection } from "@/components/layout/rail-section";
+import { MetaRow } from "@/components/layout/meta-row";
 
 interface SubProject {
     id: string;
@@ -75,6 +75,7 @@ interface Project {
     createdAt: string;
     subProjects: SubProject[];
     kbDocuments: KbDocument[];
+    knowledgeDocumentCount?: number;
     _count: {
         subProjects: number;
         kbDocuments: number;
@@ -96,7 +97,11 @@ export default function ProjectHomePage({ params }: PageProps) {
     const [editName, setEditName] = useState("");
     const [editDescription, setEditDescription] = useState("");
     const [isSaving, setIsSaving] = useState(false);
-    const [isDescriptionOpen, setIsDescriptionOpen] = useState(false); // New Dialog State
+    const [isDescriptionOpen, setIsDescriptionOpen] = useState(false); // Read more dialog state
+
+    // Delete workspace state
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         fetchProject();
@@ -119,11 +124,7 @@ export default function ProjectHomePage({ params }: PageProps) {
         }
     };
 
-    const deleteSubProject = async (subProjectId: string) => {
-        if (!confirm("Are you sure you want to delete this workspace? All guides and simulations will be deleted.")) {
-            return;
-        }
-
+    const confirmDelete = async (subProjectId: string) => {
         try {
             const res = await fetch(`/api/sub-projects/${subProjectId}`, {
                 method: "DELETE",
@@ -135,7 +136,7 @@ export default function ProjectHomePage({ params }: PageProps) {
 
             fetchProject(); // Refresh
         } catch (err) {
-            alert("Failed to delete workspace");
+            toast.error("Failed to delete workspace");
         }
     };
 
@@ -149,7 +150,7 @@ export default function ProjectHomePage({ params }: PageProps) {
 
     const handleSaveEdit = async () => {
         if (!editName.trim()) {
-            alert("Name is required");
+            toast.error("Name is required");
             return;
         }
 
@@ -171,7 +172,7 @@ export default function ProjectHomePage({ params }: PageProps) {
             await fetchProject();
             setIsEditOpen(false);
         } catch (err) {
-            alert("Failed to save changes");
+            toast.error("Failed to save changes");
         } finally {
             setIsSaving(false);
         }
@@ -196,7 +197,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                         <p className="text-muted-foreground">{error || "Project not found"}</p>
                         <Button variant="outline" className="mt-4" asChild>
                             <Link href="/dashboard">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                <ArrowLeft className="h-4 w-4" />
                                 Back to Dashboard
                             </Link>
                         </Button>
@@ -206,148 +207,155 @@ export default function ProjectHomePage({ params }: PageProps) {
         );
     }
 
-    const approvedKbDocs = project.kbDocuments?.filter(d => d.status === "APPROVED") || [];
-    const personaCount = approvedKbDocs.filter(d => d.docType === "PERSONA").length;
+    const createdLabel = project.createdAt
+        ? new Date(project.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+          })
+        : null;
+
+    const workspaceCount = project.subProjects?.length ?? 0;
+
+    const leftRail = (
+        <>
+            <RailHeader>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Project</Badge>
+                </div>
+                <h2 className="text-display-4 text-foreground leading-tight">
+                    {project.name}
+                </h2>
+                {project.description && (
+                    <div className="flex flex-col gap-1.5">
+                        <p className="text-body-sm text-muted-foreground leading-relaxed line-clamp-3">
+                            {project.description}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setIsDescriptionOpen(true)}
+                            className="self-start text-ui-sm text-[color:var(--primary)] hover:underline outline-none focus-visible:shadow-focus rounded-[2px]"
+                        >
+                            Read more
+                        </button>
+                    </div>
+                )}
+            </RailHeader>
+
+            <RailSection title="Project">
+                <MetaRow k="Workspaces" v={project.subProjects?.length ?? 0} />
+                {createdLabel && <MetaRow k="Created" v={createdLabel} />}
+            </RailSection>
+
+            <div className="flex-1" />
+
+            <div className="px-8 py-4 flex flex-col gap-2">
+                <Button asChild variant="outline" size="sm" className="w-full justify-center">
+                    <Link href={`/projects/${projectId}/kb`}>
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Knowledge base
+                    </Link>
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center"
+                    onClick={openEditDialog}
+                >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit project
+                </Button>
+            </div>
+        </>
+    );
 
     return (
-        <div className="relative">
-            <div className="py-8">
-                {/* Header Section */}
-                <div className="mb-8">
+        <div className="flex flex-col flex-1 min-h-0">
+            <PageBar
+                sticky={false}
+                back={{ href: "/dashboard", label: "Back" }}
+                crumbs={[{ label: project.name }]}
+            />
+
+            <WorkspaceFrame variant="review" scrollContained leftRail={leftRail}>
+                {/* Workspaces header */}
+                <div className="mb-6">
+                    <h1 className="text-display-2 text-foreground">Workspaces</h1>
+                    <p className="text-body-sm text-muted-foreground mt-1">
+                        {workspaceCount > 0
+                            ? `${workspaceCount} workspace${workspaceCount === 1 ? "" : "s"}`
+                            : "Set up a workspace for each research strand"}
+                    </p>
+                </div>
+
+                {/* Workspaces grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {/* New Workspace create card — always first */}
                     <Link
-                        href="/dashboard"
-                        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+                        href={`/projects/${projectId}/sub/new`}
+                        className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
                     >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to Projects
+                        <div className="flex flex-col items-center gap-3 text-center">
+                            <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
+                                <Plus className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold text-foreground mb-0.5">
+                                    New workspace
+                                </h3>
+                                <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
+                                    Set up a new research workspace
+                                </p>
+                            </div>
+                        </div>
                     </Link>
 
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex-1 max-w-3xl">
-                            <div className="flex items-center gap-3 group">
-                                <h1 className="text-3xl font-semibold tracking-tight">
-                                    {project.name}
-                                </h1>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={openEditDialog}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 text-muted-foreground"
-                                >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                </Button>
+                    {/* Workspace Cards */}
+                    {project.subProjects.map((subProject) => (
+                        <Link
+                            key={subProject.id}
+                            href={`/projects/${projectId}/sub/${subProject.id}`}
+                            className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
+                        >
+                            {/* Hover-revealed delete */}
+                            <button
+                                type="button"
+                                className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDeleteTarget({ id: subProject.id, name: subProject.name });
+                                }}
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+
+                            {/* Icon chip */}
+                            <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center mb-auto">
+                                <FolderOpen className="h-4.5 w-4.5" />
                             </div>
 
-                            {project.description && (
-                                <div className="mt-1">
-                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                                        {project.description}
-                                    </p>
-                                    {project.description.length > 150 && (
-                                        <button
-                                            onClick={() => setIsDescriptionOpen(true)}
-                                            className="text-foreground hover:underline text-xs font-medium mt-1 flex items-center gap-0.5 transition-colors"
-                                        >
-                                            Read more <ChevronRight className="h-3 w-3" />
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                            <Button asChild variant="outline" className="border-[var(--color-knowledge)]/20 text-[var(--color-knowledge)] hover:bg-[var(--color-knowledge-muted)]">
-                                <Link href={`/projects/${projectId}/kb`}>
-                                    <BookOpenText className="h-4 w-4 mr-1.5" />
-                                    Knowledge Base
-                                </Link>
-                            </Button>
-                            <Button asChild>
-                                <Link href={`/projects/${projectId}/sub/new`}>
-                                    <Plus className="h-4 w-4 mr-1.5" />
-                                    New Workspace
-                                </Link>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Workspaces Grid */}
-                <div>
-                    {project.subProjects.length === 0 ? (
-                        <Card>
-                            <CardContent className="flex flex-col items-center justify-center py-10">
-                                <FolderOpen className="h-10 w-10 text-muted-foreground/40 mb-4" />
-                                <h3 className="text-base font-medium mb-1">No workspaces yet</h3>
-                                <p className="text-sm text-muted-foreground mb-4 max-w-md text-center">
-                                    Create a workspace to start managing your moderator guides and simulations.
+                            {/* Content at bottom */}
+                            <div className="mt-3">
+                                <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-1 mb-1">
+                                    {subProject.name}
+                                </h4>
+                                <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2 mb-2">
+                                    {subProject.researchStatement || "No research statement defined."}
                                 </p>
-                                <Button variant="outline" asChild>
-                                    <Link href={`/projects/${projectId}/sub/new`}>
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        New Workspace
-                                    </Link>
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                            {project.subProjects.map((subProject) => (
-                                <div key={subProject.id} className="group relative">
-                                    <Link href={`/projects/${projectId}/sub/${subProject.id}`} className="block h-full">
-                                        <Card className="h-full transition-colors hover:bg-[var(--color-interact-subtle)]">
-                                            <CardContent className="p-4 flex flex-col h-full justify-between">
-                                                <div>
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <div className="h-9 w-9 rounded-md flex items-center justify-center" style={{ backgroundColor: 'var(--color-interact-muted)', color: 'var(--color-interact)' }}>
-                                                            <FolderOpen className="h-4 w-4" />
-                                                        </div>
-
-                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    deleteSubProject(subProject.id);
-                                                                }}
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-
-                                                    <h3 className="font-medium text-base mb-1.5 line-clamp-1">
-                                                        {subProject.name}
-                                                    </h3>
-
-                                                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-4">
-                                                        {subProject.researchStatement || "No research statement defined."}
-                                                    </p>
-                                                </div>
-
-                                                <div className="flex items-center gap-3 text-xs text-muted-foreground pt-3 border-t border-border">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <BookOpen className="h-3.5 w-3.5" />
-                                                        {subProject._count.guideVersions} Guides
-                                                    </div>
-                                                    <span className="text-border">•</span>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Users className="h-3.5 w-3.5" />
-                                                        {subProject._count.simulations} Simulations
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </Link>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                <p className="text-[12px] text-muted-foreground leading-snug">
+                                    {subProject._count.guideVersions} guide
+                                    {subProject._count.guideVersions === 1 ? "" : "s"}
+                                    {" · "}
+                                    {subProject._count.simulations} simulation
+                                    {subProject._count.simulations === 1 ? "" : "s"}
+                                </p>
+                            </div>
+                        </Link>
+                    ))}
                 </div>
-            </div>
+            </WorkspaceFrame>
 
             {/* Edit Project Dialog */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -387,7 +395,7 @@ export default function ProjectHomePage({ params }: PageProps) {
                             Cancel
                         </Button>
                         <Button onClick={handleSaveEdit} disabled={isSaving}>
-                            {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                             Save Changes
                         </Button>
                     </DialogFooter>
@@ -410,7 +418,42 @@ export default function ProjectHomePage({ params }: PageProps) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div >
+
+            {/* Delete Workspace Dialog */}
+            <AlertDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Workspace</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete &quot;{deleteTarget?.name}&quot;?
+                            All guides and simulations within it will be permanently deleted. This cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={deleting}
+                            onClick={async () => {
+                                if (!deleteTarget) return;
+                                setDeleting(true);
+                                try {
+                                    await confirmDelete(deleteTarget.id);
+                                    setDeleteTarget(null);
+                                } finally {
+                                    setDeleting(false);
+                                }
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            {deleting ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     );
 }
 // Created by Swapnil Bapat © 2026

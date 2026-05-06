@@ -155,15 +155,6 @@ export default function ProjectKbPage({ params }: PageProps) {
         }
     };
 
-    useEffect(() => {
-        const hasUnparsedPersonas = documents.some(
-            (d) => d.docType === "PERSONA" && !d.parsedMetaJson
-        );
-        if (hasUnparsedPersonas) {
-            const interval = setInterval(() => fetchData(), 3000);
-            return () => clearInterval(interval);
-        }
-    }, [documents]);
 
     const handleUpload = async () => {
         if (!uploadFile || !uploadTitle || !uploadDocType) return;
@@ -386,23 +377,68 @@ export default function ProjectKbPage({ params }: PageProps) {
                                 return (
                                     <div
                                         key={doc.id}
-                                        className="group relative rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 flex flex-col items-center justify-center text-center min-h-[220px]"
+                                        className={`group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-5 flex flex-col ${
+                                            isPending ? "ring-1 ring-[color:var(--warning)]/30" : isRejected ? "ring-1 ring-[color:var(--danger)]/30" : ""
+                                        }`}
                                     >
-                                        <Button
-                                            size="icon-sm"
-                                            variant="ghost"
-                                            className="absolute top-2 right-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={() => setDeleteDocId(doc.id)}
-                                            disabled={processingId === doc.id}
-                                            title="Remove stuck persona"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Loader2 className="h-6 w-6 text-muted-foreground animate-spin mb-3" />
-                                        <h3 className="font-semibold text-sm mb-1">Analysing persona…</h3>
-                                        <p className="text-[12px] text-muted-foreground max-w-[220px]">
-                                            Extracting motivations, frustrations, and demographics from {doc.originalFileName}
-                                        </p>
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-start gap-3 min-w-0">
+                                                <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center shrink-0">
+                                                    <User className="h-4 w-4" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h3 className="font-semibold text-foreground text-sm leading-tight">
+                                                        {doc.title}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2 mt-1 text-[12px] text-muted-foreground">
+                                                        <span className="truncate">{doc.originalFileName}</span>
+                                                        <span className="opacity-50">·</span>
+                                                        <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                                <Button
+                                                    size="icon-sm"
+                                                    variant="ghost"
+                                                    className="text-muted-foreground"
+                                                    onClick={() => setViewDoc(doc)}
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                    size="icon-sm"
+                                                    variant="ghost"
+                                                    className="text-muted-foreground hover:text-destructive"
+                                                    onClick={() => setDeleteDocId(doc.id)}
+                                                    disabled={processingId === doc.id}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {isPending && (
+                                            <div className="mt-4 flex items-center gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => approveDocument(doc.id)}
+                                                    disabled={processingId === doc.id}
+                                                >
+                                                    {processingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Approve"}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="text-[color:var(--danger)] hover:text-[color:var(--danger)]"
+                                                    onClick={() => rejectDocument(doc.id)}
+                                                    disabled={processingId === doc.id}
+                                                >
+                                                    Reject
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             }

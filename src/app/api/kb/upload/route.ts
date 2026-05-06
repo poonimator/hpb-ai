@@ -125,11 +125,8 @@ export async function POST(request: NextRequest) {
             meta: { fileName: file.name, docType, size: file.size },
         });
 
-        // If this is a PERSONA document, parse it with OpenAI in the background
-        if (docType === "PERSONA" && extractedText) {
-            // Fire and forget - don't await
-            parsePersonaInBackground(kbDoc.id, origin);
-        }
+        // PERSONA docs are stored as-is — downstream tools consume the full
+        // file text directly, so no AI metadata extraction is needed here.
 
         return successResponse({
             id: kbDoc.id,

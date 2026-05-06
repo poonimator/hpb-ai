@@ -137,10 +137,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             meta: { projectId, fileName: file.name, docType, size: file.size },
         });
 
-        // If this is a PERSONA document, parse it with AI in the background
-        if (docType === "PERSONA" && extractedText) {
-            parsePersonaInBackground(kbDoc.id, true);
-        }
+        // PERSONA docs are stored as-is — downstream tools consume the full
+        // file text directly, so no AI metadata extraction is needed here.
 
         return successResponse(
             {

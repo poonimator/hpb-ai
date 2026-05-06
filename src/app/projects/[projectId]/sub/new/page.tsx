@@ -105,8 +105,9 @@ export default function NewSubProjectPage({ params }: PageProps) {
     }
 
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0">
             <PageBar
+                sticky={false}
                 back={{ href: `/projects/${projectId}`, label: "Back" }}
                 crumbs={[{ label: "New workspace" }]}
             />

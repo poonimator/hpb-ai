@@ -596,6 +596,25 @@ function GuideSetupPageContent() {
             const researchData = await researchRes.json();
 
             if (validationData.success) {
+                // Defensive: a successful response may still come back without
+                // a well-formed `data.results` array if the upstream AI call
+                // returned malformed JSON. Pull the arrays out once here so
+                // the per-question .find() calls below can never crash on a
+                // missing `data` shape.
+                const validationResults: any[] = Array.isArray(validationData.data?.results)
+                    ? validationData.data.results
+                    : [];
+                const researchResults: any[] = (researchData?.success && Array.isArray(researchData.data?.results))
+                    ? researchData.data.results
+                    : [];
+
+                if (validationResults.length === 0) {
+                    console.warn(
+                        "[runQualityCheck] validation succeeded but returned no results",
+                        validationData
+                    );
+                }
+
                 // Map results back to questions
                 setGuideSets(prev => prev.map(s => {
                     if (s.id !== setId) return s;
@@ -605,23 +624,21 @@ function GuideSetupPageContent() {
                         const mainQIndex = questionsForAI.findIndex(ai => ai.questionId === q.id && !ai.subQuestionId);
 
                         // Validation Results
-                        const mainResult = validationData.data.results.find((r: any) =>
+                        const mainResult = validationResults.find((r: any) =>
                             r.questionLabel === mainLabel || r.questionIndex === mainQIndex
                         );
 
                         // Research Results
                         let mainInsight: ResearchInsight | undefined = undefined;
-                        if (researchData.success && researchData.data.results) {
-                            const rRes = researchData.data.results.find((r: any) => r.questionLabel === mainLabel && r.hasResearch);
-                            if (rRes) {
-                                mainInsight = {
-                                    documentName: rRes.documentName,
-                                    excerpt: rRes.excerpt,
-                                    summary: rRes.summary,
-                                    introText: rRes.introText,
-                                    actionSuggestion: rRes.actionSuggestion
-                                };
-                            }
+                        const rRes = researchResults.find((r: any) => r.questionLabel === mainLabel && r.hasResearch);
+                        if (rRes) {
+                            mainInsight = {
+                                documentName: rRes.documentName,
+                                excerpt: rRes.excerpt,
+                                summary: rRes.summary,
+                                introText: rRes.introText,
+                                actionSuggestion: rRes.actionSuggestion
+                            };
                         }
 
                         // Update sub-questions
@@ -629,23 +646,21 @@ function GuideSetupPageContent() {
                             const subLabel = `${mainLabel}${numberToLetter(sqIndex)}`;
                             const subQIndex = questionsForAI.findIndex(ai => ai.questionId === q.id && ai.subQuestionId === sq.id);
 
-                            const subResult = validationData.data.results.find((r: any) =>
+                            const subResult = validationResults.find((r: any) =>
                                 r.questionLabel === subLabel || r.questionIndex === subQIndex
                             );
 
                             // Research Results for Sub
                             let subInsight: ResearchInsight | undefined = undefined;
-                            if (researchData.success && researchData.data.results) {
-                                const rRes = researchData.data.results.find((r: any) => r.questionLabel === subLabel && r.hasResearch);
-                                if (rRes) {
-                                    subInsight = {
-                                        documentName: rRes.documentName,
-                                        excerpt: rRes.excerpt,
-                                        summary: rRes.summary,
-                                        introText: rRes.introText,
-                                        actionSuggestion: rRes.actionSuggestion
-                                    };
-                                }
+                            const rSubRes = researchResults.find((r: any) => r.questionLabel === subLabel && r.hasResearch);
+                            if (rSubRes) {
+                                subInsight = {
+                                    documentName: rSubRes.documentName,
+                                    excerpt: rSubRes.excerpt,
+                                    summary: rSubRes.summary,
+                                    introText: rSubRes.introText,
+                                    actionSuggestion: rSubRes.actionSuggestion
+                                };
                             }
 
                             return {

@@ -2064,6 +2064,9 @@ function SimulationPageContent({ params }: PageProps) {
                                         if (selectionType === "persona") {
                                             const persona = personas.find(p => p.id === selectedPersonaId);
                                             if (!persona) return null;
+                                            // Manually uploaded personas have no parsed metadata — hide
+                                            // the detail card entirely rather than render an empty shell.
+                                            if (!persona.parsedMetaJson) return null;
                                             const d = parsePersonaMeta(persona);
 
                                             return (

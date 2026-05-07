@@ -2064,10 +2064,15 @@ function SimulationPageContent({ params }: PageProps) {
                                         if (selectionType === "persona") {
                                             const persona = personas.find(p => p.id === selectedPersonaId);
                                             if (!persona) return null;
-                                            // Manually uploaded personas have no parsed metadata — hide
-                                            // the detail card entirely rather than render an empty shell.
-                                            if (!persona.parsedMetaJson) return null;
                                             const d = parsePersonaMeta(persona);
+                                            // Manually uploaded personas have no parsed detail fields —
+                                            // hide the card entirely rather than render an empty shell
+                                            // with just an avatar and title. (parsedMetaJson may exist
+                                            // as a `"{}"` stub, so we check the actual fields.)
+                                            const hasParsedDetail = !!(
+                                                d.age || d.occupation || d.summary || d.bio || d.gains || d.pains
+                                            );
+                                            if (!hasParsedDetail) return null;
 
                                             return (
                                                 <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 animate-in fade-in duration-200">

@@ -256,11 +256,58 @@ function parseAnnotatedParts(statement: string, annotations: StatementAnnotation
     return { parts, sorted: resolved };
 }
 
-function AnnotatedInsight({ statement, annotations }: {
+// Loose criterion-name matching — tolerates AI variants ("Well Informed",
+// "Actionability", etc.) so per-phrase critiques can be paired up with the
+// canonical 5-criterion list.
+function matchesCriterion(key: string | undefined, target: string): boolean {
+    if (!key) return false;
+    const k = key.toLowerCase();
+    const t = target.toLowerCase();
+    if (t.includes("well-informed") || t.includes("well informed")) return k.includes("informed");
+    if (t.includes("more than") || t.includes("observation")) return k.includes("more than") || k.includes("observation");
+    if (t.includes("so what")) return k.includes("so what");
+    if (t.includes("sticky")) return k.includes("sticky");
+    if (t.includes("actionable")) return k.includes("action");
+    return k === t;
+}
+
+function AnnotatedInsight({ statement, annotations, criteria }: {
     statement: string;
     annotations: StatementAnnotation[];
+    criteria?: InsightCriteria[];
 }) {
     const { parts } = parseAnnotatedParts(statement, annotations);
+
+    // Always render one card per canonical criterion. For each criterion,
+    // prefer an annotation that targets it (so we get the quoted fragment +
+    // per-phrase critique); fall back to the overall criterion-level entry
+    // from the AI's `criteria` array. This guarantees all 5 cards appear
+    // even when the AI returns fewer statementBreakdown phrases than there
+    // are criteria (e.g. only 4 phrases → "Actionable" goes missing).
+    const criterionCards = CRITERIA_LABELS.map((critName, idx) => {
+        const palette = CRITERION_PALETTE[idx];
+
+        const ann = annotations.find(a => {
+            const cc = (typeof a.criteriaCritique === "object" && a.criteriaCritique !== null)
+                ? (a.criteriaCritique as CriteriaCritiqueInline)
+                : null;
+            return cc ? matchesCriterion(cc.criterion, critName) : false;
+        });
+        const cc = ann && typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null
+            ? (ann.criteriaCritique as CriteriaCritiqueInline)
+            : null;
+
+        const critEntry = criteria?.find(c => matchesCriterion(c.name, critName));
+
+        const fragment = ann ? `"${ann.text}"` : undefined;
+        const body = cc?.explanation || critEntry?.explanation || ann?.rationale || ann?.note || "";
+        const verdict = cc?.verdict || critEntry?.verdict;
+        const needsWork = (verdict && verdict !== "PASS")
+            ? (cc?.suggestion || critEntry?.suggestedImprovement || cc?.explanation || critEntry?.explanation || "")
+            : undefined;
+
+        return { idx, palette, critName, fragment, body, needsWork };
+    });
 
     return (
         <div>
@@ -286,38 +333,24 @@ function AnnotatedInsight({ statement, annotations }: {
                 })}
             </div>
 
-            {/* Criterion-card grid — two parallel flex columns so cards
+            {/* Criterion-card grid — exactly 5 cards (always one per
+                canonical criterion). Two parallel flex columns so cards
                 don't reflow between columns when expanded/collapsed. */}
             <div className="grid grid-cols-2 gap-3 items-start">
                 {[0, 1].map((col) => (
                     <div key={col} className="flex flex-col gap-3">
-                        {annotations
-                            .map((ann, i) => ({ ann, i }))
-                            .filter(({ i }) => i % 2 === col)
-                            .map(({ ann, i }) => {
-                                const hasCriteria = typeof ann.criteriaCritique === "object" && ann.criteriaCritique !== null;
-                                const criterionKey = annotationCriterionKey(ann, i);
-                                const palette = criterionPalette(criterionKey, i);
-                                const cc = hasCriteria ? (ann.criteriaCritique as CriteriaCritiqueInline) : null;
-
-                                const body = cc?.explanation || ann.rationale || ann.note || "";
-                                const verdict = cc?.verdict;
-                                const needsWork =
-                                    verdict && verdict !== "PASS"
-                                        ? (cc?.suggestion || cc?.explanation || "")
-                                        : undefined;
-
-                                return (
-                                    <LensCard
-                                        key={i}
-                                        accent={palette.accent}
-                                        lensName={cc?.criterion || "Criterion"}
-                                        fragment={`"${ann.text}"`}
-                                        body={body}
-                                        needsWork={needsWork}
-                                    />
-                                );
-                            })}
+                        {criterionCards
+                            .filter(c => c.idx % 2 === col)
+                            .map(c => (
+                                <LensCard
+                                    key={c.idx}
+                                    accent={c.palette.accent}
+                                    lensName={c.critName}
+                                    fragment={c.fragment}
+                                    body={c.body}
+                                    needsWork={c.needsWork}
+                                />
+                            ))}
                     </div>
                 ))}
             </div>

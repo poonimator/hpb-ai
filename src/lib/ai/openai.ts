@@ -837,12 +837,14 @@ export async function processMapping(params: ProcessMappingParams): Promise<Proc
 
         const client = getOpenAIClient();
 
-        // Process each transcript against themes
-        const allClusters: ClusteredQuote[] = [];
-
-        for (const t of transcripts) {
+        // Process transcripts in parallel — the previous sequential `for` loop
+        // turned an N-transcript session into N round-trips to OpenAI, which
+        // blew past Vercel's function timeout on anything over ~5 transcripts.
+        // Running them concurrently with Promise.all completes in roughly the
+        // time of the slowest single call.
+        const perTranscript = await Promise.all(transcripts.map(async (t) => {
             const prompt = `Extract insightful observations from the following transcript that map to the provided themes.
-            
+
             THEMES:
             ${JSON.stringify(themes)}
 
@@ -858,10 +860,10 @@ export async function processMapping(params: ProcessMappingParams): Promise<Proc
             Return a JSON object with:
             {
               "insights": [
-                { 
-                  "quotes": ["Verbatim 1", "Verbatim 2 (if related)"], 
-                  "theme": "Theme Name", 
-                  "context": "Brief context explanation" 
+                {
+                  "quotes": ["Verbatim 1", "Verbatim 2 (if related)"],
+                  "theme": "Theme Name",
+                  "context": "Brief context explanation"
                 }
               ]
             }
@@ -869,37 +871,48 @@ export async function processMapping(params: ProcessMappingParams): Promise<Proc
             Only extract meaningful implementation-relevant insights.
             `;
 
-            const response = await client.chat.completions.create({
-                model: modelName,
-                messages: [
-                    { role: "system", content: "You are an expert qualitative researcher coding interview transcripts. You excel at grouping related verbatims." },
-                    { role: "user", content: prompt }
-                ],
-                response_format: { type: "json_object" },
-                temperature: 0.2,
-            });
+            try {
+                const response = await client.chat.completions.create({
+                    model: modelName,
+                    messages: [
+                        { role: "system", content: "You are an expert qualitative researcher coding interview transcripts. You excel at grouping related verbatims." },
+                        { role: "user", content: prompt }
+                    ],
+                    response_format: { type: "json_object" },
+                    temperature: 0.2,
+                });
 
-            const content = response.choices[0]?.message?.content || "{}";
-            const parsed = JSON.parse(content);
+                const content = response.choices[0]?.message?.content || "{}";
+                const parsed = JSON.parse(content);
 
-            if (parsed.insights && Array.isArray(parsed.insights)) {
-                allClusters.push(...parsed.insights.map((q: any) => ({
-                    // Store quotes array as stringified JSON to fit into the 'quote' string field in DB
-                    quote: JSON.stringify(Array.isArray(q.quotes) ? q.quotes : [q.quotes]),
-                    theme: q.theme,
-                    transcriptId: t.id,
-                    context: q.context
-                })));
-            } else if (parsed.quotes && Array.isArray(parsed.quotes)) {
-                // Fallback for backward compatibility or hallucination
-                allClusters.push(...parsed.quotes.map((q: any) => ({
-                    quote: JSON.stringify([q.text || q.quote]),
-                    theme: q.theme,
-                    transcriptId: t.id,
-                    context: q.context
-                })));
+                const clusters: ClusteredQuote[] = [];
+                if (parsed.insights && Array.isArray(parsed.insights)) {
+                    clusters.push(...parsed.insights.map((q: any) => ({
+                        // Store quotes array as stringified JSON to fit into the 'quote' string field in DB
+                        quote: JSON.stringify(Array.isArray(q.quotes) ? q.quotes : [q.quotes]),
+                        theme: q.theme,
+                        transcriptId: t.id,
+                        context: q.context
+                    })));
+                } else if (parsed.quotes && Array.isArray(parsed.quotes)) {
+                    // Fallback for backward compatibility or hallucination
+                    clusters.push(...parsed.quotes.map((q: any) => ({
+                        quote: JSON.stringify([q.text || q.quote]),
+                        theme: q.theme,
+                        transcriptId: t.id,
+                        context: q.context
+                    })));
+                }
+                return clusters;
+            } catch (transcriptError) {
+                console.error(`[OpenAI] processMapping transcript "${t.name}" (${t.id}) failed:`, transcriptError);
+                // Drop this transcript's output but keep the rest — partial
+                // clustering is more useful than failing the whole session.
+                return [] as ClusteredQuote[];
             }
-        }
+        }));
+
+        const allClusters: ClusteredQuote[] = perTranscript.flat();
 
         return {
             clusters: allClusters,

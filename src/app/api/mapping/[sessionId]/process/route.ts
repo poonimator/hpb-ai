@@ -4,6 +4,12 @@ import { logAudit } from "@/lib/db/audit";
 import { errorResponse, successResponse } from "@/lib/validations";
 import { processMapping } from "@/lib/ai/openai";
 
+// Mapping calls OpenAI once per transcript; with N transcripts in parallel
+// the whole thing can still legitimately take ~30–90s on the slowest model.
+// Without this Vercel kills the function at its default ~10–15s and the
+// client sees a 504 Gateway Timeout.
+export const maxDuration = 300;
+
 interface RouteParams {
     params: Promise<{ sessionId: string }>;
 }

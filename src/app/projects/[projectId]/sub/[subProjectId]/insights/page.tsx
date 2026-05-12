@@ -395,7 +395,11 @@ function CritiqueDisplay({ entry, onDelete }: { entry: HistoryEntry; onDelete: (
                 </div>
 
                 {hasAnnotatedBreakdown ? (
-                    <AnnotatedInsight statement={insightStatement} annotations={critique.statementBreakdown!} />
+                    <AnnotatedInsight
+                        statement={insightStatement}
+                        annotations={critique.statementBreakdown!}
+                        criteria={critique.criteria}
+                    />
                 ) : (
                     <p className="text-display-4 leading-snug text-foreground">
                         {insightStatement}

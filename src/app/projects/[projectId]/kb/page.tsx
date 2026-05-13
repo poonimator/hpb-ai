@@ -36,7 +36,6 @@ import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
 import { RailHeader } from "@/components/layout/rail-header";
 import { RailSection } from "@/components/layout/rail-section";
-import { MetaRow } from "@/components/layout/meta-row";
 import {
     Upload,
     Loader2,
@@ -267,8 +266,21 @@ export default function ProjectKbPage({ params }: PageProps) {
             </RailHeader>
 
             <RailSection title="Library">
-                <MetaRow k="Documents" v={totalDocs} />
-                {pendingCount > 0 && <MetaRow k="Pending review" v={pendingCount} />}
+                {/* Rows match the Browse list's row shape (px-2, py-2,
+                    text-ui-sm label, text-[11px] tabular-nums count) so
+                    the count column lines up vertically across sections. */}
+                <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between gap-3 w-full px-2 py-2 text-muted-foreground">
+                        <span className="text-ui-sm">Documents</span>
+                        <span className="text-[11px] tabular-nums shrink-0 text-muted-foreground">{totalDocs}</span>
+                    </div>
+                    {pendingCount > 0 && (
+                        <div className="flex items-center justify-between gap-3 w-full px-2 py-2 text-muted-foreground">
+                            <span className="text-ui-sm">Pending review</span>
+                            <span className="text-[11px] tabular-nums shrink-0 text-muted-foreground">{pendingCount}</span>
+                        </div>
+                    )}
+                </div>
             </RailSection>
 
             <RailSection title="Browse">

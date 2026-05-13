@@ -48,19 +48,7 @@ import {
     Shield,
     HelpCircle,
     BookOpenText,
-    AlertCircle,
-    Briefcase,
-    Heart,
 } from "lucide-react";
-
-interface ParsedPersona {
-    name?: string;
-    age?: string;
-    occupation?: string;
-    summary?: string;
-    gains?: string;
-    pains?: string;
-}
 
 interface KbDocument {
     id: string;
@@ -101,15 +89,6 @@ const DOC_TYPE_LABELS: Record<string, string> = {
     POLICY: "Policies",
     OTHER: "Other",
 };
-
-function parsePersonaMeta(jsonStr?: string): ParsedPersona | null {
-    if (!jsonStr) return null;
-    try {
-        return JSON.parse(jsonStr);
-    } catch {
-        return null;
-    }
-}
 
 export default function ProjectKbPage({ params }: PageProps) {
     const { projectId } = use(params);
@@ -377,181 +356,6 @@ export default function ProjectKbPage({ params }: PageProps) {
                             <Upload className="h-3.5 w-3.5" />
                             Upload {DOC_TYPE_LABELS[activeTab].toLowerCase()}
                         </Button>
-                    </div>
-                ) : activeTab === "PERSONA" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {filteredDocuments.map((doc) => {
-                            const persona = parsePersonaMeta(doc.parsedMetaJson);
-                            const isPending = doc.status === "DRAFT";
-                            const isRejected = doc.status === "REJECTED";
-
-                            if (!persona) {
-                                return (
-                                    <div
-                                        key={doc.id}
-                                        className={`group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-5 flex flex-col ${
-                                            isPending ? "ring-1 ring-[color:var(--warning)]/30" : isRejected ? "ring-1 ring-[color:var(--danger)]/30" : ""
-                                        }`}
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex items-start gap-3 min-w-0">
-                                                <div className="h-9 w-9 rounded-[10px] bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-inset-edge flex items-center justify-center shrink-0">
-                                                    <User className="h-4 w-4" />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h3 className="font-semibold text-foreground text-sm leading-tight">
-                                                        {doc.title}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 mt-1 text-[12px] text-muted-foreground">
-                                                        <span className="truncate">{doc.originalFileName}</span>
-                                                        <span className="opacity-50">·</span>
-                                                        <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                                <Button
-                                                    size="icon-sm"
-                                                    variant="ghost"
-                                                    className="text-muted-foreground"
-                                                    onClick={() => setViewDoc(doc)}
-                                                >
-                                                    <Eye className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                    size="icon-sm"
-                                                    variant="ghost"
-                                                    className="text-muted-foreground hover:text-destructive"
-                                                    onClick={() => setDeleteDocId(doc.id)}
-                                                    disabled={processingId === doc.id}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-
-                                        {isPending && (
-                                            <div className="mt-4 flex items-center gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => approveDocument(doc.id)}
-                                                    disabled={processingId === doc.id}
-                                                >
-                                                    {processingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Approve"}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="text-[color:var(--danger)] hover:text-[color:var(--danger)]"
-                                                    onClick={() => rejectDocument(doc.id)}
-                                                    disabled={processingId === doc.id}
-                                                >
-                                                    Reject
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            }
-
-                            return (
-                                <div
-                                    key={doc.id}
-                                    className={`group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-5 flex flex-col ${
-                                        isPending ? "ring-1 ring-[color:var(--warning)]/30" : isRejected ? "ring-1 ring-[color:var(--danger)]/30" : ""
-                                    }`}
-                                >
-                                    <div className="flex items-start justify-between gap-3 mb-3">
-                                        <div className="min-w-0">
-                                            <h3 className="font-semibold text-foreground text-sm leading-tight">
-                                                {persona.name || doc.title}
-                                            </h3>
-                                            <div className="flex items-center gap-2 mt-1 text-[12px] text-muted-foreground">
-                                                {persona.age && <span>{persona.age} years</span>}
-                                                {persona.age && persona.occupation && <span className="opacity-50">·</span>}
-                                                {persona.occupation && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Briefcase className="h-3 w-3" />
-                                                        {persona.occupation}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                            <Button
-                                                size="icon-sm"
-                                                variant="ghost"
-                                                className="text-muted-foreground"
-                                                onClick={() => setViewDoc(doc)}
-                                            >
-                                                <Eye className="h-3.5 w-3.5" />
-                                            </Button>
-                                            <Button
-                                                size="icon-sm"
-                                                variant="ghost"
-                                                className="text-muted-foreground hover:text-destructive"
-                                                onClick={() => setDeleteDocId(doc.id)}
-                                                disabled={processingId === doc.id}
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    {persona.summary && (
-                                        <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-3 mb-4">
-                                            {persona.summary}
-                                        </p>
-                                    )}
-
-                                    {(persona.gains || persona.pains) && (
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[color:var(--border-subtle)] pt-3">
-                                            {persona.gains && (
-                                                <div>
-                                                    <div className="flex items-center gap-1.5 mb-1">
-                                                        <Heart className="h-3 w-3 text-muted-foreground" />
-                                                        <span className="text-caption uppercase tracking-wider text-muted-foreground">Motivations</span>
-                                                    </div>
-                                                    <p className="text-[12px] text-foreground/80 leading-snug">{persona.gains}</p>
-                                                </div>
-                                            )}
-                                            {persona.pains && (
-                                                <div>
-                                                    <div className="flex items-center gap-1.5 mb-1">
-                                                        <AlertCircle className="h-3 w-3 text-muted-foreground" />
-                                                        <span className="text-caption uppercase tracking-wider text-muted-foreground">Frustrations</span>
-                                                    </div>
-                                                    <p className="text-[12px] text-foreground/80 leading-snug">{persona.pains}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {isPending && (
-                                        <div className="mt-4 flex items-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => approveDocument(doc.id)}
-                                                disabled={processingId === doc.id}
-                                            >
-                                                {processingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Approve"}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-[color:var(--danger)] hover:text-[color:var(--danger)]"
-                                                onClick={() => rejectDocument(doc.id)}
-                                                disabled={processingId === doc.id}
-                                            >
-                                                Reject
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
                     </div>
                 ) : (
                     <div className="flex flex-col gap-2">

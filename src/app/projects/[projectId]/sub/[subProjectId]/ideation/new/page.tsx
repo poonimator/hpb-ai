@@ -12,6 +12,8 @@ import {
     Check,
     AlertCircle,
     Sparkles,
+    Plus,
+    X,
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
@@ -87,6 +89,54 @@ export default function NewIdeationPage({ params }: PageProps) {
     const [selectedMappingId, setSelectedMappingId] = useState(prefillMappingId);
     const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>(prefillProfileIds);
     const [selectedFocusAreas, setSelectedFocusAreas] = useState<string[]>(prefillFocusAreas);
+
+    // Custom user-typed focus areas (live alongside the preset enabler grid).
+    // Pre-fill any prefill entries that don't match a known enabler key so a
+    // re-generation round-trip preserves what the user typed last time.
+    const presetKeySet = new Set(CREATIVE_MATRIX_ENABLERS.map((e) => e.key));
+    const [customFocusAreas, setCustomFocusAreas] = useState<
+        { id: string; text: string; selected: boolean }[]
+    >(() =>
+        prefillFocusAreas
+            .filter((v) => !presetKeySet.has(v))
+            .map((v) => ({
+                id: Math.random().toString(36).slice(2),
+                text: v,
+                selected: true,
+            }))
+    );
+
+    function addCustomFocusArea() {
+        setCustomFocusAreas((prev) => [
+            ...prev,
+            { id: Math.random().toString(36).slice(2), text: "", selected: true },
+        ]);
+    }
+
+    function updateCustomFocusAreaText(id: string, text: string) {
+        setCustomFocusAreas((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, text } : c))
+        );
+    }
+
+    function toggleCustomFocusArea(id: string) {
+        setCustomFocusAreas((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, selected: !c.selected } : c))
+        );
+    }
+
+    function removeCustomFocusArea(id: string) {
+        setCustomFocusAreas((prev) => prev.filter((c) => c.id !== id));
+    }
+
+    // Selected preset keys ++ trimmed selected custom strings — this is what
+    // goes onto the API payload. The prompt builder splits known vs unknown.
+    function buildFocusAreasPayload(): string[] {
+        const customSelected = customFocusAreas
+            .filter((c) => c.selected && c.text.trim().length > 0)
+            .map((c) => c.text.trim());
+        return [...selectedFocusAreas, ...customSelected];
+    }
 
     // Generation state
     const [isGenerating, setIsGenerating] = useState(false);
@@ -222,7 +272,7 @@ export default function NewIdeationPage({ params }: PageProps) {
                 body: JSON.stringify({
                     mappingId: selectedMappingId,
                     profileIds: selectedProfileIds,
-                    focusAreas: selectedFocusAreas,
+                    focusAreas: buildFocusAreasPayload(),
                 }),
             });
 
@@ -312,7 +362,15 @@ export default function NewIdeationPage({ params }: PageProps) {
                         <RailSection title="Selections">
                             <MetaRow k="Mapping" v={selectedMappingId ? "1" : "—"} />
                             <MetaRow k="Profiles" v={selectedProfileIds.length} />
-                            <MetaRow k="Focus areas" v={selectedFocusAreas.length} />
+                            <MetaRow
+                                k="Focus areas"
+                                v={
+                                    selectedFocusAreas.length +
+                                    customFocusAreas.filter(
+                                        (c) => c.selected && c.text.trim().length > 0
+                                    ).length
+                                }
+                            />
                         </RailSection>
 
                         <RailSection title="Output">
@@ -538,7 +596,68 @@ export default function NewIdeationPage({ params }: PageProps) {
                                             </button>
                                         );
                                     })}
+
+                                    {/* User-typed custom focus areas — render in the same grid as
+                                        presets so they tile alongside them. Each row carries its
+                                        own checkbox + free-text input + remove button. */}
+                                    {customFocusAreas.map((c) => {
+                                        const hasText = c.text.trim().length > 0;
+                                        const isSelected = c.selected && hasText;
+                                        return (
+                                            <div
+                                                key={c.id}
+                                                className={`flex items-center gap-2.5 p-3 rounded-[10px] transition-all text-left text-body-sm ${
+                                                    isSelected
+                                                        ? "bg-[color:var(--primary-soft)] border border-[color:var(--primary)] shadow-outline-ring text-foreground"
+                                                        : "bg-[color:var(--surface)] shadow-inset-edge border border-transparent hover:border-[color:var(--border-subtle)] text-muted-foreground"
+                                                }`}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleCustomFocusArea(c.id)}
+                                                    disabled={!hasText}
+                                                    aria-pressed={isSelected}
+                                                    aria-label="Toggle custom focus area"
+                                                    className={`h-4 w-4 rounded-[4px] flex items-center justify-center flex-shrink-0 ${
+                                                        isSelected
+                                                            ? "bg-[color:var(--primary)]"
+                                                            : "bg-[color:var(--surface-muted)] shadow-inset-edge"
+                                                    } ${!hasText ? "opacity-60 cursor-not-allowed" : ""}`}
+                                                >
+                                                    {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                                                </button>
+                                                <input
+                                                    type="text"
+                                                    value={c.text}
+                                                    onChange={(e) =>
+                                                        updateCustomFocusAreaText(c.id, e.target.value)
+                                                    }
+                                                    placeholder="Type your own focus area…"
+                                                    className={`flex-1 bg-transparent focus:outline-none text-body-sm ${
+                                                        isSelected ? "font-semibold" : ""
+                                                    } placeholder:text-muted-foreground/70`}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeCustomFocusArea(c.id)}
+                                                    aria-label="Remove custom focus area"
+                                                    className="h-5 w-5 rounded-[6px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface-muted)] shrink-0"
+                                                >
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
+
+                                <button
+                                    type="button"
+                                    onClick={addCustomFocusArea}
+                                    className="mt-1 inline-flex items-center gap-1.5 text-caption font-medium text-[color:var(--primary)] hover:underline"
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Add your own focus area
+                                </button>
                             </section>
 
                             {/* Error */}

@@ -206,23 +206,42 @@ ${insights.look_further?.map(i => `- ${i.text}${i.citation ? ` [Citation: ${i.ci
 ${insights.new_areas?.map(i => `- ${i.text}${i.citation ? ` [Citation: ${i.citation}${i.citation_reason ? ` — ${i.citation_reason}` : ""}]` : ""}${i.transcript_tags?.length ? ` [Sources: ${i.transcript_tags.join(", ")}]` : ""}`).join("\n") || "None"}
 ` : "";
 
-    // Format creative matrix enablers
-    const selectedEnablers = focusAreas.length > 0
-        ? focusAreas.filter(k => CREATIVE_MATRIX_ENABLERS[k])
-        : Object.keys(CREATIVE_MATRIX_ENABLERS);
+    // Format creative matrix enablers.
+    // focusAreas is a flat array — entries that match a preset enabler key
+    // get the full enabler block; anything else is treated as a free-text
+    // focus area the user typed in the new-ideation UI and rendered into
+    // its own list so the prompt still pays attention to it.
+    const presetSelected = focusAreas.filter(k => CREATIVE_MATRIX_ENABLERS[k]);
+    const customSelected = focusAreas.filter(k => !CREATIVE_MATRIX_ENABLERS[k] && k.trim().length > 0);
+    const userPickedAny = presetSelected.length > 0 || customSelected.length > 0;
+
+    const selectedEnablers = presetSelected.length > 0
+        ? presetSelected
+        : (userPickedAny ? [] : Object.keys(CREATIVE_MATRIX_ENABLERS));
+
+    const enablerBlocks = selectedEnablers.map(key => {
+        const enabler = CREATIVE_MATRIX_ENABLERS[key];
+        return `### ${enabler.label}
+Think about: ${enabler.subCategories.join(", ")}`;
+    }).join("\n\n");
+
+    const customBlock = customSelected.length > 0
+        ? `
+
+### User-defined focus areas
+The user has typed these custom creative lenses for this session. Treat each one as a first-class enabler alongside (or in place of) the presets above. Generate at least one concept that meaningfully leverages each user-defined focus area where the data supports it.
+
+${customSelected.map(s => `- ${s}`).join("\n")}`
+        : "";
 
     const enablersSection = `
 ## CREATIVE MATRIX ENABLERS
-${focusAreas.length > 0
+${userPickedAny
     ? "The user has selected these specific creative lenses. Prioritize concepts that leverage these categories, but you are not limited to them if other categories clearly fit."
     : "Consider ALL of the following creative lenses when generating concepts. Pick only the ones that are genuinely relevant to the project context and target audience — do NOT force-fit irrelevant categories."
 }
 
-${selectedEnablers.map(key => {
-    const enabler = CREATIVE_MATRIX_ENABLERS[key];
-    return `### ${enabler.label}
-Think about: ${enabler.subCategories.join(", ")}`;
-}).join("\n\n")}
+${enablerBlocks}${customBlock}
 `;
 
     return `# CRAZY 8s IDEATION — DESIGN CONCEPT GENERATOR

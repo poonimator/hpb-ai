@@ -448,9 +448,10 @@ function SimulationPageContent({ params }: PageProps) {
     // Image attachment state
     const [attachedImage, setAttachedImage] = useState<{ base64: string; previewUrl: string } | null>(null);
 
-    const handleImageAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    // Validate + read an image File into the attachedImage slot. Shared by
+    // the file-picker change handler and the textarea onPaste handler so the
+    // size/type guards stay in one place.
+    const acceptImageFile = (file: File) => {
         if (!file.type.startsWith("image/")) {
             alert("Please select an image file.");
             return;
@@ -465,8 +466,33 @@ function SimulationPageContent({ params }: PageProps) {
             setAttachedImage({ base64, previewUrl: base64 });
         };
         reader.readAsDataURL(file);
+    };
+
+    const handleImageAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        acceptImageFile(file);
         // Reset file input so the same file can be re-selected
         e.target.value = "";
+    };
+
+    // Paste-an-image-from-clipboard support on the chat input. If the paste
+    // contains any image item we consume it and skip the default text paste;
+    // pure-text pastes fall through to the textarea's default behaviour.
+    const handleInputPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const items = e.clipboardData?.items;
+        if (!items || items.length === 0) return;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === "file" && item.type.startsWith("image/")) {
+                const file = item.getAsFile();
+                if (file) {
+                    e.preventDefault();
+                    acceptImageFile(file);
+                    return;
+                }
+            }
+        }
     };
 
     // Typewriter animation state - tracks which message is currently animating
@@ -1575,6 +1601,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                             }
                                                         }
                                                     }}
+                                                    onPaste={handleInputPaste}
                                                     onKeyDown={(e) => {
                                                         if (e.key === "Escape" && showAtMention) {
                                                             setShowAtMention(false);

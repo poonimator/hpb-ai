@@ -1730,7 +1730,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                 </div>
                                                 <div>
                                                     <span className="text-body-sm font-semibold text-foreground">Focus Group Mode</span>
-                                                    <p className="text-caption text-muted-foreground">Simulate a group discussion with 2-4 archetypes</p>
+                                                    <p className="text-caption text-muted-foreground">Simulate a group discussion with 2-5 archetypes</p>
                                                 </div>
                                             </label>
                                         </div>

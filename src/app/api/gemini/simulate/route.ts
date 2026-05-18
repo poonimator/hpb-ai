@@ -201,6 +201,14 @@ export async function POST(request: NextRequest) {
                     .filter(a => a.id !== arch.id)
                     .map(a => a.name);
 
+                // Responses produced by OTHER archetypes earlier in THIS same
+                // turn — surfaced explicitly to force divergence in opener,
+                // structure, angle, vocabulary, and length.
+                const priorResponsesThisTurn = newMessages.map((m) => ({
+                    speakerName: m.archetypeName,
+                    content: m.content,
+                }));
+
                 const prompt = buildFocusGroupPrompt({
                     projectName,
                     researchStatement,
@@ -210,6 +218,7 @@ export async function POST(request: NextRequest) {
                     conversationHistory: buildConversationHistory(),
                     userMessage: userMessageContent,
                     groundingContext,
+                    priorResponsesThisTurn,
                 });
 
                 const result = await generatePersonaReply({

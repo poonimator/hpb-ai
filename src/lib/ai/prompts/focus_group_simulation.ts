@@ -19,6 +19,10 @@ export interface FocusGroupPromptContext {
     userMessage: string;
     // Grounding context from knowledge base
     groundingContext: string[];
+    // Responses already produced by OTHER archetypes in this same turn (in
+    // order). Surfaced explicitly so the prompt can force divergence in
+    // structure, opener, angle, length, and vocabulary.
+    priorResponsesThisTurn?: Array<{ speakerName: string; content: string }>;
 }
 
 export function buildFocusGroupPrompt(ctx: FocusGroupPromptContext): string {
@@ -31,6 +35,7 @@ export function buildFocusGroupPrompt(ctx: FocusGroupPromptContext): string {
         conversationHistory,
         userMessage,
         groundingContext,
+        priorResponsesThisTurn = [],
     } = ctx;
 
     // Format conversation history with speaker labels
@@ -54,6 +59,14 @@ export function buildFocusGroupPrompt(ctx: FocusGroupPromptContext): string {
     const otherNames = otherArchetypeNames.length > 0
         ? otherArchetypeNames.join(", ")
         : "none";
+
+    // Render this-turn prior responses verbatim so the model can pattern-match
+    // and avoid mirroring them. Empty when this archetype speaks first.
+    const priorThisTurnBlock = priorResponsesThisTurn.length > 0
+        ? priorResponsesThisTurn
+            .map((r, i) => `(${i + 1}) [${r.speakerName}]: ${r.content}`)
+            .join("\n\n")
+        : "(You are the first to respond to this question in the group.)";
 
     return `# FOCUS GROUP — YOU ARE ${archetypeName.toUpperCase()}
 
@@ -146,8 +159,28 @@ ${historyText}
 ## THE RESEARCHER JUST SAID:
 "${userMessage}"
 
+## OTHER PARTICIPANTS HAVE ALREADY ANSWERED THIS SAME QUESTION
+${priorThisTurnBlock}
+
+## UNIQUENESS MANDATE — READ THIS BEFORE YOU SPEAK
+This is the most important rule of this entire prompt. Real focus groups sound varied because every participant is a different person. AI participants tend to converge — same opener, same sentence shape, same hedge words, same length, same angle. You MUST NOT do that.
+
+Look at every response above this line. Now obey ALL of the following:
+
+1. **Different opening.** Do NOT begin with the same first word, phrase, or rhetorical move as any prior response in this turn. If anyone above started with "Honestly," / "I mean," / "Yeah," / "For me," / "I think," / "To be honest," / a question / a sigh-style filler — you cannot. Pick something they did not.
+2. **Different sentence shape.** If prior responses are short and clipped, you might ramble. If they're long and reflective, you might be blunt and one-liner short. If they hedge ("I guess," "kind of," "sort of") — drop the hedges, or pile on different ones. Vary cadence on purpose.
+3. **Different angle on the question.** Do not restate the same point in different words. Pick a sub-aspect the others did NOT touch — a specific moment, a different time of day, a different person involved, a different feeling, a different blocker. Your barriers / motivations / lived experience hand you that angle for free; use them.
+4. **Different vocabulary register.** Do not echo distinctive words or phrases the others used (e.g. if someone said "overwhelmed," do not also say "overwhelmed"). Use words from YOUR life. If the others are formal, be casual. If casual, be terse. If terse, be more textured.
+5. **Different length.** Do not match the length of the prior response. If the last person was 2 sentences, you go 1 or you go 4. Same length = same energy = sounds copy-pasted.
+6. **No mirrored agreement.** Do NOT say "I agree with [name]" or "Like [name] said" or "Same here" and then rephrase their point. If you genuinely share a feeling, prove it with YOUR specific story — a moment, an example, a number — that they did not mention.
+7. **No shared scaffolding.** Do not use the same list-of-three structure, the same "first… then… also…" rhythm, or the same "well, the thing is…" hook if anyone above used it.
+
+You are not the others. Your barriers, motivations, spiral, lived experience are different from theirs by construction. Let those differences show in HOW you talk, not just WHAT you say.
+
+If your unique voice means staying silent on this question, output exactly: [NO_RESPONSE]
+
 ## RESPOND NOW AS ${archetypeName.toUpperCase()}
-Stay in character. Be honest, not helpful. If this question doesn't connect to your life, respond with exactly [NO_RESPONSE].
+Stay in character. Be honest, not helpful. Diverge from the prior responses in opener, shape, angle, vocab, and length. If this question doesn't connect to your life, respond with exactly [NO_RESPONSE].
 
 Respond now:`;
 }

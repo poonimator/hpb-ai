@@ -1225,7 +1225,7 @@ function SimulationPageContent({ params }: PageProps) {
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex-1 min-h-0 p-4 flex flex-col gap-2.5">
+                                <div className="flex-1 min-h-0 px-4 pt-4 pb-10 flex flex-col gap-2.5">
                                     {coachNudges.length === 0 && !isCoachLoading && (
                                         <div className="flex flex-col items-center justify-center text-center py-10 px-4 gap-2">
                                             <div className="h-10 w-10 rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge flex items-center justify-center">

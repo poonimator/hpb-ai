@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
                     orderBy: { timestamp: "asc" }
                 },
                 simulationArchetypes: {
-                    include: { archetype: true }
+                    include: { archetype: true, syntheticPersona: true }
                 }
             }
         });
@@ -32,21 +32,30 @@ export async function POST(request: NextRequest) {
             return errorResponse("Not a focus group simulation", 400);
         }
 
+        // Helper — resolve a SimulationArchetype row's display name regardless
+        // of whether it points to an Archetype or a SyntheticPersona.
+        const participantName = (sa: typeof simulation.simulationArchetypes[number]): string => {
+            return sa.archetype?.name || sa.syntheticPersona?.name || "Participant";
+        };
+
         // Build transcript
         const transcript = simulation.messages.map(msg => {
             let sender = "User (Researcher)";
             if (msg.role === "persona") {
-                const arch = simulation.simulationArchetypes.find(a => a.archetypeId === msg.archetypeId);
-                sender = arch ? arch.archetype.name : "Participant";
+                const matchingRow = simulation.simulationArchetypes.find(a =>
+                    (msg.archetypeId && a.archetypeId === msg.archetypeId)
+                    || (msg.syntheticPersonaId && a.syntheticPersonaId === msg.syntheticPersonaId)
+                );
+                sender = matchingRow ? participantName(matchingRow) : "Participant";
             }
             return `${sender}: ${msg.content}`;
         }).join("\n\n");
 
-        // Generate summary for each archetype that doesn't have one (in parallel)
+        // Generate summary for each participant that doesn't have one (in parallel)
         const archetypePromises = simulation.simulationArchetypes.map(async (simArch) => {
             if (!simArch.summary || force) {
                 const res = await generateArchetypeSummary({
-                    archetypeName: simArch.archetype.name,
+                    archetypeName: participantName(simArch),
                     conversationTranscript: transcript,
                     modelName: simulation.modelName || undefined,
                 });
@@ -56,10 +65,10 @@ export async function POST(request: NextRequest) {
                         where: { id: simArch.id },
                         data: { summary: res.summary }
                     });
-                    return { archetypeId: simArch.archetypeId, summary: res.summary };
+                    return { archetypeId: simArch.archetypeId, syntheticPersonaId: simArch.syntheticPersonaId, summary: res.summary };
                 }
             }
-            return { archetypeId: simArch.archetypeId, summary: simArch.summary };
+            return { archetypeId: simArch.archetypeId, syntheticPersonaId: simArch.syntheticPersonaId, summary: simArch.summary };
         });
 
         // Set up the cross-profile promise (also running in parallel)
@@ -67,7 +76,7 @@ export async function POST(request: NextRequest) {
         let crossProfilePromise = Promise.resolve(crossProfileSummary);
 
         if (!crossProfileSummary || force) {
-            const archetypeNames = simulation.simulationArchetypes.map(a => a.archetype.name);
+            const archetypeNames = simulation.simulationArchetypes.map(a => participantName(a));
             crossProfilePromise = generateCrossProfileSummary({
                 archetypeNames,
                 conversationTranscript: transcript,

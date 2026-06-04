@@ -30,9 +30,11 @@ export async function GET(request: NextRequest, { params }: Params) {
                 personaDoc: true,
                 projectPersonaDoc: true,
                 archetype: true,
+                syntheticPersona: true,
                 simulationArchetypes: {
                     include: {
                         archetype: true,
+                        syntheticPersona: true,
                     },
                     orderBy: { order: "asc" },
                 },

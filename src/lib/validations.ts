@@ -116,8 +116,10 @@ export const StartSimulationSchema = z.object({
     personaDocId: z.string().cuid().optional(), // Global KB persona reference  
     projectPersonaDocId: z.string().cuid().optional(), // Project KB persona reference (NEW)
     archetypeId: z.string().cuid().optional(), // Archetype-based persona reference (1:1 mode)
+    syntheticPersonaId: z.string().cuid().optional(), // SyntheticPersona reference (1:1 mode)
     isFocusGroup: z.boolean().optional().default(false), // Focus group mode
-    archetypeIds: z.array(z.string().cuid()).min(2).max(5).optional(), // Focus group archetypes (2-5)
+    archetypeIds: z.array(z.string().cuid()).min(2).max(5).optional(), // Focus group — pure-archetype mode (2-5)
+    syntheticPersonaIds: z.array(z.string().cuid()).min(2).max(5).optional(), // Focus group — pure-persona mode (2-5); mutually exclusive with archetypeIds
     mode: z.enum(["dojo", "prism"]).default("dojo"),
     mixerSettings: z.object({
         emotionalTone: z.number().min(0).max(100).default(50),

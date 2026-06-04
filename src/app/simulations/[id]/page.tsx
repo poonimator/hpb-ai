@@ -51,6 +51,8 @@ interface Message {
     content: string;
     timestamp: string;
     archetypeId?: string | null;
+    /** Set instead of archetypeId when the focus-group speaker is a SyntheticPersona. */
+    syntheticPersonaId?: string | null;
     imageBase64?: string | null;
 }
 
@@ -140,11 +142,13 @@ interface Simulation {
     isFocusGroup: boolean;
     crossProfileSummary?: string | null;
     simulationArchetypes: Array<{
-        archetype: { id: string; name: string; kicker?: string | null };
+        archetype?: { id: string; name: string; kicker?: string | null } | null;
+        syntheticPersona?: { id: string; name: string; kicker?: string | null; avatarUrl?: string | null } | null;
         order: number;
         summary?: string | null;
     }>;
     archetype?: { id: string; name: string; kicker?: string | null } | null;
+    syntheticPersona?: { id: string; name: string; kicker?: string | null; avatarUrl?: string | null } | null;
 }
 
 interface CoachChatMessage {
@@ -607,8 +611,12 @@ export default function ViewSessionPage({ params }: PageProps) {
     const isCompleted = !!simulation.endedAt;
     const hasReview = !!simulation.coachFindings;
     const isFocusGroup = simulation.isFocusGroup && simulation.simulationArchetypes?.length > 0;
+    // Each SimulationArchetype row carries either an archetype OR a
+    // syntheticPersona — collapse to a unified speaker shape.
     const focusGroupArchetypes = isFocusGroup
-        ? simulation.simulationArchetypes.map((sa) => sa.archetype)
+        ? simulation.simulationArchetypes
+            .map((sa) => sa.archetype ?? sa.syntheticPersona ?? null)
+            .filter((p): p is { id: string; name: string; kicker?: string | null } => p !== null)
         : [];
 
     const getArchetypeColor = (archetypeId: string) => {
@@ -636,22 +644,26 @@ export default function ViewSessionPage({ params }: PageProps) {
         summary?: string | null;
     };
     const participants: Participant[] = isFocusGroup
-        ? simulation.simulationArchetypes.map((sa, i) => {
-            const pal = PERSONA_PALETTE[i % PERSONA_PALETTE.length];
-            return {
-                id: sa.archetype.id,
-                name: sa.archetype.name,
-                kicker: sa.archetype.kicker,
-                accent: pal.accent,
-                accentSoft: pal.accentSoft,
-                summary: sa.summary,
-            };
-        })
+        ? simulation.simulationArchetypes
+            .map((sa, i): Participant | null => {
+                const ref = sa.archetype ?? sa.syntheticPersona;
+                if (!ref) return null;
+                const pal = PERSONA_PALETTE[i % PERSONA_PALETTE.length];
+                return {
+                    id: ref.id,
+                    name: ref.name,
+                    kicker: ref.kicker ?? null,
+                    accent: pal.accent,
+                    accentSoft: pal.accentSoft,
+                    summary: sa.summary,
+                };
+            })
+            .filter((p): p is Participant => p !== null)
         : [
             {
-                id: simulation.archetype?.id || personaDoc?.id || "persona",
-                name: personaName,
-                kicker: simulation.archetype?.kicker || null,
+                id: simulation.syntheticPersona?.id || simulation.archetype?.id || personaDoc?.id || "persona",
+                name: simulation.syntheticPersona?.name || personaName,
+                kicker: simulation.syntheticPersona?.kicker || simulation.archetype?.kicker || null,
                 accent: PERSONA_PALETTE[0].accent,
                 accentSoft: PERSONA_PALETTE[0].accentSoft,
                 summary: null,
@@ -693,11 +705,14 @@ export default function ViewSessionPage({ params }: PageProps) {
                 current = { question: m.content, answers: [] };
                 blocks.push(current);
             } else if (current) {
-                const participant = m.archetypeId ? participantById(m.archetypeId) : participants[0];
+                const speakerKey = m.archetypeId || m.syntheticPersonaId || null;
+                const participant = speakerKey ? participantById(speakerKey) : participants[0];
                 current.answers.push({ msg: m, participant });
             } else {
                 // Persona message before any user question — create a pseudo-block
-                current = { question: "Opening", answers: [{ msg: m, participant: m.archetypeId ? participantById(m.archetypeId) : participants[0] }] };
+                const speakerKey = m.archetypeId || m.syntheticPersonaId || null;
+                const participant = speakerKey ? participantById(speakerKey) : participants[0];
+                current = { question: "Opening", answers: [{ msg: m, participant }] };
                 blocks.push(current);
             }
         });
@@ -929,7 +944,9 @@ export default function ViewSessionPage({ params }: PageProps) {
                         {isFocusGroup && isCompleted ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                                 {simulation.simulationArchetypes.map((simArch) => {
-                                    const p = participantById(simArch.archetype.id);
+                                    const ref = simArch.archetype ?? simArch.syntheticPersona;
+                                    if (!ref) return null;
+                                    const p = participantById(ref.id);
                                     if (!p) return null;
 
                                     // Parse structured JSON or fall back to plain text
@@ -948,7 +965,7 @@ export default function ViewSessionPage({ params }: PageProps) {
 
                                     return (
                                         <div
-                                            key={simArch.archetype.id}
+                                            key={ref.id}
                                             className="bg-[color:var(--surface)] rounded-[16px] shadow-outline-ring flex flex-col overflow-hidden"
                                         >
                                             {/* Header */}
@@ -1250,9 +1267,11 @@ export default function ViewSessionPage({ params }: PageProps) {
                                                 : ans.msg.content)
                                             : null;
 
-                                        // Focus-group accent (only used when we actually have an archetype)
-                                        const fgColor = isFocusGroup && ans.msg.archetypeId
-                                            ? getArchetypeColor(ans.msg.archetypeId)
+                                        // Focus-group accent — speaker is whichever FK is set
+                                        // (archetype OR synthetic persona).
+                                        const speakerId = ans.msg.archetypeId || ans.msg.syntheticPersonaId || null;
+                                        const fgColor = isFocusGroup && speakerId
+                                            ? getArchetypeColor(speakerId)
                                             : null;
 
                                         const speakerName = p?.name || personaName;

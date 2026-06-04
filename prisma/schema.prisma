@@ -30,13 +30,13 @@ model User {
 
 // Main Project: High-level container with Name, Description, and Project-specific KB
 model Project {
-  id           String              @id @default(cuid())
-  name         String
-  description  String              @default("") // Project overview
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  subProjects  SubProject[]
-  kbDocuments  ProjectKbDocument[]
+  id          String              @id @default(cuid())
+  name        String
+  description String              @default("") // Project overview
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  subProjects SubProject[]
+  kbDocuments ProjectKbDocument[]
 
   // DEPRECATED - kept for backwards compatibility during migration
   // These will be migrated to SubProject and then removed in a future version
@@ -44,25 +44,26 @@ model Project {
   ageRange          String?
   lifeStage         String?
   setupComplete     Boolean?
-  guideVersions     GuideVersion[]  @relation("LegacyProjectGuides")
-  simulations       Simulation[]    @relation("LegacyProjectSimulations")
+  guideVersions     GuideVersion[] @relation("LegacyProjectGuides")
+  simulations       Simulation[]   @relation("LegacyProjectSimulations")
 }
 
 // Sub-Project: Contains Research Statement, Demographics, Guides, and Simulations
 model SubProject {
-  id                String         @id @default(cuid())
+  id                String             @id @default(cuid())
   projectId         String
-  project           Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name              String
   researchStatement String
-  ageRange          String         // e.g., "15-25", "18-25"
-  lifeStage         String         // e.g., "Secondary", "JC", "NS" (comma-separated for multiple)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  ageRange          String // e.g., "15-25", "18-25"
+  lifeStage         String // e.g., "Secondary", "JC", "NS" (comma-separated for multiple)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   guideVersions     GuideVersion[]
   simulations       Simulation[]
   mappingSessions   MappingSession[]
   archetypeSessions ArchetypeSession[]
+  personaSessions   PersonaSession[]
   hmwCritiques      HmwCritique[]
   insightCritiques  InsightCritique[]
   ideationSessions  IdeationSession[]
@@ -70,19 +71,19 @@ model SubProject {
 
 // Guide Version: A moderator guide version belonging to a sub-project
 model GuideVersion {
-  id            String      @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // New: Link to SubProject (primary)
-  subProjectId  String?
-  subProject    SubProject? @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
-  
+  subProjectId String?
+  subProject   SubProject? @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+
   // DEPRECATED: Legacy link to Project (for migration compatibility)
-  projectId     String?
-  project       Project?    @relation("LegacyProjectGuides", fields: [projectId], references: [id], onDelete: Cascade)
-  
-  name          String      @default("Moderator Guide") // Display name for the guide
-  versionNumber Int         @default(1)
-  createdAt     DateTime    @default(now())
+  projectId String?
+  project   Project? @relation("LegacyProjectGuides", fields: [projectId], references: [id], onDelete: Cascade)
+
+  name          String       @default("Moderator Guide") // Display name for the guide
+  versionNumber Int          @default(1)
+  createdAt     DateTime     @default(now())
   guideSets     GuideSet[]
   simulations   Simulation[] // Simulations that used this guide
 }
@@ -92,24 +93,24 @@ model GuideSet {
   guideVersionId String
   guideVersion   GuideVersion @relation(fields: [guideVersionId], references: [id], onDelete: Cascade)
   title          String
-  intent         String       // "What we want to uncover"
+  intent         String // "What we want to uncover"
   createdAt      DateTime     @default(now())
   questions      Question[]
 }
 
 model Question {
-  id         String   @id @default(cuid())
+  id         String                       @id @default(cuid())
   guideSetId String
-  guideSet   GuideSet @relation(fields: [guideSetId], references: [id], onDelete: Cascade)
-  order      Int      @default(0)    // Order within parent level (0, 1, 2 for main; 0, 1 for sub = A, B)
+  guideSet   GuideSet                     @relation(fields: [guideSetId], references: [id], onDelete: Cascade)
+  order      Int                          @default(0) // Order within parent level (0, 1, 2 for main; 0, 1 for sub = A, B)
   text       String
-  intent     String?  // Optional intent for individual question
-  flagsJson  String?  // JSON string of detected issues/warnings
-  updatedAt  DateTime @updatedAt
+  intent     String? // Optional intent for individual question
+  flagsJson  String? // JSON string of detected issues/warnings
+  updatedAt  DateTime                     @updatedAt
   coverage   SimulationQuestionCoverage[]
-  
+
   // Sub-questions support (parent-child relationship)
-  parentId     String?    // null for main questions, parent ID for sub-questions
+  parentId     String? // null for main questions, parent ID for sub-questions
   parent       Question?  @relation("SubQuestions", fields: [parentId], references: [id], onDelete: Cascade)
   subQuestions Question[] @relation("SubQuestions")
 }
@@ -123,30 +124,30 @@ model Question {
 
 // Global KB: Documents accessible by ALL projects (frameworks, policies, research)
 model KbDocument {
-  id               String    @id @default(cuid())
+  id               String       @id @default(cuid())
   title            String
-  docType          String    // "PERSONA" | "FRAMEWORK" | "RESEARCH" | "POLICY" | "OTHER"
-  status           String    @default("DRAFT") // "DRAFT" | "APPROVED" | "REJECTED"
-  source           String?   // Optional source attribution
-  mimeType         String    // e.g., "text/plain", "application/pdf"
+  docType          String // "PERSONA" | "FRAMEWORK" | "RESEARCH" | "POLICY" | "OTHER"
+  status           String       @default("DRAFT") // "DRAFT" | "APPROVED" | "REJECTED"
+  source           String? // Optional source attribution
+  mimeType         String // e.g., "text/plain", "application/pdf"
   originalFileName String
-  storagePath      String    // Local disk path under /data/uploads
-  extractedText    String?   // Extracted/plain text content (for TXT/processed PDF)
-  parsedMetaJson   String?   // AI-parsed metadata as JSON (for personas: name, age, occupation, bio)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  storagePath      String // Local disk path under /data/uploads
+  extractedText    String? // Extracted/plain text content (for TXT/processed PDF)
+  parsedMetaJson   String? // AI-parsed metadata as JSON (for personas: name, age, occupation, bio)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   chunks           KbChunk[]
   simulations      Simulation[] // Simulations that used this doc as persona (from global KB)
 }
 
 model KbChunk {
-  id          String     @id @default(cuid())
-  documentId  String
-  document    KbDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  chunkIndex  Int        @default(0)
-  content     String     // Chunk text content
-  metaJson    String?    // Optional metadata as JSON
-  createdAt   DateTime   @default(now())
+  id         String     @id @default(cuid())
+  documentId String
+  document   KbDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkIndex Int        @default(0)
+  content    String // Chunk text content
+  metaJson   String? // Optional metadata as JSON
+  createdAt  DateTime   @default(now())
 }
 
 // ============================================
@@ -155,32 +156,32 @@ model KbChunk {
 
 // Project KB: Documents specific to ONE project (primarily personas)
 model ProjectKbDocument {
-  id               String             @id @default(cuid())
+  id               String           @id @default(cuid())
   projectId        String
-  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title            String
-  docType          String             // "PERSONA" | "FRAMEWORK" | "RESEARCH" | "POLICY" | "OTHER"
-  status           String             @default("DRAFT") // "DRAFT" | "APPROVED" | "REJECTED"
+  docType          String // "PERSONA" | "FRAMEWORK" | "RESEARCH" | "POLICY" | "OTHER"
+  status           String           @default("DRAFT") // "DRAFT" | "APPROVED" | "REJECTED"
   source           String?
   mimeType         String
   originalFileName String
-  storagePath      String             // Local disk path under /data/uploads/projects/[projectId]
+  storagePath      String // Local disk path under /data/uploads/projects/[projectId]
   extractedText    String?
-  parsedMetaJson   String?            // AI-parsed metadata as JSON
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  parsedMetaJson   String? // AI-parsed metadata as JSON
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   chunks           ProjectKbChunk[]
-  simulations      Simulation[]       // Simulations that used this doc as persona
+  simulations      Simulation[] // Simulations that used this doc as persona
 }
 
 model ProjectKbChunk {
-  id          String            @id @default(cuid())
-  documentId  String
-  document    ProjectKbDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  chunkIndex  Int               @default(0)
-  content     String
-  metaJson    String?
-  createdAt   DateTime          @default(now())
+  id         String            @id @default(cuid())
+  documentId String
+  document   ProjectKbDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkIndex Int               @default(0)
+  content    String
+  metaJson   String?
+  createdAt  DateTime          @default(now())
 }
 
 // ============================================
@@ -188,14 +189,14 @@ model ProjectKbChunk {
 // ============================================
 
 model Persona {
-  id                  String       @id @default(cuid())
-  name                String
-  ageRange            String       // e.g., "15-25"
-  lifeStage           String       // e.g., "Secondary"
-  description         String
+  id                   String       @id @default(cuid())
+  name                 String
+  ageRange             String // e.g., "15-25"
+  lifeStage            String // e.g., "Secondary"
+  description          String
   singlishLevelDefault Float        @default(0.5) // 0-1 scale
-  createdAt           DateTime     @default(now())
-  simulations         Simulation[]
+  createdAt            DateTime     @default(now())
+  simulations          Simulation[]
 }
 
 // ============================================
@@ -203,115 +204,129 @@ model Persona {
 // ============================================
 
 model Simulation {
-  id             String              @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // New: Link to SubProject (primary)
-  subProjectId   String?
-  subProject     SubProject?         @relation(fields: [subProjectId], references: [id], onDelete: SetNull)
-  
+  subProjectId String?
+  subProject   SubProject? @relation(fields: [subProjectId], references: [id], onDelete: SetNull)
+
   // DEPRECATED: Legacy link to Project (for migration compatibility)
-  projectId      String?
-  project        Project?            @relation("LegacyProjectSimulations", fields: [projectId], references: [id], onDelete: SetNull)
-  
+  projectId String?
+  project   Project? @relation("LegacyProjectSimulations", fields: [projectId], references: [id], onDelete: SetNull)
+
   // Guide Version used for this simulation
   guideVersionId String?
-  guideVersion   GuideVersion?       @relation(fields: [guideVersionId], references: [id], onDelete: SetNull)
-  
+  guideVersion   GuideVersion? @relation(fields: [guideVersionId], references: [id], onDelete: SetNull)
+
   // Legacy persona reference (optional, deprecated)
-  personaId      String?
-  persona        Persona?            @relation(fields: [personaId], references: [id])
-  
+  personaId String?
+  persona   Persona? @relation(fields: [personaId], references: [id])
+
   // Global KB-based persona reference
-  personaDocId   String?
-  personaDoc     KbDocument?         @relation(fields: [personaDocId], references: [id])
-  
+  personaDocId String?
+  personaDoc   KbDocument? @relation(fields: [personaDocId], references: [id])
+
   // Project KB-based persona reference (NEW)
-  projectPersonaDocId  String?
-  projectPersonaDoc    ProjectKbDocument?  @relation(fields: [projectPersonaDocId], references: [id])
-  
-  // Archetype-based persona reference
-  archetypeId    String?
-  archetype      Archetype?          @relation(fields: [archetypeId], references: [id])
-  
-  mode           String              @default("dojo") // "dojo" or "prism"
-  isFocusGroup   Boolean             @default(false) // Focus group mode with multiple archetypes
-  mixerJson      String?             // JSON string of slider settings
-  seed           String?             // Reproducibility seed for Gemini
-  modelName      String?             // e.g., "gemini-2.0-flash"
-  crossProfileSummary String?        // Cross-profile comparison summary for focus groups
-  
+  projectPersonaDocId String?
+  projectPersonaDoc   ProjectKbDocument? @relation(fields: [projectPersonaDocId], references: [id])
+
+  // Archetype-based persona reference (legacy 1:1 simulations)
+  archetypeId String?
+  archetype   Archetype? @relation(fields: [archetypeId], references: [id])
+
+  // Synthetic persona reference (1:1 simulations using a SyntheticPersona)
+  // Mutually exclusive with archetypeId — a simulation references one OR the
+  // other, never both. Enforced at the API layer.
+  syntheticPersonaId String?
+  syntheticPersona   SyntheticPersona? @relation("SimulationPersona", fields: [syntheticPersonaId], references: [id])
+
+  mode                String  @default("dojo") // "dojo" or "prism"
+  isFocusGroup        Boolean @default(false) // Focus group mode with multiple archetypes
+  mixerJson           String? // JSON string of slider settings
+  seed                String? // Reproducibility seed for Gemini
+  modelName           String? // e.g., "gemini-2.0-flash"
+  crossProfileSummary String? // Cross-profile comparison summary for focus groups
+
   // Live Coach session data (persisted for resume)
-  coachNudgesJson        String?     // JSON array of coach nudges from live coaching
-  coveredQuestionIdsJson String?     // JSON array of question IDs marked as covered
-  
-  startedAt      DateTime            @default(now())
-  endedAt        DateTime?
-  messages       SimulationMessage[]
+  coachNudgesJson        String? // JSON array of coach nudges from live coaching
+  coveredQuestionIdsJson String? // JSON array of question IDs marked as covered
+
+  startedAt            DateTime                     @default(now())
+  endedAt              DateTime?
+  messages             SimulationMessage[]
   simulationArchetypes SimulationArchetype[]
-  coachReview    CoachReview?
-  questionCoverage SimulationQuestionCoverage[]
+  coachReview          CoachReview?
+  questionCoverage     SimulationQuestionCoverage[]
 }
 
 model SimulationMessage {
   id           String     @id @default(cuid())
   simulationId String
   simulation   Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
-  role         String     // "user" | "persona"
+  role         String // "user" | "persona"
   content      String
-  imageBase64  String?    // Base64 encoded image data (for user messages with images)
-  archetypeId  String?    // Which archetype authored this (focus group persona messages)
-  latencyMs    Int?       // Time taken for AI response (persona messages only)
+  imageBase64  String? // Base64 encoded image data (for user messages with images)
+  archetypeId  String? // Which archetype authored this (focus group archetype messages)
+  syntheticPersonaId String? // Which synthetic persona authored this (focus group persona messages)
+  latencyMs    Int? // Time taken for AI response (persona messages only)
   timestamp    DateTime   @default(now())
 }
 
+// SimulationArchetype: focus group join row. References either an Archetype
+// OR a SyntheticPersona — never both. Mixing types within one focus group
+// is forbidden at the API layer (a single sim is all-archetypes or all-personas).
 model SimulationArchetype {
-  id             String     @id @default(cuid())
-  simulationId   String
-  simulation     Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
-  archetypeId    String
-  archetype      Archetype  @relation("FocusGroupArchetypes", fields: [archetypeId], references: [id])
-  summary        String?    // AI-generated summary of what this archetype said during the simulation
-  order          Int        @default(0)
+  id           String     @id @default(cuid())
+  simulationId String
+  simulation   Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  archetypeId  String?
+  archetype    Archetype? @relation("FocusGroupArchetypes", fields: [archetypeId], references: [id])
+  syntheticPersonaId String?
+  syntheticPersona   SyntheticPersona? @relation("FocusGroupSyntheticPersonas", fields: [syntheticPersonaId], references: [id])
+  summary      String? // AI-generated summary of what this participant said during the simulation
+  order        Int        @default(0)
+
   @@unique([simulationId, archetypeId])
+  @@unique([simulationId, syntheticPersonaId])
 }
 
 model SimulationQuestionCoverage {
-  id                String            @id @default(cuid())
+  id                String     @id @default(cuid())
   simulationId      String
-  simulation        Simulation        @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  simulation        Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
   questionId        String
-  question          Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  status            String            @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COVERED, SKIPPED
+  question          Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  status            String     @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COVERED, SKIPPED
   firstMatchedAt    DateTime?
   lastMatchedAt     DateTime?
-  matchedCount      Int               @default(0)
+  matchedCount      Int        @default(0)
   orderFirstMatched Int?
-  isOutOfOrder      Boolean           @default(false)
-  lastUserMessageId String?           // ID of the message that last triggered this match
+  isOutOfOrder      Boolean    @default(false)
+  lastUserMessageId String? // ID of the message that last triggered this match
 }
 
 model CoachReview {
-  id           String     @id @default(cuid())
-  simulationId String     @unique
-  simulation   Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
-  findingsJson String     // JSON string of structured coach findings
-  modelName    String?    // Model used for review
-  latencyMs    Int?       // Time taken for review generation
-  createdAt    DateTime   @default(now())
+  id            String              @id @default(cuid())
+  simulationId  String              @unique
+  simulation    Simulation          @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  findingsJson  String // JSON string of structured coach findings
+  modelName     String? // Model used for review
+  latencyMs     Int? // Time taken for review generation
+  createdAt     DateTime            @default(now())
   conversations CoachConversation[]
 }
 
 // Coach Conversation: A chat session between user and coach about specific feedback
 model CoachConversation {
-  id             String      @id @default(cuid())
-  coachReviewId  String
-  coachReview    CoachReview @relation(fields: [coachReviewId], references: [id], onDelete: Cascade)
-  feedbackKey    String      // Unique key to identify the feedback item (e.g., "leading-0", "missed-1")
-  feedbackType   String      // "leading", "missed", "highlight"
-  feedbackJson   String      // Snapshot of the original feedback item
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  messages       CoachConversationMessage[]
+  id            String                     @id @default(cuid())
+  coachReviewId String
+  coachReview   CoachReview                @relation(fields: [coachReviewId], references: [id], onDelete: Cascade)
+  feedbackKey   String // Unique key to identify the feedback item (e.g., "leading-0", "missed-1")
+  feedbackType  String // "leading", "missed", "highlight"
+  feedbackJson  String // Snapshot of the original feedback item
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  messages      CoachConversationMessage[]
 
   @@unique([coachReviewId, feedbackKey])
 }
@@ -320,7 +335,7 @@ model CoachConversationMessage {
   id             String            @id @default(cuid())
   conversationId String
   conversation   CoachConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           String            // "user" or "coach"
+  role           String // "user" or "coach"
   content        String
   createdAt      DateTime          @default(now())
 }
@@ -331,76 +346,77 @@ model CoachConversationMessage {
 
 // MappingSession: A clustering/mapping session for interview transcripts
 model MappingSession {
-  id              String              @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Link to SubProject
-  subProjectId    String
-  subProject      SubProject          @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
-  
-  name            String              // Display name for the mapping session
-  status          String              @default("SETUP") // "SETUP" | "PROCESSING" | "COMPLETE" | "ERROR"
-  
+  subProjectId String
+  subProject   SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+
+  name   String // Display name for the mapping session
+  status String @default("SETUP") // "SETUP" | "PROCESSING" | "COMPLETE" | "ERROR"
+
   // Selected clustering themes (JSON array of theme objects with name + description)
-  themesJson      String?             // e.g., [{"name": "Pressures/Stressors", "description": "..."}]
-  
+  themesJson String? // e.g., [{"name": "Pressures/Stressors", "description": "..."}]
+
   // Generated clustering results (JSON, stored after AI processing)
-  clusteringResultJson String?        // Full clustering output for the Level 1 view
-  
+  clusteringResultJson String? // Full clustering output for the Level 1 view
+
   // Context used for AI processing
-  contextSummaryJson   String?        // Summary of project/workspace context used
-  
+  contextSummaryJson String? // Summary of project/workspace context used
+
   // Generated insights (JSON, stored after AI analyses Mapping Data)
-  insightsJson         String?        // JSON string of Generated Insights (Found out, Look further, New areas)
-  
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  
-  transcripts     MappingTranscript[]
-  clusters        MappingCluster[]
+  insightsJson String? // JSON string of Generated Insights (Found out, Look further, New areas)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transcripts MappingTranscript[]
+  clusters    MappingCluster[]
 }
 
 // MappingTranscript: An uploaded interview transcript/notes file
 model MappingTranscript {
-  id                String          @id @default(cuid())
-  mappingSessionId  String
-  mappingSession    MappingSession  @relation(fields: [mappingSessionId], references: [id], onDelete: Cascade)
-  
+  id               String         @id @default(cuid())
+  mappingSessionId String
+  mappingSession   MappingSession @relation(fields: [mappingSessionId], references: [id], onDelete: Cascade)
+
   // File information
-  fileName          String          // Original filename (used as person identifier)
-  displayName       String          // Display name for the interviewee
-  mimeType          String          // e.g., "text/plain", "application/pdf"
-  storagePath       String          // Local disk path
-  extractedText     String?         // Extracted text content
-  fileSize          Int             @default(0)
-  
-  createdAt         DateTime        @default(now())
-  
+  fileName      String // Original filename (used as person identifier)
+  displayName   String // Display name for the interviewee
+  mimeType      String // e.g., "text/plain", "application/pdf"
+  storagePath   String // Local disk path
+  extractedText String? // Extracted text content
+  fileSize      Int     @default(0)
+
+  createdAt DateTime @default(now())
+
   // Link to clusters that reference this transcript
-  clusters          MappingCluster[]
+  clusters        MappingCluster[]
+  classifications TranscriptClassification[]
 }
 
 // MappingCluster: Individual quote/insight cards within a theme cluster
 model MappingCluster {
-  id                String            @id @default(cuid())
-  mappingSessionId  String
-  mappingSession    MappingSession    @relation(fields: [mappingSessionId], references: [id], onDelete: Cascade)
-  
-  // Source transcript reference for traceability
-  transcriptId      String
-  transcript        MappingTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
-  
-  themeName         String            // The clustering theme this belongs to
-  quote             String            // The verbatim quote from the transcript
-  context           String?           // Additional context around the quote
-  
-  // Position in original transcript for audit trail
-  sourcePosition    Int?              // Character position in original text
-  
-  // Ordering and Manual Entry support
-  order             Int               @default(0)
-  isManual          Boolean           @default(false)
+  id               String         @id @default(cuid())
+  mappingSessionId String
+  mappingSession   MappingSession @relation(fields: [mappingSessionId], references: [id], onDelete: Cascade)
 
-  createdAt         DateTime          @default(now())
+  // Source transcript reference for traceability
+  transcriptId String
+  transcript   MappingTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  themeName String // The clustering theme this belongs to
+  quote     String // The verbatim quote from the transcript
+  context   String? // Additional context around the quote
+
+  // Position in original transcript for audit trail
+  sourcePosition Int? // Character position in original text
+
+  // Ordering and Manual Entry support
+  order    Int     @default(0)
+  isManual Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 // ============================================
@@ -409,69 +425,187 @@ model MappingCluster {
 
 // ArchetypeSession: Groups archetypes generated from selected mapping sessions
 model ArchetypeSession {
-  id              String              @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Link to SubProject
-  subProjectId    String
-  subProject      SubProject          @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
-  
-  name            String              // Display name for the archetype session
-  status          String              @default("SETUP") // "SETUP" | "PROCESSING" | "COMPLETE" | "ERROR"
-  
+  subProjectId String
+  subProject   SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+
+  name   String // Display name for the archetype session
+  status String @default("SETUP") // "SETUP" | "PROCESSING" | "COMPLETE" | "ERROR"
+
   // Source mapping session IDs (JSON array of mapping session IDs used)
-  sourceMappingIdsJson String?        // e.g., ["cuid1", "cuid2"]
-  
+  sourceMappingIdsJson String? // e.g., ["cuid1", "cuid2"]
+
   // AI generation metadata
-  modelName       String?             // Model used for generation
-  latencyMs       Int?                // Time taken for generation
-  
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  
+  modelName String? // Model used for generation
+  latencyMs Int? // Time taken for generation
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   archetypes      Archetype[]
+  personaSessions PersonaSession[]
 }
 
 // Archetype: Individual AI-generated archetype/persona card
 model Archetype {
-  id                  String            @id @default(cuid())
-  archetypeSessionId  String
-  archetypeSession    ArchetypeSession  @relation(fields: [archetypeSessionId], references: [id], onDelete: Cascade)
-  
+  id                 String           @id @default(cuid())
+  archetypeSessionId String
+  archetypeSession   ArchetypeSession @relation(fields: [archetypeSessionId], references: [id], onDelete: Cascade)
+
   // Identity
-  name                String            // Behavioral name e.g., "The Self-Blamer"
-  kicker              String?           // Core truth one-liner
-  description         String            // Reality check description (50 words)
-  
+  name        String // Behavioral name e.g., "The Self-Blamer"
+  kicker      String? // Core truth one-liner
+  description String // Reality check description (50 words)
+
   // Demographic anchor
-  demographicJson     String?           // JSON: { ageRange, occupation, livingSetup }
-  
+  demographicJson String? // JSON: { ageRange, occupation, livingSetup }
+
   // Structured content sections (stored as JSON for flexibility)
-  groundTruthJson     String?           // JSON: { timeBankruptcies, resourceConstraints, defaultRoutine }
-  internalConflictJson String?          // JSON: { sayDoGap, rationalizations, socialInfluences }
-  breakingPointsJson  String?           // JSON: { falseStarts, mundaneFriction, dealbreakers }
-  
+  groundTruthJson      String? // JSON: { timeBankruptcies, resourceConstraints, defaultRoutine }
+  internalConflictJson String? // JSON: { sayDoGap, rationalizations, socialInfluences }
+  breakingPointsJson   String? // JSON: { falseStarts, mundaneFriction, dealbreakers }
+
   // Goals & Motivations
-  goalsJson           String?           // JSON array of goals
-  motivationsJson     String?           // JSON array of motivations
-  
+  goalsJson       String? // JSON array of goals
+  motivationsJson String? // JSON array of motivations
+
   // The Spiral / Trap
-  spiralJson          String?           // JSON: { pattern, avoidance }
-  
+  spiralJson String? // JSON: { pattern, avoidance }
+
   // Evidence / Receipts
-  evidenceJson        String?           // JSON: { quotes: [], insightLinks: [] }
-  
+  evidenceJson String? // JSON: { quotes: [], insightLinks: [] }
+
   // Full AI-generated content as single JSON (backup / complete data)
-  fullContentJson     String?           // Complete AI output for rendering
-  
+  fullContentJson String? // Complete AI output for rendering
+
   // Ordering
-  order               Int               @default(0)
-  
+  order Int @default(0)
+
   // Relations
-  simulations         Simulation[]
-  focusGroupSessions  SimulationArchetype[] @relation("FocusGroupArchetypes")
-  
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  simulations               Simulation[]
+  focusGroupSessions        SimulationArchetype[]      @relation("FocusGroupArchetypes")
+  syntheticPersonas         SyntheticPersona[]
+  transcriptClassifications TranscriptClassification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// Persona Sessions (Synthetic personas derived from archetypes + real transcripts)
+// ============================================
+
+// PersonaSession: A run that classifies each MappingTranscript into the
+// archetypes of an ArchetypeSession, then synthesises one rich Persona
+// per archetype using the transcripts assigned to it.
+model PersonaSession {
+  id           String     @id @default(cuid())
+  subProjectId String
+  subProject   SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+
+  // Optional archetype-spine mode. When set, the AI classifies each
+  // transcript into one of these archetypes and synthesises one persona
+  // per archetype. When null, the AI clusters transcripts on its own and
+  // synthesises N personas without archetype anchors.
+  archetypeSessionId       String?
+  archetypeSession         ArchetypeSession? @relation(fields: [archetypeSessionId], references: [id], onDelete: SetNull)
+  // When archetypeSessionId is set, this restricts which of its archetypes
+  // to actually use. null = use all archetypes from the session.
+  selectedArchetypeIdsJson String?
+
+  // The audience the user is profiling (e.g. "parents", "students"). Used
+  // throughout the prompt to keep the AI focused on the right population.
+  profileTarget String?
+
+  name         String // e.g. "Personas — v1"
+  status       String  @default("SETUP") // SETUP | PROCESSING_CLASSIFY | PROCESSING_SYNTHESIZE | PROCESSING_AVATARS | COMPLETE | ERROR
+  errorMessage String?
+
+  // JSON array of MappingSession IDs whose transcripts fed this run
+  sourceMappingIdsJson    String?
+  // JSON array of MappingTranscript IDs included in the run (for staleness)
+  sourceTranscriptIdsJson String?
+  // Cached Phase A blueprint output — AI's decision on how many personas
+  // to build and which transcripts/archetypes back each one. Persisted so
+  // Phase B can resume independently and the regenerate-single-persona
+  // path can reconstruct group membership.
+  blueprintJson           String?
+
+  // AI metadata
+  modelName String?
+  latencyMs Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  syntheticPersonas SyntheticPersona[]
+  classifications   TranscriptClassification[]
+}
+
+// SyntheticPersona: A persona representing one archetype, aggregated from
+// the real interview transcripts the AI classified into that archetype.
+// Distinct from the legacy `Persona` model (which is the deprecated
+// pre-archetype-era simulation persona). `contentJson` holds the full
+// structured PersonaContent (typed in code).
+model SyntheticPersona {
+  id               String         @id @default(cuid())
+  personaSessionId String
+  personaSession   PersonaSession @relation(fields: [personaSessionId], references: [id], onDelete: Cascade)
+
+  // 1:1 with archetype when the session is anchored to one. Null when the
+  // session ran in archetypeless mode (AI clustered transcripts directly).
+  archetypeId String?
+  archetype   Archetype? @relation(fields: [archetypeId], references: [id], onDelete: SetNull)
+
+  // Editable identity
+  name      String
+  kicker    String?
+  avatarUrl String?
+
+  // Full PersonaContent JSON (typed in TS). Every field is
+  // { value, provenance, evidenceQuotes?, confidence? }
+  contentJson String
+
+  // JSON array of MappingTranscript IDs that contributed to this persona
+  sourceTranscriptIdsJson String?
+
+  order Int @default(0)
+
+  // Inverse relations for simulation usage.
+  simulations         Simulation[]          @relation("SimulationPersona")
+  focusGroupSessions  SimulationArchetype[] @relation("FocusGroupSyntheticPersonas")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// TranscriptClassification: AI's per-transcript assignment to one archetype
+// (or null = Unclassified). Stored so a user can manually override and we
+// can re-aggregate without re-classifying.
+model TranscriptClassification {
+  id               String         @id @default(cuid())
+  personaSessionId String
+  personaSession   PersonaSession @relation(fields: [personaSessionId], references: [id], onDelete: Cascade)
+
+  transcriptId String
+  transcript   MappingTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  // null => Unclassified bucket (excluded from persona aggregates)
+  archetypeId String?
+  archetype   Archetype? @relation(fields: [archetypeId], references: [id], onDelete: SetNull)
+
+  confidence           Float   @default(0) // 0..1
+  rationale            String? // 1-line AI explanation
+  supportingQuotesJson String? // JSON array of {text, position?} 1-3 quotes
+
+  userOverridden Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([personaSessionId, transcriptId])
 }
 
 // ============================================
@@ -479,14 +613,14 @@ model Archetype {
 // ============================================
 
 model HmwCritique {
-  id              String     @id @default(cuid())
-  subProjectId    String
-  subProject      SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
-  hmwStatement    String
-  overallVerdict  String     // "PASS" | "NEEDS_WORK" | "FAIL"
-  critiqueJson    String     // Full HMWCritiqueResult JSON (lenses, research alignment, highlights)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id             String     @id @default(cuid())
+  subProjectId   String
+  subProject     SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+  hmwStatement   String
+  overallVerdict String // "PASS" | "NEEDS_WORK" | "FAIL"
+  critiqueJson   String // Full HMWCritiqueResult JSON (lenses, research alignment, highlights)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@index([subProjectId, createdAt])
 }
@@ -496,14 +630,14 @@ model HmwCritique {
 // ============================================
 
 model InsightCritique {
-  id                String     @id @default(cuid())
-  subProjectId      String
-  subProject        SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
-  insightStatement  String
-  overallVerdict    String     // "PASS" | "NEEDS_WORK" | "FAIL"
-  critiqueJson      String     // Full structured critique JSON
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  id               String     @id @default(cuid())
+  subProjectId     String
+  subProject       SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
+  insightStatement String
+  overallVerdict   String // "PASS" | "NEEDS_WORK" | "FAIL"
+  critiqueJson     String // Full structured critique JSON
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   @@index([subProjectId, createdAt])
 }
@@ -516,12 +650,13 @@ model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
   user       User?    @relation(fields: [userId], references: [id])
-  action     String   // e.g., "CREATE", "UPDATE", "DELETE", "GEMINI_SIMULATE", "GEMINI_REVIEW", "KB_UPLOAD", "KB_APPROVE", "GEMINI_MAP_QUESTION"
-  entityType String   // e.g., "Project", "SubProject", "Simulation", "KbDocument", "ProjectKbDocument"
+  action     String // e.g., "CREATE", "UPDATE", "DELETE", "GEMINI_SIMULATE", "GEMINI_REVIEW", "KB_UPLOAD", "KB_APPROVE", "GEMINI_MAP_QUESTION"
+  entityType String // e.g., "Project", "SubProject", "Simulation", "KbDocument", "ProjectKbDocument"
   entityId   String
-  metaJson   String?  // Additional context as JSON (model name, latency, promptHash, responseHash, KB doc IDs, etc.)
+  metaJson   String? // Additional context as JSON (model name, latency, promptHash, responseHash, KB doc IDs, etc.)
   createdAt  DateTime @default(now())
 }
+
 // ============================================
 // Ideation Sessions (Crazy 8s AI Concepts)
 // ============================================
@@ -532,12 +667,12 @@ model IdeationSession {
   subProject           SubProject @relation(fields: [subProjectId], references: [id], onDelete: Cascade)
   name                 String
   status               String     @default("SETUP") // "SETUP" | "PROCESSING" | "COMPLETE" | "ERROR"
-  sourceMappingId      String     // ID of the MappingSession used
-  sourceProfileIdsJson String?    // JSON array of archetype IDs + KB persona doc IDs
-  focusAreasJson       String?    // JSON array of selected creative matrix enabler keys
-  resultJson           String?    // JSON array of 8 concept objects
+  sourceMappingId      String // ID of the MappingSession used
+  sourceProfileIdsJson String? // JSON array of archetype IDs + KB persona doc IDs
+  focusAreasJson       String? // JSON array of selected creative matrix enabler keys
+  resultJson           String? // JSON array of 8 concept objects
   modelName            String?
-  imageModelName       String?    // "gpt-image-1.5"
+  imageModelName       String? // "gpt-image-1.5"
   latencyMs            Int?
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt

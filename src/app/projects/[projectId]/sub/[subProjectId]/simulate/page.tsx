@@ -91,6 +91,10 @@ interface Message {
     timestamp: string;
     imageBase64?: string | null;
     archetypeId?: string | null;
+    /** Set when the focus-group author is a SyntheticPersona instead of an
+     *  Archetype. The chat treats both the same way — either FK identifies
+     *  the speaker for colour/name lookups. */
+    syntheticPersonaId?: string | null;
     archetypeName?: string | null;
 }
 
@@ -124,6 +128,10 @@ interface ArchetypeItem {
     goalsJson: string | null;
     motivationsJson: string | null;
     order: number;
+    /** Discriminator — defaults to "archetype". SyntheticPersonas are
+     *  rendered through the same list with kind === "persona". */
+    kind?: "archetype" | "persona";
+    avatarUrl?: string | null;
 }
 
 // Individual opportunity insight from coach
@@ -280,6 +288,10 @@ function SimulationPageContent({ params }: PageProps) {
     const [selectedArchetypeIds, setSelectedArchetypeIds] = useState<string[]>([]);
     const [focusGroupArchetypes, setFocusGroupArchetypes] = useState<ArchetypeItem[]>([]);
     const [showAtMention, setShowAtMention] = useState(false);
+    // SyntheticPersonas surfaced in the same shape as ArchetypeItem (with kind="persona")
+    const [syntheticPersonas, setSyntheticPersonas] = useState<ArchetypeItem[]>([]);
+    // Mutex: a focus group is either all archetypes or all personas — never mixed.
+    const [participantType, setParticipantType] = useState<"archetype" | "persona">("archetype");
 
     const ARCHETYPE_COLORS = [
         { bg: "bg-violet-50/50", border: "border-violet-100", text: "text-violet-800", avatar: "bg-violet-200/70", avatarText: "text-violet-900" },
@@ -530,11 +542,38 @@ function SimulationPageContent({ params }: PageProps) {
                 if (data.data.archetypeSessions?.length > 0) {
                     for (const session of data.data.archetypeSessions) {
                         if (session.archetypes?.length > 0) {
-                            allArchetypes.push(...session.archetypes);
+                            allArchetypes.push(...session.archetypes.map((a: ArchetypeItem) => ({ ...a, kind: "archetype" as const })));
                         }
                     }
                 }
                 setArchetypes(allArchetypes);
+
+                // Extract SyntheticPersonas from completed persona sessions and
+                // present them in the same ArchetypeItem shape (with kind="persona")
+                // so the focus-group selection grid can render them alongside.
+                const allSyntheticPersonas: ArchetypeItem[] = [];
+                if (data.data.personaSessions?.length > 0) {
+                    for (const ps of data.data.personaSessions) {
+                        if (ps.syntheticPersonas?.length > 0) {
+                            for (const p of ps.syntheticPersonas) {
+                                allSyntheticPersonas.push({
+                                    id: p.id,
+                                    name: p.name,
+                                    kicker: p.kicker,
+                                    description: "",
+                                    demographicJson: null,
+                                    fullContentJson: null,
+                                    goalsJson: null,
+                                    motivationsJson: null,
+                                    order: p.order ?? 0,
+                                    kind: "persona",
+                                    avatarUrl: p.avatarUrl,
+                                });
+                            }
+                        }
+                    }
+                }
+                setSyntheticPersonas(allSyntheticPersonas);
             }
 
             const personasRes = await fetch(`/api/projects/${projectId}/kb?docType=PERSONA`);
@@ -575,20 +614,53 @@ function SimulationPageContent({ params }: PageProps) {
                 }
                 // Restore persona/archetype selection
                 if (sim.isFocusGroup && sim.simulationArchetypes?.length > 0) {
-                    // Focus group resume
+                    // Focus group resume — each row may reference an archetype
+                    // OR a synthetic persona. Build a unified ArchetypeItem list
+                    // tagged with the discriminator so chat code resolves names
+                    // from either side.
                     setIsFocusGroup(true);
-                    const fgArchs = sim.simulationArchetypes.map((sa: { archetype: ArchetypeItem }) => sa.archetype);
-                    setFocusGroupArchetypes(fgArchs);
-                    setSelectedArchetypeIds(fgArchs.map((a: ArchetypeItem) => a.id));
+                    interface SimArchRow {
+                        archetype?: ArchetypeItem | null;
+                        syntheticPersona?: { id: string; name: string; kicker: string | null; avatarUrl?: string | null } | null;
+                    }
+                    const fgParticipants: ArchetypeItem[] = (sim.simulationArchetypes as SimArchRow[])
+                        .map((sa): ArchetypeItem | null => {
+                            if (sa.archetype) return { ...sa.archetype, kind: "archetype" };
+                            if (sa.syntheticPersona) {
+                                return {
+                                    id: sa.syntheticPersona.id,
+                                    name: sa.syntheticPersona.name,
+                                    kicker: sa.syntheticPersona.kicker,
+                                    description: "",
+                                    demographicJson: null,
+                                    fullContentJson: null,
+                                    goalsJson: null,
+                                    motivationsJson: null,
+                                    order: 0,
+                                    kind: "persona",
+                                    avatarUrl: sa.syntheticPersona.avatarUrl ?? null,
+                                };
+                            }
+                            return null;
+                        })
+                        .filter((p): p is ArchetypeItem => p !== null);
+                    setFocusGroupArchetypes(fgParticipants);
+                    setSelectedArchetypeIds(fgParticipants.map((a) => a.id));
+                    if (fgParticipants.length > 0) {
+                        setParticipantType(fgParticipants[0].kind === "persona" ? "persona" : "archetype");
+                    }
                     // Build name lookup for messages
                     const nameMap: Record<string, string> = {};
-                    for (const a of fgArchs) nameMap[a.id] = a.name;
-                    // Annotate messages with archetype names
+                    for (const a of fgParticipants) nameMap[a.id] = a.name;
+                    // Annotate messages with author name from whichever FK is set.
                     if (sim.messages) {
-                        setMessages(sim.messages.map((m: Message) => ({
-                            ...m,
-                            archetypeName: m.archetypeId ? (nameMap[m.archetypeId] || null) : null,
-                        })));
+                        setMessages(sim.messages.map((m: Message & { syntheticPersonaId?: string | null }) => {
+                            const speakerKey = m.archetypeId || m.syntheticPersonaId || null;
+                            return {
+                                ...m,
+                                archetypeName: speakerKey ? (nameMap[speakerKey] || null) : null,
+                            };
+                        }));
                     }
                 } else if (sim.archetypeId && sim.archetype) {
                     setSelectedPersonaId(sim.archetypeId);
@@ -632,12 +704,13 @@ function SimulationPageContent({ params }: PageProps) {
 
     const startSimulation = async () => {
         if (isFocusGroup) {
+            const typeLabel = participantType === "archetype" ? "archetypes" : "personas";
             if (selectedArchetypeIds.length < 2) {
-                alert("Please select at least 2 archetypes for a focus group");
+                alert(`Please select at least 2 ${typeLabel} for a focus group`);
                 return;
             }
             if (selectedArchetypeIds.length > 5) {
-                alert("Maximum 5 archetypes in a focus group");
+                alert(`Maximum 5 ${typeLabel} in a focus group`);
                 return;
             }
         } else if (!selectedPersonaId) {
@@ -650,7 +723,12 @@ function SimulationPageContent({ params }: PageProps) {
                 ? {
                     subProjectId,
                     isFocusGroup: true,
-                    archetypeIds: selectedArchetypeIds,
+                    // Send the right ID array depending on participant type — the
+                    // API enforces archetype-XOR-persona, never both.
+                    ...(participantType === "archetype"
+                        ? { archetypeIds: selectedArchetypeIds }
+                        : { syntheticPersonaIds: selectedArchetypeIds }
+                    ),
                     mode: "dojo",
                 }
                 : {
@@ -676,10 +754,12 @@ function SimulationPageContent({ params }: PageProps) {
             setSimulationId(data.data.id);
             setIsStarted(true);
 
-            // Set focus group archetypes for the chat session
+            // Set focus group participants for the chat session — pick from the
+            // archetype or persona pool based on the chosen type.
             if (isFocusGroup) {
-                const fgArchs = archetypes.filter(a => selectedArchetypeIds.includes(a.id));
-                setFocusGroupArchetypes(fgArchs);
+                const pool = participantType === "archetype" ? archetypes : syntheticPersonas;
+                const fgPartipants = pool.filter(a => selectedArchetypeIds.includes(a.id));
+                setFocusGroupArchetypes(fgPartipants);
             }
 
             router.replace(`/projects/${projectId}/sub/${subProjectId}/simulate?resume=${data.data.id}`);
@@ -816,18 +896,32 @@ function SimulationPageContent({ params }: PageProps) {
                 const aiData = await aiRes.json();
 
                 if (isFocusGroup && aiData.data.focusGroup) {
-                    // Focus group: multiple messages
-                    const fgMessages: Array<{ id: string; content: string; archetypeId: string; archetypeName: string; timestamp: string }> = aiData.data.messages || [];
+                    // Focus group: multiple messages. The API now returns one
+                    // FK or the other depending on participant kind; we keep
+                    // both on the local Message so render-side lookups work
+                    // uniformly.
+                    const fgMessages: Array<{
+                        id: string;
+                        content: string;
+                        archetypeId?: string | null;
+                        syntheticPersonaId?: string | null;
+                        participantId?: string;
+                        participantName?: string;
+                        archetypeName?: string;
+                        timestamp: string;
+                    }> = aiData.data.messages || [];
 
                     for (const fgMsg of fgMessages) {
+                        const speakerName = fgMsg.participantName || fgMsg.archetypeName || null;
                         setTypingMessageId(fgMsg.id);
                         setMessages(prev => [...prev, {
                             id: fgMsg.id,
                             role: "persona",
                             content: fgMsg.content,
                             timestamp: fgMsg.timestamp,
-                            archetypeId: fgMsg.archetypeId,
-                            archetypeName: fgMsg.archetypeName,
+                            archetypeId: fgMsg.archetypeId ?? null,
+                            syntheticPersonaId: fgMsg.syntheticPersonaId ?? null,
+                            archetypeName: speakerName,
                         }]);
                         // Small delay between messages for readability
                         await new Promise(r => setTimeout(r, 300));
@@ -836,7 +930,7 @@ function SimulationPageContent({ params }: PageProps) {
                     // Call Live Coach with combined focus group responses (non-blocking)
                     if (fgMessages.length > 0) {
                         const combinedResponse = fgMessages
-                            .map(m => `${m.archetypeName}: "${m.content}"`)
+                            .map(m => `${m.participantName || m.archetypeName || "Participant"}: "${m.content}"`)
                             .join("\n\n");
                         const lastMsgId = fgMessages[fgMessages.length - 1].id;
                         fetchLiveCoach(userMessage, combinedResponse, lastMsgId);
@@ -1404,9 +1498,11 @@ function SimulationPageContent({ params }: PageProps) {
                                             return parts;
                                         };
 
-                                        // Persona message — rendered with shared ChatBubble
+                                        // Persona message — rendered with shared ChatBubble.
+                                        // The speaker key is whichever FK is set — archetype or synthetic persona.
                                         if (msg.role === "persona") {
-                                            const fgColor = isFocusGroup && msg.archetypeId ? getArchetypeColor(msg.archetypeId) : null;
+                                            const speakerId = msg.archetypeId || msg.syntheticPersonaId || null;
+                                            const fgColor = isFocusGroup && speakerId ? getArchetypeColor(speakerId) : null;
                                             const isTyping = typingMessageId === msg.id;
                                             const bubbleContent = isTyping ? (
                                                 <TypewriterText
@@ -1734,8 +1830,8 @@ function SimulationPageContent({ params }: PageProps) {
                         {showConfig && (
                             <div className="mb-6 animate-in slide-in-from-top-2 fade-in duration-200">
                                 <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-5">
-                                    {/* Focus Group Toggle — only show when archetypes exist */}
-                                    {archetypes.length > 0 && (
+                                    {/* Focus Group Toggle — only show when there are participants to pick */}
+                                    {(archetypes.length > 0 || syntheticPersonas.length > 0) && (
                                         <div className="mb-5 pb-4 border-b border-[color:var(--border-subtle)]">
                                             <label className="flex items-center gap-3 cursor-pointer group">
                                                 <div className="relative">
@@ -1757,15 +1853,49 @@ function SimulationPageContent({ params }: PageProps) {
                                                 </div>
                                                 <div>
                                                     <span className="text-body-sm font-semibold text-foreground">Focus Group Mode</span>
-                                                    <p className="text-caption text-muted-foreground">Simulate a group discussion with 2-5 archetypes</p>
+                                                    <p className="text-caption text-muted-foreground">Simulate a group discussion with 2–5 archetypes or 2–5 personas.</p>
                                                 </div>
                                             </label>
                                         </div>
                                     )}
 
                                     {isFocusGroup ? (
-                                        <div className="text-center py-4">
-                                            <p className="text-caption text-muted-foreground italic">In Focus Group mode, each archetype uses its own personality profile. No additional settings needed — select 2-5 archetypes below.</p>
+                                        <div className="space-y-3 py-2">
+                                            <div>
+                                                <Label className="text-caption font-bold text-muted-foreground uppercase tracking-widest">Participant type</Label>
+                                                <div className="mt-2 inline-flex rounded-full bg-[color:var(--surface)] shadow-inset-edge p-1 gap-1">
+                                                    {(["archetype", "persona"] as const).map((kind) => {
+                                                        const active = participantType === kind;
+                                                        const count = kind === "archetype" ? archetypes.length : syntheticPersonas.length;
+                                                        const disabled = count === 0;
+                                                        return (
+                                                            <button
+                                                                key={kind}
+                                                                type="button"
+                                                                disabled={disabled}
+                                                                onClick={() => {
+                                                                    if (disabled) return;
+                                                                    setParticipantType(kind);
+                                                                    setSelectedArchetypeIds([]);
+                                                                }}
+                                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption font-medium transition-colors ${
+                                                                    active
+                                                                        ? "bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-outline-ring"
+                                                                        : disabled
+                                                                            ? "text-muted-foreground/40 cursor-not-allowed"
+                                                                            : "text-muted-foreground hover:text-foreground"
+                                                                }`}
+                                                            >
+                                                                <span className="capitalize">{kind === "archetype" ? "Archetypes" : "Personas"}</span>
+                                                                <span className={`tabular-nums text-[10px] ${active ? "opacity-80" : "opacity-60"}`}>{count}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <p className="text-caption text-muted-foreground italic mt-2">
+                                                    A focus group must be either {participantType === "archetype" ? "all archetypes" : "all personas"} — you cannot mix types. Select 2–5 below.
+                                                </p>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2002,8 +2132,14 @@ function SimulationPageContent({ params }: PageProps) {
                                             </>
                                         )}
 
-                                        {/* Archetypes section */}
-                                        {archetypes.length > 0 && (
+                                        {/* Participants section (Archetypes section in 1:1 mode;
+                                            switches between archetypes/personas in focus group mode based on participantType). */}
+                                        {(() => {
+                                            const pool: ArchetypeItem[] = isFocusGroup
+                                                ? (participantType === "archetype" ? archetypes : syntheticPersonas)
+                                                : archetypes;
+                                            return pool.length > 0;
+                                        })() && (
                                             <>
                                                 {!isFocusGroup && <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1 pt-3">Profiles</p>}
                                                 {isFocusGroup && (
@@ -2011,7 +2147,10 @@ function SimulationPageContent({ params }: PageProps) {
                                                         {selectedArchetypeIds.length}/5 selected {selectedArchetypeIds.length < 2 && "· minimum 2"}
                                                     </p>
                                                 )}
-                                                {archetypes.map((arch, idx) => {
+                                                {(isFocusGroup
+                                                    ? (participantType === "archetype" ? archetypes : syntheticPersonas)
+                                                    : archetypes
+                                                ).map((arch, idx) => {
                                                     const isSelected = isFocusGroup
                                                         ? selectedArchetypeIds.includes(arch.id)
                                                         : (selectedPersonaId === arch.id && selectionType === "archetype");

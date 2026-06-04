@@ -176,6 +176,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                         createdAt: true,
                     },
                 },
+                personaSessions: {
+                    orderBy: { createdAt: "desc" as const },
+                    select: {
+                        id: true,
+                        name: true,
+                        status: true,
+                        archetypeSessionId: true,
+                        createdAt: true,
+                        syntheticPersonas: {
+                            orderBy: { order: "asc" as const },
+                            select: {
+                                id: true,
+                                name: true,
+                                kicker: true,
+                                avatarUrl: true,
+                                archetypeId: true,
+                                order: true,
+                                createdAt: true,
+                            },
+                        },
+                    },
+                },
             },
         });
 
@@ -186,7 +208,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return successResponse(subProject);
     } catch (error) {
         console.error("[API] GET /api/sub-projects/[id] error:", error);
-        return errorResponse("Failed to fetch sub-project", 500);
+        return errorResponse(
+            error instanceof Error ? `Failed to fetch sub-project: ${error.message}` : "Failed to fetch sub-project",
+            500
+        );
     }
 }
 

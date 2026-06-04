@@ -96,8 +96,10 @@ export async function POST(request: NextRequest) {
             personaDocId,
             projectPersonaDocId,
             archetypeId,
+            syntheticPersonaId,
             isFocusGroup,
             archetypeIds,
+            syntheticPersonaIds,
             mode,
             mixerSettings
         } = validation.data;
@@ -130,21 +132,38 @@ export async function POST(request: NextRequest) {
             return errorResponse("Either projectId or subProjectId is required", 400);
         }
 
-        // Focus Group validation
+        // Focus Group validation — pure archetypes OR pure personas, never mixed.
         if (isFocusGroup) {
-            if (!archetypeIds || archetypeIds.length < 2) {
-                return errorResponse("Focus group requires at least 2 archetypes", 400);
+            const hasArchetypes = Array.isArray(archetypeIds) && archetypeIds.length > 0;
+            const hasPersonas = Array.isArray(syntheticPersonaIds) && syntheticPersonaIds.length > 0;
+            if (hasArchetypes && hasPersonas) {
+                return errorResponse("A focus group must use either archetypes OR personas, not both.", 400);
             }
-            if (archetypeIds.length > 5) {
-                return errorResponse("Focus group supports a maximum of 5 archetypes", 400);
+            if (!hasArchetypes && !hasPersonas) {
+                return errorResponse("Focus group requires at least 2 archetypes or 2 personas.", 400);
             }
-            // Verify all archetypes exist
-            const foundArchetypes = await prisma.archetype.findMany({
-                where: { id: { in: archetypeIds } },
-                select: { id: true },
-            });
-            if (foundArchetypes.length !== archetypeIds.length) {
-                return errorResponse("One or more archetypes not found", 404);
+            if (hasArchetypes) {
+                if (archetypeIds!.length < 2 || archetypeIds!.length > 5) {
+                    return errorResponse("Focus group supports 2–5 archetypes.", 400);
+                }
+                const foundArchetypes = await prisma.archetype.findMany({
+                    where: { id: { in: archetypeIds! } },
+                    select: { id: true },
+                });
+                if (foundArchetypes.length !== archetypeIds!.length) {
+                    return errorResponse("One or more archetypes not found", 404);
+                }
+            } else {
+                if (syntheticPersonaIds!.length < 2 || syntheticPersonaIds!.length > 5) {
+                    return errorResponse("Focus group supports 2–5 personas.", 400);
+                }
+                const foundPersonas = await prisma.syntheticPersona.findMany({
+                    where: { id: { in: syntheticPersonaIds! } },
+                    select: { id: true },
+                });
+                if (foundPersonas.length !== syntheticPersonaIds!.length) {
+                    return errorResponse("One or more personas not found", 404);
+                }
             }
         }
 
@@ -183,6 +202,18 @@ export async function POST(request: NextRequest) {
                     return errorResponse("Archetype not found", 404);
                 }
             }
+
+            // Verify synthetic persona exists if provided. Archetype and persona
+            // are mutually exclusive in 1:1 mode too.
+            if (syntheticPersonaId) {
+                if (archetypeId) {
+                    return errorResponse("Pick either an archetype or a persona, not both.", 400);
+                }
+                const persona = await prisma.syntheticPersona.findUnique({ where: { id: syntheticPersonaId } });
+                if (!persona) {
+                    return errorResponse("Persona not found", 404);
+                }
+            }
         }
 
         const simulation = await prisma.simulation.create({
@@ -194,6 +225,7 @@ export async function POST(request: NextRequest) {
                 personaDocId: isFocusGroup ? null : personaDocId,
                 projectPersonaDocId: isFocusGroup ? null : projectPersonaDocId,
                 archetypeId: isFocusGroup ? null : archetypeId,
+                syntheticPersonaId: isFocusGroup ? null : syntheticPersonaId,
                 isFocusGroup: isFocusGroup || false,
                 mode,
                 mixerJson: isFocusGroup ? null : (mixerSettings ? JSON.stringify(mixerSettings) : null),
@@ -211,21 +243,32 @@ export async function POST(request: NextRequest) {
                 personaDoc: { select: { id: true, title: true, parsedMetaJson: true } },
                 projectPersonaDoc: { select: { id: true, title: true, parsedMetaJson: true } },
                 archetype: { select: { id: true, name: true, kicker: true, description: true } },
+                syntheticPersona: { select: { id: true, name: true, kicker: true, avatarUrl: true } },
                 simulationArchetypes: {
                     include: {
                         archetype: { select: { id: true, name: true, kicker: true, description: true } },
+                        syntheticPersona: { select: { id: true, name: true, kicker: true, avatarUrl: true } },
                     },
                     orderBy: { order: "asc" },
                 },
             },
         });
 
-        // Create focus group archetype links
-        if (isFocusGroup && archetypeIds) {
+        // Create focus group participant links — either archetypes or personas,
+        // never both (enforced earlier).
+        if (isFocusGroup && archetypeIds && archetypeIds.length > 0) {
             await prisma.simulationArchetype.createMany({
                 data: archetypeIds.map((aid, idx) => ({
                     simulationId: simulation.id,
                     archetypeId: aid,
+                    order: idx,
+                })),
+            });
+        } else if (isFocusGroup && syntheticPersonaIds && syntheticPersonaIds.length > 0) {
+            await prisma.simulationArchetype.createMany({
+                data: syntheticPersonaIds.map((pid, idx) => ({
+                    simulationId: simulation.id,
+                    syntheticPersonaId: pid,
                     order: idx,
                 })),
             });

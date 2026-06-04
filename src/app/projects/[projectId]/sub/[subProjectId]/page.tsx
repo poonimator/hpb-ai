@@ -41,7 +41,8 @@ import {
     Network,
     Sparkles,
     Lightbulb,
-    Zap
+    Zap,
+    UserCircle2
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
 import { WorkspaceFrame } from "@/components/layout/workspace-frame";
@@ -144,6 +145,25 @@ interface IdeationSessionInfo {
     createdAt: string;
 }
 
+interface SyntheticPersonaInfo {
+    id: string;
+    name: string;
+    kicker: string | null;
+    avatarUrl: string | null;
+    archetypeId: string | null;
+    order: number;
+    createdAt: string;
+}
+
+interface PersonaSessionInfo {
+    id: string;
+    name: string;
+    status: string;
+    archetypeSessionId: string;
+    createdAt: string;
+    syntheticPersonas: SyntheticPersonaInfo[];
+}
+
 interface SubProject {
     id: string;
     name: string;
@@ -162,6 +182,7 @@ interface SubProject {
     hmwCritiques: HmwCritiqueInfo[];
     insightCritiques: InsightCritiqueInfo[];
     ideationSessions: IdeationSessionInfo[];
+    personaSessions: PersonaSessionInfo[];
     _count: {
         guideVersions: number;
         simulations: number;
@@ -223,6 +244,8 @@ export default function SubProjectHomePage({ params }: PageProps) {
     const [deleteIdeationId, setDeleteIdeationId] = useState<string | null>(null);
     const [deleteHmwId, setDeleteHmwId] = useState<string | null>(null);
     const [deleteInsightId, setDeleteInsightId] = useState<string | null>(null);
+    const [deletePersonaId, setDeletePersonaId] = useState<string | null>(null);
+    const [profileFilter, setProfileFilter] = useState<"all" | "archetypes" | "personas">("all");
     // Research-statement expansion dialog (triggered from rail 'Read more')
     const [researchOpen, setResearchOpen] = useState(false);
 
@@ -434,6 +457,20 @@ export default function SubProjectHomePage({ params }: PageProps) {
             }
         } catch {
             toast.error("Failed to delete archetype");
+        }
+    };
+
+    // Delete a synthetic persona
+    const handleDeletePersona = async (personaId: string) => {
+        try {
+            const res = await fetch(`/api/personas/${personaId}`, { method: "DELETE" });
+            if (res.ok) {
+                await fetchSubProject();
+            } else {
+                toast.error("Failed to delete persona");
+            }
+        } catch {
+            toast.error("Failed to delete persona");
         }
     };
 
@@ -912,7 +949,7 @@ export default function SubProjectHomePage({ params }: PageProps) {
                         </div>
                     </TabsContent>
 
-                    {/* Archetypes */}
+                    {/* Profiles (Archetypes + Personas) */}
                     <TabsContent value="archetypes">
                         {(() => {
                             const CARD_ICON_BG = [
@@ -927,65 +964,195 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             ];
 
                             const allArchetypes = subProject.archetypeSessions?.flatMap(s => s.archetypes) || [];
+                            const allPersonas = subProject.personaSessions?.flatMap(s => s.syntheticPersonas) || [];
+                            const personasHref = `/projects/${projectId}/sub/${subProjectId}/personas/new`;
+
+                            type ArchetypeRow = { kind: "archetype"; id: string; archetypeId: string; name: string; kicker: string | null; index: number };
+                            type PersonaRow = { kind: "persona"; id: string; archetypeId: string | null; name: string; kicker: string | null; avatarUrl: string | null; index: number };
+                            type ProfileRow = ArchetypeRow | PersonaRow;
+
+                            // Build a sortable list with paired sort: each archetype is
+                            // followed by its persona when in "All" filter.
+                            const archetypeRows: ArchetypeRow[] = allArchetypes.map((a, i) => ({
+                                kind: "archetype",
+                                id: a.id,
+                                archetypeId: a.id,
+                                name: a.name,
+                                kicker: a.kicker,
+                                index: i,
+                            }));
+                            const personaRows: PersonaRow[] = allPersonas.map((p, i) => ({
+                                kind: "persona",
+                                id: p.id,
+                                archetypeId: p.archetypeId,
+                                name: p.name,
+                                kicker: p.kicker,
+                                avatarUrl: p.avatarUrl,
+                                index: i,
+                            }));
+
+                            let rows: ProfileRow[] = [];
+                            if (profileFilter === "archetypes") {
+                                rows = archetypeRows;
+                            } else if (profileFilter === "personas") {
+                                rows = personaRows;
+                            } else {
+                                // All — pair persona under its archetype, then any
+                                // orphan personas (cluster-discovered or
+                                // unmatched archetype) at the end.
+                                const personaByArch = new Map<string, PersonaRow[]>();
+                                const orphanPersonas: PersonaRow[] = [];
+                                for (const p of personaRows) {
+                                    if (!p.archetypeId) {
+                                        orphanPersonas.push(p);
+                                        continue;
+                                    }
+                                    if (!personaByArch.has(p.archetypeId)) personaByArch.set(p.archetypeId, []);
+                                    personaByArch.get(p.archetypeId)!.push(p);
+                                }
+                                const seenArchIds = new Set<string>();
+                                for (const a of archetypeRows) {
+                                    rows.push(a);
+                                    seenArchIds.add(a.archetypeId);
+                                    const matched = personaByArch.get(a.archetypeId) || [];
+                                    rows.push(...matched);
+                                }
+                                // Orphans whose archetype isn't on the grid
+                                for (const [archId, ps] of personaByArch.entries()) {
+                                    if (!seenArchIds.has(archId)) rows.push(...ps);
+                                }
+                                // Pure cluster-discovered personas (no archetypeId)
+                                rows.push(...orphanPersonas);
+                            }
 
                             return (
-                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 space-y-4">
+                                    {/* Filter pills */}
+                                    <div className="flex items-center gap-1.5">
+                                        {(["all", "archetypes", "personas"] as const).map((f) => {
+                                            const active = profileFilter === f;
+                                            const count = f === "all"
+                                                ? allArchetypes.length + allPersonas.length
+                                                : f === "archetypes"
+                                                    ? allArchetypes.length
+                                                    : allPersonas.length;
+                                            return (
+                                                <button
+                                                    key={f}
+                                                    type="button"
+                                                    onClick={() => setProfileFilter(f)}
+                                                    aria-pressed={active}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption font-medium transition-colors ${
+                                                        active
+                                                            ? "bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-outline-ring"
+                                                            : "bg-[color:var(--surface-muted)] text-muted-foreground hover:text-foreground shadow-inset-edge"
+                                                    }`}
+                                                >
+                                                    <span className="capitalize">{f}</span>
+                                                    <span className={`tabular-nums text-[10px] ${active ? "opacity-80" : "opacity-60"}`}>{count}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
 
-                                    {/* Generate Card */}
-                                    <Link
-                                        href={`/projects/${projectId}/sub/${subProjectId}/archetypes/new`}
-                                        className="group rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] hover:bg-[color:var(--surface)] hover:shadow-outline-ring hover:border-transparent transition-all duration-200 flex flex-col items-center justify-center p-5 min-h-[180px] cursor-pointer"
-                                    >
-                                        <div className="flex flex-col items-center gap-3 text-center">
-                                            <div className="h-10 w-10 rounded-[10px] bg-[color:var(--surface)] shadow-inset-edge flex items-center justify-center">
-                                                <Sparkles className="h-5 w-5 text-primary" />
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {/* Generate Profiles — two sub-buttons inside one card */}
+                                        <div className="rounded-[14px] border border-dashed border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3 min-h-[180px] flex flex-col gap-2">
+                                            <div className="px-1 pt-1 pb-0.5">
+                                                <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Generate Profiles</h3>
                                             </div>
-                                            <div>
-                                                <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate Profiles</h3>
-                                                <p className="text-[12px] text-muted-foreground leading-snug max-w-[140px]">
-                                                    Create new persona profiles with AI
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </Link>
-
-                                    {/* Archetype Cards */}
-                                    {allArchetypes.map((archetype, index) => (
-                                        <div
-                                            key={archetype.id}
-                                            onClick={() => window.location.href = `/projects/${projectId}/sub/${subProjectId}/archetypes/${archetype.id}`}
-                                            className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
-                                        >
-                                            {/* Delete button on hover */}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setDeleteArchetypeId(archetype.id);
-                                                }}
-                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
+                                            <Link
+                                                href={`/projects/${projectId}/sub/${subProjectId}/archetypes/new`}
+                                                className="group/btn flex-1 flex items-start gap-2.5 p-2.5 rounded-[10px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card hover:-translate-y-px hover:ring-1 hover:ring-[color:var(--cat-3)]/30 cursor-pointer transition-all duration-150 active:scale-[0.99]"
                                             >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
-
-                                            {/* Icon */}
-                                            <div className={`h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mb-auto ${CARD_ICON_BG[index % CARD_ICON_BG.length]}`}>
-                                                <Users className="h-4.5 w-4.5" />
-                                            </div>
-
-                                            {/* Content at bottom */}
-                                            <div className="mt-3">
-                                                <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
-                                                    {archetype.name}
-                                                </h4>
-                                                {archetype.kicker && (
-                                                    <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
-                                                        {archetype.kicker}
+                                                <div className="h-7 w-7 rounded-[8px] bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)] shadow-inset-edge flex items-center justify-center shrink-0 group-hover/btn:scale-110 transition-transform">
+                                                    <Users className="h-3.5 w-3.5" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-ui-sm font-semibold text-foreground leading-tight group-hover/btn:text-[color:var(--cat-3)] transition-colors">Archetypes</p>
+                                                    <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                                                        Synthesise behavioural archetypes from mapping data.
                                                     </p>
-                                                )}
-                                            </div>
+                                                </div>
+                                            </Link>
+                                            <Link
+                                                href={personasHref}
+                                                className="group/btn flex-1 flex items-start gap-2.5 p-2.5 rounded-[10px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card hover:-translate-y-px hover:ring-1 hover:ring-[color:var(--cat-1)]/30 cursor-pointer transition-all duration-150 active:scale-[0.99]"
+                                            >
+                                                <div className="h-7 w-7 rounded-[8px] bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)] shadow-inset-edge flex items-center justify-center shrink-0 group-hover/btn:scale-110 transition-transform">
+                                                    <UserCircle2 className="h-3.5 w-3.5" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-ui-sm font-semibold text-foreground leading-tight group-hover/btn:text-[color:var(--cat-1)] transition-colors">Personas</p>
+                                                    <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                                                        Build data-grounded persona cards from interview transcripts. Optionally seed with archetypes.
+                                                    </p>
+                                                </div>
+                                            </Link>
                                         </div>
-                                    ))}
+
+                                        {/* Cards */}
+                                        {rows.map((row) => {
+                                            const isPersona = row.kind === "persona";
+                                            const href = isPersona
+                                                ? `/projects/${projectId}/sub/${subProjectId}/personas/${row.id}`
+                                                : `/projects/${projectId}/sub/${subProjectId}/archetypes/${row.id}`;
+                                            const iconBg = isPersona
+                                                ? "bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)]"
+                                                : CARD_ICON_BG[row.index % CARD_ICON_BG.length];
+                                            return (
+                                                <div
+                                                    key={`${row.kind}-${row.id}`}
+                                                    onClick={() => window.location.href = href}
+                                                    className="group rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card transition-shadow duration-200 p-4 min-h-[180px] flex flex-col cursor-pointer relative"
+                                                >
+                                                    {/* Delete button on hover */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            if (isPersona) setDeletePersonaId(row.id);
+                                                            else setDeleteArchetypeId(row.id);
+                                                        }}
+                                                        className="absolute top-2.5 right-2.5 p-1.5 rounded-[8px] text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+
+                                                    {/* Icon / avatar */}
+                                                    {isPersona && row.avatarUrl ? (
+                                                        <div className="h-12 w-12 rounded-full overflow-hidden shadow-inset-edge mt-1 mb-auto bg-[color:var(--surface-muted)]">
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img src={row.avatarUrl} alt={row.name} className="h-full w-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className={`h-9 w-9 rounded-[10px] shadow-inset-edge flex items-center justify-center mt-1 mb-auto ${iconBg}`}>
+                                                            {isPersona ? <UserCircle2 className="h-4.5 w-4.5" /> : <Users className="h-4.5 w-4.5" />}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Content at bottom — type pill sits directly above the name */}
+                                                    <div className="mt-3">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide mb-1.5 ${
+                                                            isPersona
+                                                                ? "bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)]"
+                                                                : "bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)]"
+                                                        }`}>
+                                                            {isPersona ? "Persona" : "Archetype"}
+                                                        </span>
+                                                        <h4 className="font-semibold text-foreground text-sm leading-tight line-clamp-2 mb-1">
+                                                            {row.name}
+                                                        </h4>
+                                                        {row.kicker && (
+                                                            <p className="text-[12px] text-muted-foreground leading-snug line-clamp-2">
+                                                                {row.kicker}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             );
                         })()}
@@ -1345,6 +1512,29 @@ export default function SubProjectHomePage({ params }: PageProps) {
                             onClick={async () => {
                                 if (deleteArchetypeId) await handleDeleteArchetype(deleteArchetypeId);
                                 setDeleteArchetypeId(null);
+                            }}
+                            className="bg-[color:var(--danger)] text-white hover:brightness-110"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!deletePersonaId} onOpenChange={(open) => !open && setDeletePersonaId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this persona?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The synthesised persona and any inline edits will be permanently removed. You can re-generate it later from the parent archetype.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (deletePersonaId) await handleDeletePersona(deletePersonaId);
+                                setDeletePersonaId(null);
                             }}
                             className="bg-[color:var(--danger)] text-white hover:brightness-110"
                         >

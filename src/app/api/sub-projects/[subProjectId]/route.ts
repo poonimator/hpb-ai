@@ -192,6 +192,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                                 kicker: true,
                                 avatarUrl: true,
                                 archetypeId: true,
+                                contentJson: true,
                                 order: true,
                                 createdAt: true,
                             },

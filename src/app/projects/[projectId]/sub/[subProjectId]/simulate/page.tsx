@@ -36,7 +36,8 @@ import {
     ChevronDown,
     Zap,
     Users,
-    ImagePlus
+    ImagePlus,
+    UserCircle2
 } from "lucide-react";
 import { PageBar } from "@/components/layout/page-bar";
 import { ChatBubble } from "@/components/tools/chat-bubble";
@@ -275,7 +276,9 @@ function SimulationPageContent({ params }: PageProps) {
     const [personas, setPersonas] = useState<PersonaDoc[]>([]);
     const [archetypes, setArchetypes] = useState<ArchetypeItem[]>([]);
     const [selectedPersonaId, setSelectedPersonaId] = useState<string>("");
-    const [selectionType, setSelectionType] = useState<"persona" | "archetype">("persona");
+    // Selection type for 1:1 mode. "persona" = legacy KB persona doc;
+    // "archetype" = Archetype; "syntheticPersona" = SyntheticPersona.
+    const [selectionType, setSelectionType] = useState<"persona" | "archetype" | "syntheticPersona">("persona");
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputMessage, setInputMessage] = useState("");
     const [mixer, setMixer] = useState<MixerSettings>(DEFAULT_MIXER);
@@ -556,13 +559,43 @@ function SimulationPageContent({ params }: PageProps) {
                     for (const ps of data.data.personaSessions) {
                         if (ps.syntheticPersonas?.length > 0) {
                             for (const p of ps.syntheticPersonas) {
+                                // Derive a lightweight demographic blob from
+                                // PersonaContent.bio so the left-side card can
+                                // show age + occupation like archetype cards do.
+                                let derivedDemographic: Record<string, string> | null = null;
+                                let derivedDescription = "";
+                                if (p.contentJson) {
+                                    try {
+                                        const parsed = JSON.parse(p.contentJson);
+                                        const bio = parsed?.bio || {};
+                                        const ctx = parsed?.contextAndEnvironment || {};
+                                        const headline = parsed?.summary?.headline?.value;
+                                        const age = bio.age?.value;
+                                        const gender = bio.gender?.value;
+                                        const housing = ctx.housing?.value;
+                                        const occupationParts: string[] = [];
+                                        if (age != null) occupationParts.push(String(age));
+                                        if (gender) occupationParts.push(String(gender));
+                                        derivedDemographic = {
+                                            ageRange: age != null ? String(age) : "",
+                                            occupation: gender ? String(gender) : "",
+                                            livingSetup: housing ? String(housing) : "",
+                                        };
+                                        derivedDescription = headline || "";
+                                    } catch {
+                                        // ignore parse failures — fall through with empty fields
+                                    }
+                                }
+
                                 allSyntheticPersonas.push({
                                     id: p.id,
                                     name: p.name,
                                     kicker: p.kicker,
-                                    description: "",
-                                    demographicJson: null,
-                                    fullContentJson: null,
+                                    description: derivedDescription,
+                                    demographicJson: derivedDemographic ? JSON.stringify(derivedDemographic) : null,
+                                    // Stash the full PersonaContent here so the right-side detail
+                                    // panel can parse it. `kind: "persona"` flags the shape.
+                                    fullContentJson: p.contentJson || null,
                                     goalsJson: null,
                                     motivationsJson: null,
                                     order: p.order ?? 0,
@@ -574,6 +607,14 @@ function SimulationPageContent({ params }: PageProps) {
                     }
                 }
                 setSyntheticPersonas(allSyntheticPersonas);
+
+                // When only one kind of profile exists, default the participant
+                // toggle to that kind so the user doesn't see an empty list.
+                if (allArchetypes.length === 0 && allSyntheticPersonas.length > 0) {
+                    setParticipantType("persona");
+                } else if (allSyntheticPersonas.length === 0 && allArchetypes.length > 0) {
+                    setParticipantType("archetype");
+                }
             }
 
             const personasRes = await fetch(`/api/projects/${projectId}/kb?docType=PERSONA`);
@@ -734,9 +775,15 @@ function SimulationPageContent({ params }: PageProps) {
                 : {
                     subProjectId,
                     guideVersionId: selectedGuideId !== "none" ? selectedGuideId : undefined,
+                    // Dispatch on selectionType — three possible 1:1 sources:
+                    //   archetype       → archetypeId
+                    //   syntheticPersona → syntheticPersonaId
+                    //   persona (legacy KB doc) → projectPersonaDocId
                     ...(selectionType === "archetype"
                         ? { archetypeId: selectedPersonaId }
-                        : { projectPersonaDocId: selectedPersonaId }
+                        : selectionType === "syntheticPersona"
+                            ? { syntheticPersonaId: selectedPersonaId }
+                            : { projectPersonaDocId: selectedPersonaId }
                     ),
                     mode: "dojo",
                     mixerSettings: mixer,
@@ -1755,7 +1802,7 @@ function SimulationPageContent({ params }: PageProps) {
                                     onClick={startSimulation}
                                     disabled={isFocusGroup
                                         ? selectedArchetypeIds.length < 2
-                                        : (!selectedPersonaId || (personas.length === 0 && archetypes.length === 0))
+                                        : (!selectedPersonaId || (personas.length === 0 && archetypes.length === 0 && syntheticPersonas.length === 0))
                                     }
                                 >
                                     {loading ? (
@@ -1860,42 +1907,10 @@ function SimulationPageContent({ params }: PageProps) {
                                     )}
 
                                     {isFocusGroup ? (
-                                        <div className="space-y-3 py-2">
-                                            <div>
-                                                <Label className="text-caption font-bold text-muted-foreground uppercase tracking-widest">Participant type</Label>
-                                                <div className="mt-2 inline-flex rounded-full bg-[color:var(--surface)] shadow-inset-edge p-1 gap-1">
-                                                    {(["archetype", "persona"] as const).map((kind) => {
-                                                        const active = participantType === kind;
-                                                        const count = kind === "archetype" ? archetypes.length : syntheticPersonas.length;
-                                                        const disabled = count === 0;
-                                                        return (
-                                                            <button
-                                                                key={kind}
-                                                                type="button"
-                                                                disabled={disabled}
-                                                                onClick={() => {
-                                                                    if (disabled) return;
-                                                                    setParticipantType(kind);
-                                                                    setSelectedArchetypeIds([]);
-                                                                }}
-                                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption font-medium transition-colors ${
-                                                                    active
-                                                                        ? "bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-outline-ring"
-                                                                        : disabled
-                                                                            ? "text-muted-foreground/40 cursor-not-allowed"
-                                                                            : "text-muted-foreground hover:text-foreground"
-                                                                }`}
-                                                            >
-                                                                <span className="capitalize">{kind === "archetype" ? "Archetypes" : "Personas"}</span>
-                                                                <span className={`tabular-nums text-[10px] ${active ? "opacity-80" : "opacity-60"}`}>{count}</span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                                <p className="text-caption text-muted-foreground italic mt-2">
-                                                    A focus group must be either {participantType === "archetype" ? "all archetypes" : "all personas"} — you cannot mix types. Select 2–5 below.
-                                                </p>
-                                            </div>
+                                        <div className="text-center py-4">
+                                            <p className="text-caption text-muted-foreground italic">
+                                                Pick 2–5 {participantType === "archetype" ? "archetypes" : "personas"} from the panel below. Use the toggle above the cards to switch between archetypes and personas — you can&rsquo;t mix the two in one focus group.
+                                            </p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2056,7 +2071,7 @@ function SimulationPageContent({ params }: PageProps) {
                         )}
 
                         {/* Main Content — Persona List + Persona Detail */}
-                        {personas.length === 0 && archetypes.length === 0 ? (
+                        {personas.length === 0 && archetypes.length === 0 && syntheticPersonas.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 text-center rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge">
                                 <div className="h-16 w-16 bg-[color:var(--surface)] rounded-full shadow-inset-edge flex items-center justify-center mb-4">
                                     <User className="h-8 w-8 text-muted-foreground" />
@@ -2073,11 +2088,33 @@ function SimulationPageContent({ params }: PageProps) {
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                                {/* Left Column: Persona + Archetype List (4 cols) */}
-                                <div className="lg:col-span-4 space-y-2">
-                                    <h3 className="text-caption font-bold text-muted-foreground uppercase tracking-widest mb-3 pl-1">
-                                        {isFocusGroup ? "Select Archetypes (2-5)" : "Select Persona"}
-                                    </h3>
+                                {/* Left Column: Persona + Archetype List.
+                                    In focus group mode the right detail column is hidden
+                                    (no single-profile detail view makes sense for a group),
+                                    so the list takes the full grid width. */}
+                                <div className={`space-y-2 ${isFocusGroup ? "lg:col-span-12" : "lg:col-span-4"}`}>
+                                    {(() => {
+                                        // Terminology that reflects what the user is actually picking.
+                                        const hasArchetypes = archetypes.length > 0;
+                                        const hasPersonas = syntheticPersonas.length > 0;
+                                        const both = hasArchetypes && hasPersonas;
+                                        const activeKindLabel = participantType === "persona" ? "Persona" : "Archetype";
+                                        const activeKindLabelPlural = participantType === "persona" ? "Personas" : "Archetypes";
+                                        const headerText = isFocusGroup
+                                            ? `Select ${activeKindLabelPlural} (2-5)`
+                                            : both
+                                                ? `Select ${activeKindLabel}`
+                                                : hasArchetypes
+                                                    ? "Select Archetype"
+                                                    : hasPersonas
+                                                        ? "Select Persona"
+                                                        : "Select Profile";
+                                        return (
+                                            <h3 className="text-caption font-bold text-muted-foreground uppercase tracking-widest mb-3 pl-1">
+                                                {headerText}
+                                            </h3>
+                                        );
+                                    })()}
                                     <div className="space-y-1.5">
 
                                         {/* Personas section — hidden in focus group mode */}
@@ -2132,28 +2169,67 @@ function SimulationPageContent({ params }: PageProps) {
                                             </>
                                         )}
 
-                                        {/* Participants section (Archetypes section in 1:1 mode;
-                                            switches between archetypes/personas in focus group mode based on participantType). */}
+                                        {/* Participants section — shown in BOTH 1:1 and focus group modes.
+                                            In 1:1, the toggle gates which list (archetypes vs synthetic
+                                            personas) is shown. When only one kind exists, the toggle is
+                                            hidden and that one list shows. */}
                                         {(() => {
-                                            const pool: ArchetypeItem[] = isFocusGroup
-                                                ? (participantType === "archetype" ? archetypes : syntheticPersonas)
-                                                : archetypes;
+                                            const pool: ArchetypeItem[] = participantType === "persona" ? syntheticPersonas : archetypes;
                                             return pool.length > 0;
                                         })() && (
                                             <>
-                                                {!isFocusGroup && <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1 pt-3">Profiles</p>}
-                                                {isFocusGroup && (
-                                                    <p className="text-caption font-medium text-muted-foreground px-1 pb-1">
-                                                        {selectedArchetypeIds.length}/5 selected {selectedArchetypeIds.length < 2 && "· minimum 2"}
-                                                    </p>
+                                                {/* Toggle row — visible when both kinds exist. Hidden
+                                                    otherwise so single-kind workspaces just show their
+                                                    one list with no extraneous chrome. */}
+                                                {archetypes.length > 0 && syntheticPersonas.length > 0 && (
+                                                    <div className="px-1 pt-3 pb-1.5 flex items-center justify-between gap-2 flex-wrap">
+                                                        <div className="inline-flex rounded-full bg-[color:var(--surface)] shadow-inset-edge p-1 gap-1">
+                                                            {(["archetype", "persona"] as const).map((kind) => {
+                                                                const active = participantType === kind;
+                                                                const count = kind === "archetype" ? archetypes.length : syntheticPersonas.length;
+                                                                const disabled = count === 0;
+                                                                return (
+                                                                    <button
+                                                                        key={kind}
+                                                                        type="button"
+                                                                        disabled={disabled}
+                                                                        onClick={() => {
+                                                                            if (disabled) return;
+                                                                            setParticipantType(kind);
+                                                                            // Reset both selection state shapes so
+                                                                            // we don't carry over a stale ID from the
+                                                                            // other list.
+                                                                            setSelectedArchetypeIds([]);
+                                                                            setSelectedPersonaId("");
+                                                                        }}
+                                                                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption font-medium transition-colors ${
+                                                                            active
+                                                                                ? "bg-[color:var(--primary-soft)] text-[color:var(--primary)] shadow-outline-ring"
+                                                                                : disabled
+                                                                                    ? "text-muted-foreground/40 cursor-not-allowed"
+                                                                                    : "text-muted-foreground hover:text-foreground"
+                                                                        }`}
+                                                                    >
+                                                                        <span className="capitalize">{kind === "archetype" ? "Archetypes" : "Personas"}</span>
+                                                                        <span className={`tabular-nums text-[10px] ${active ? "opacity-80" : "opacity-60"}`}>{count}</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        {isFocusGroup && (
+                                                            <p className="text-caption text-muted-foreground">
+                                                                {selectedArchetypeIds.length}/5 selected {selectedArchetypeIds.length < 2 && "· minimum 2"}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 )}
-                                                {(isFocusGroup
-                                                    ? (participantType === "archetype" ? archetypes : syntheticPersonas)
-                                                    : archetypes
-                                                ).map((arch, idx) => {
+                                                {(participantType === "persona" ? syntheticPersonas : archetypes).map((arch, idx) => {
+                                                    const isPersonaCard = arch.kind === "persona";
                                                     const isSelected = isFocusGroup
                                                         ? selectedArchetypeIds.includes(arch.id)
-                                                        : (selectedPersonaId === arch.id && selectionType === "archetype");
+                                                        : (selectedPersonaId === arch.id && (
+                                                            isPersonaCard ? selectionType === "syntheticPersona" : selectionType === "archetype"
+                                                        ));
                                                     const demographic = arch.demographicJson ? (() => { try { return JSON.parse(arch.demographicJson!); } catch { return null; } })() : null;
                                                     const fgColor = isFocusGroup ? ARCHETYPE_COLORS[idx % ARCHETYPE_COLORS.length] : null;
 
@@ -2171,7 +2247,7 @@ function SimulationPageContent({ params }: PageProps) {
                                                                     });
                                                                 } else {
                                                                     setSelectedPersonaId(arch.id);
-                                                                    setSelectionType("archetype");
+                                                                    setSelectionType(isPersonaCard ? "syntheticPersona" : "archetype");
                                                                 }
                                                             }}
                                                             className={cn(
@@ -2223,7 +2299,10 @@ function SimulationPageContent({ params }: PageProps) {
                                     </div>
                                 </div>
 
-                                {/* Right Column: Selected Detail (8 cols) */}
+                                {/* Right Column: Selected Detail (8 cols).
+                                    Hidden entirely in focus group mode — no single-profile
+                                    detail view applies when the user is picking 2–5 participants. */}
+                                {!isFocusGroup && (
                                 <div className="lg:col-span-8 lg:pt-[28px]">
                                     {selectedPersonaId ? (() => {
                                         // PERSONA detail view
@@ -2453,16 +2532,234 @@ function SimulationPageContent({ params }: PageProps) {
                                             );
                                         }
 
+                                        // SYNTHETIC PERSONA detail view — rich layout mirroring the
+                                        // archetype detail panel, sourced from PersonaContent JSON.
+                                        if (selectionType === "syntheticPersona") {
+                                            const sp = syntheticPersonas.find(p => p.id === selectedPersonaId);
+                                            if (!sp) return null;
+
+                                            const parse = (json: string | null) => { try { return json ? JSON.parse(json) : null; } catch { return null; } };
+                                            const c = parse(sp.fullContentJson);
+                                            const fieldVal = (f: unknown): string | null => {
+                                                if (!f || typeof f !== "object") return null;
+                                                const fld = f as Record<string, unknown>;
+                                                const v = fld.value;
+                                                if (v == null) return null;
+                                                if (Array.isArray(v)) return v.length ? v.join(", ") : null;
+                                                return String(v).trim() || null;
+                                            };
+                                            const fieldArr = (f: unknown): string[] => {
+                                                if (!f || typeof f !== "object") return [];
+                                                const fld = f as Record<string, unknown>;
+                                                if (Array.isArray(fld.value)) return (fld.value as unknown[]).filter((x): x is string => typeof x === "string");
+                                                return [];
+                                            };
+
+                                            const bio = c?.bio || {};
+                                            const goals = c?.goalsAndConcerns || {};
+                                            const ctx = c?.contextAndEnvironment || {};
+                                            const core = c?.coreBehaviourPattern || {};
+                                            const lifestyle = c?.dailyLifestyle?.dimensions as Array<Record<string, unknown>> | undefined;
+                                            const programmes = c?.programmesAndTouchpoints || {};
+                                            const pain = c?.painPointsAndLanguage || {};
+                                            const headline = fieldVal(c?.summary?.headline);
+
+                                            const age = fieldVal(bio.age);
+                                            const gender = fieldVal(bio.gender);
+                                            const ethnicity = fieldVal(bio.ethnicity);
+                                            const housing = fieldVal(ctx.housing);
+                                            const income = fieldVal(ctx.income);
+
+                                            const goalText = fieldVal(goals.goal);
+                                            const fearText = fieldVal(goals.fear);
+                                            const mentalState = fieldVal(goals.mentalState);
+                                            const perceivedRisk = fieldVal(goals.perceivedRisk);
+
+                                            const weekday = fieldVal(core.weekdayPattern);
+                                            const weekend = fieldVal(core.weekendPattern);
+
+                                            const painPoints = fieldArr(pain.painPoints);
+                                            const voiceQuote = fieldVal(pain.voiceQuote);
+                                            const objection = fieldVal(pain.objection);
+
+                                            const channels = fieldVal(programmes.channels);
+                                            const appUsage = fieldVal(programmes.appUsage);
+
+                                            return (
+                                                <div className="rounded-[14px] bg-[color:var(--surface)] shadow-outline-ring p-6 animate-in fade-in duration-200 space-y-5">
+                                                    {/* Header */}
+                                                    <div className="flex items-start gap-4">
+                                                        {sp.avatarUrl ? (
+                                                            <div className="w-14 h-14 rounded-full overflow-hidden shadow-inset-edge shrink-0 bg-[color:var(--surface-muted)]">
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img src={sp.avatarUrl} alt={sp.name} className="h-full w-full object-cover" />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-[14px] bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)] shadow-inset-edge flex items-center justify-center shrink-0">
+                                                                <UserCircle2 className="h-6 w-6" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <h2 className="text-display-3 text-foreground mb-0.5">{sp.name}</h2>
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)]">
+                                                                    Persona
+                                                                </span>
+                                                            </div>
+                                                            {sp.kicker && (
+                                                                <p className="text-caption text-[color:var(--cat-1)] font-medium italic leading-relaxed">&ldquo;{sp.kicker}&rdquo;</p>
+                                                            )}
+                                                            {(age || gender || ethnicity || housing) && (
+                                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                                    {age && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[color:var(--surface-muted)] text-[color:var(--cat-1)] shadow-inset-edge">
+                                                                            {age}{age && !Number.isNaN(Number(age)) ? " yo" : ""}
+                                                                        </span>
+                                                                    )}
+                                                                    {gender && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[color:var(--surface-muted)] text-muted-foreground shadow-inset-edge capitalize">
+                                                                            {gender}
+                                                                        </span>
+                                                                    )}
+                                                                    {ethnicity && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[color:var(--surface-muted)] text-muted-foreground shadow-inset-edge">
+                                                                            {ethnicity}
+                                                                        </span>
+                                                                    )}
+                                                                    {housing && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[color:var(--surface-muted)] text-muted-foreground shadow-inset-edge">
+                                                                            {housing}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Headline */}
+                                                    {headline && (
+                                                        <p className="text-body-sm text-muted-foreground leading-relaxed">{headline}</p>
+                                                    )}
+
+                                                    {/* Core behaviour pattern */}
+                                                    {(weekday || weekend) && (
+                                                        <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                            <h4 className="text-caption font-bold text-[color:var(--cat-1)] uppercase tracking-wider mb-2">Core Behaviour</h4>
+                                                            {weekday && (
+                                                                <p className="text-caption text-foreground leading-relaxed">
+                                                                    <span className="font-semibold">Weekday: </span>{weekday}
+                                                                </p>
+                                                            )}
+                                                            {weekend && (
+                                                                <p className="text-caption text-foreground leading-relaxed mt-1.5">
+                                                                    <span className="font-semibold">Weekend: </span>{weekend}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Bio + Goals 2-col grid */}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                                        {(income || age || gender || ethnicity) && (
+                                                            <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-foreground uppercase tracking-wider mb-2">Bio</h4>
+                                                                <ul className="space-y-1">
+                                                                    {age && <li className="text-caption text-foreground"><span className="text-muted-foreground">Age:</span> {age}</li>}
+                                                                    {gender && <li className="text-caption text-foreground"><span className="text-muted-foreground">Gender:</span> <span className="capitalize">{gender}</span></li>}
+                                                                    {ethnicity && <li className="text-caption text-foreground"><span className="text-muted-foreground">Ethnicity:</span> {ethnicity}</li>}
+                                                                    {income && <li className="text-caption text-foreground"><span className="text-muted-foreground">Income:</span> {income}</li>}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+
+                                                        {(goalText || fearText || mentalState || perceivedRisk) && (
+                                                            <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-foreground uppercase tracking-wider mb-2">Goals & Concerns</h4>
+                                                                <ul className="space-y-1.5">
+                                                                    {goalText && <li className="text-caption text-foreground leading-relaxed"><span className="text-muted-foreground">Goal: </span>{goalText}</li>}
+                                                                    {fearText && <li className="text-caption text-foreground leading-relaxed"><span className="text-muted-foreground">Fear: </span>{fearText}</li>}
+                                                                    {mentalState && <li className="text-caption text-foreground leading-relaxed"><span className="text-muted-foreground">Mental state: </span>{mentalState}</li>}
+                                                                    {perceivedRisk && <li className="text-caption text-foreground leading-relaxed"><span className="text-muted-foreground">Perceived risk: </span>{perceivedRisk}</li>}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Daily lifestyle */}
+                                                    {Array.isArray(lifestyle) && lifestyle.length > 0 && (
+                                                        <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                            <h4 className="text-caption font-bold text-foreground uppercase tracking-wider mb-2">Daily Lifestyle</h4>
+                                                            <ul className="space-y-1.5">
+                                                                {lifestyle.map((d, i) => {
+                                                                    const name = typeof d.name === "string" ? d.name : null;
+                                                                    const desc = fieldVal(d.description);
+                                                                    if (!name || !desc) return null;
+                                                                    return (
+                                                                        <li key={i} className="text-caption text-foreground leading-relaxed">
+                                                                            <span className="text-muted-foreground">{name}: </span>{desc}
+                                                                        </li>
+                                                                    );
+                                                                })}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Pain points + Channels 2-col grid */}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                                        {painPoints.length > 0 && (
+                                                            <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-foreground uppercase tracking-wider mb-2">Pain Points</h4>
+                                                                <ul className="space-y-1">
+                                                                    {painPoints.map((p, i) => (
+                                                                        <li key={i} className="text-caption text-foreground leading-relaxed flex items-start gap-2">
+                                                                            <span className="h-1 w-1 rounded-full bg-muted-foreground/50 mt-2 shrink-0" />
+                                                                            <span>{p}</span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+
+                                                        {(channels || appUsage) && (
+                                                            <div className="rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge p-4">
+                                                                <h4 className="text-caption font-bold text-foreground uppercase tracking-wider mb-2">Touchpoints</h4>
+                                                                <ul className="space-y-1.5">
+                                                                    {channels && <li className="text-caption text-foreground leading-relaxed"><span className="text-muted-foreground">Channels: </span>{channels}</li>}
+                                                                    {appUsage && <li className="text-caption text-foreground leading-relaxed"><span className="text-muted-foreground">Apps: </span>{appUsage}</li>}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Voice quote / objection */}
+                                                    {(voiceQuote || objection) && (
+                                                        <div className="rounded-[14px] bg-[color:var(--cat-1-soft)] shadow-inset-edge p-4">
+                                                            <h4 className="text-caption font-bold text-[color:var(--cat-1)] uppercase tracking-wider mb-2">In Their Words</h4>
+                                                            {voiceQuote && (
+                                                                <p className="text-caption text-foreground italic leading-relaxed">&ldquo;{voiceQuote}&rdquo;</p>
+                                                            )}
+                                                            {objection && (
+                                                                <p className="text-caption text-muted-foreground leading-relaxed mt-2">
+                                                                    <span className="font-semibold">Objection: </span>{objection}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+
                                         return null;
                                     })() : (
                                         <div className="flex flex-col items-center justify-center py-16 text-center rounded-[14px] bg-[color:var(--surface-muted)] shadow-inset-edge">
                                             <div className="h-12 w-12 bg-[color:var(--surface)] rounded-full shadow-inset-edge flex items-center justify-center mb-3">
                                                 <User className="h-6 w-6 text-muted-foreground" />
                                             </div>
-                                            <p className="text-body-sm font-medium text-muted-foreground">Select a persona or archetype to view their profile</p>
+                                            <p className="text-body-sm font-medium text-muted-foreground">Select a profile to view their details</p>
                                         </div>
                                     )}
                                 </div>
+                                )}
                             </div>
                         )}
                     </WorkspaceFrame>

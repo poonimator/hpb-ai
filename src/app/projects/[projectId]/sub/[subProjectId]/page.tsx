@@ -1065,9 +1065,9 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                 href={`/projects/${projectId}/sub/${subProjectId}/archetypes/new`}
                                                 className="group/btn flex-1 flex items-start gap-2.5 p-2.5 rounded-[10px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card hover:-translate-y-px hover:ring-1 hover:ring-[color:var(--cat-3)]/30 cursor-pointer transition-all duration-150 active:scale-[0.99]"
                                             >
-                                                <div className="h-7 w-7 rounded-[8px] bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)] shadow-inset-edge flex items-center justify-center shrink-0 group-hover/btn:scale-110 transition-transform">
+                                                {/*<div className="h-7 w-7 rounded-[8px] bg-[color:var(--cat-3-soft)] text-[color:var(--cat-3)] shadow-inset-edge flex items-center justify-center shrink-0 group-hover/btn:scale-110 transition-transform">
                                                     <Users className="h-3.5 w-3.5" />
-                                                </div>
+                                                </div>*/}
                                                 <div className="min-w-0">
                                                     <p className="text-ui-sm font-semibold text-foreground leading-tight group-hover/btn:text-[color:var(--cat-3)] transition-colors">Archetypes</p>
                                                     <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
@@ -1079,9 +1079,9 @@ export default function SubProjectHomePage({ params }: PageProps) {
                                                 href={personasHref}
                                                 className="group/btn flex-1 flex items-start gap-2.5 p-2.5 rounded-[10px] bg-[color:var(--surface)] shadow-outline-ring hover:shadow-card hover:-translate-y-px hover:ring-1 hover:ring-[color:var(--cat-1)]/30 cursor-pointer transition-all duration-150 active:scale-[0.99]"
                                             >
-                                                <div className="h-7 w-7 rounded-[8px] bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)] shadow-inset-edge flex items-center justify-center shrink-0 group-hover/btn:scale-110 transition-transform">
+                                                {/*<div className="h-7 w-7 rounded-[8px] bg-[color:var(--cat-1-soft)] text-[color:var(--cat-1)] shadow-inset-edge flex items-center justify-center shrink-0 group-hover/btn:scale-110 transition-transform">
                                                     <UserCircle2 className="h-3.5 w-3.5" />
-                                                </div>
+                                                </div>*/}
                                                 <div className="min-w-0">
                                                     <p className="text-ui-sm font-semibold text-foreground leading-tight group-hover/btn:text-[color:var(--cat-1)] transition-colors">Personas</p>
                                                     <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
